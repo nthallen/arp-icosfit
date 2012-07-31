@@ -1,10 +1,10 @@
-function rrcompare( base1, base2, CPCI14 );
-% rrcompare( base1, base2, CPCI14 );
+function rrcompare( base1, loadscans, CPCI14 );
+% rrcompare( base1, loadscans, CPCI14 );
 % Plots to compare fits using two different baseline assumptions.
 
 path = mlf_path('base', CPCI14);
 path1 = mlf_path(base1, CPCI14);
-path2 = mlf_path(base2, CPCI14);
+path2 = mlf_path(loadscans, CPCI14);
 log1 = load(path1);
 log2 = load(path2);
 x1 = log1(:,1);

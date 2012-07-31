@@ -18,7 +18,7 @@
 %     Mirror Loss is l/(c*tau)
 %   }
 %   Baseline Determination {
-%     Use base2 to extract baselines from appropriate scans
+%     Use loadscans to extract baselines from appropriate scans
 %     Use svds to generate modes
 %     use base5 to determine how many modes are required
 %     use writeskewbase to output the result {
@@ -90,10 +90,10 @@
 %   interpret the results. Also, do a DFT on the modes and
 %   see if I can pick out the cavity length.
 % 
-%   [ icos, etln ] = base2( [], [4605:5000] );
+%   [ icos, etln ] = loadscans( [], [4605:5000] );
 % 	Try:
-%   [ icos, etln ] = base2( [], [4605:5000], [600:1750] );
-%   [ icos, etln ] = base2( [], [4605:5000], [1:2000] );
+%   [ icos, etln ] = loadscans( [], [4605:5000], [600:1750] );
+%   [ icos, etln ] = loadscans( [], [4605:5000], [1:2000] );
 % 
 % 	generate a wavenumber scale:
 % 

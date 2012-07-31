@@ -36,7 +36,7 @@ breaks=[1;find(diff(PTE(:,1))>1);size(PTE,1)];
 for i = 1:length(breaks)-1
     j=PTE(breaks(i)+1,1);
     while j < (PTE(breaks(i+1)-1,1)-n_avg)
-        try [icos,etln]=base2([],j:j+n_avg-1); 
+        try [icos,etln]=loadscans([],j:j+n_avg-1); 
         icos=mean(icos');
         etln=mean(etln');
         writebin(mlf_path(baseCPCI,j),[icos;etln]');

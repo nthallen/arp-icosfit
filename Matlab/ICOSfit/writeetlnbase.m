@@ -53,7 +53,7 @@ NP_path = findinpath('N_Passes.mat', {'.','..'});
 if ~isempty(NP_path)
   load(NP_path);
 end
-% icos = base2([],30000); % random scan
+% icos = loadscans([],30000); % random scan
 % plot(icos); % to pick x range
 % x = [500:2644]';
 % V = fliplr(polyfit(x, icos(x)/1000, 3);
@@ -66,7 +66,7 @@ if p_coeffs>0
     if nargin >= 6
       wv = waves_used(cpci);
       x = get_waveform_params(wv.Name,'SignalRegion', 1:wv.NetSamples);
-      rawdata = base2([],cpci,x);
+      rawdata = loadscans([],cpci,x);
       x = x'/1000;
     else
       error('Cannot currently guess suitable raw source for Herriot');

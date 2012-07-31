@@ -51,7 +51,7 @@
 %   t_error.m - Explore effects of errors in T on fits
 % 
 % 
-% base2.m
+% loadscans.m
 % base4.m
 % basefind.m
 % basetest.m

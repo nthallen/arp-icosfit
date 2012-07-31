@@ -1,5 +1,5 @@
-function [ base, etln, bkgd ] = base2(basepath, cpci14, x, zero);
-% [ icos, etln, bkgd ] = base2(basepath, cpci14[, x[, zero]]);
+function [ base, etln, bkgd ] = loadscans(basepath, cpci14, x, zero);
+% [ icos, etln, bkgd ] = loadscans(basepath, cpci14[, x[, zero]]);
 % Extracts a number of ICOS scans from the raw files.
 % base has length(x) rows and length(cpci14) columns
 % x defaults to the entire scan;
