@@ -1,0 +1,231 @@
+ATTR FVal : double;
+ATTR Key : DefTableKey;
+ATTR String : int;
+
+SYMBOL Path COMPUTE
+  SYNT.String = TERM;
+END;
+RULE: FloatVal ::= Float COMPUTE
+  FloatVal.FVal = atof(StringTable(Float));
+END;
+RULE: FloatVal ::= Integer COMPUTE
+  FloatVal.FVal = CAST(double,Integer);
+END;
+RULE: FloatVal ::= '-' FloatVal COMPUTE
+  FloatVal[1].FVal = SUB(ZERO(),FloatVal[2].FVal);
+END;
+
+ATTR Low, High : int;
+RULE: IntegerPair ::= '[' Integer ',' Integer ']' COMPUTE
+  IntegerPair.Low = Integer[1];
+  IntegerPair.High = Integer[2];
+END;
+RULE: ConfigCmd ::= 'MirrorLoss' '=' FloatVal opt_ppm COMPUTE
+  SetGlobal(MirrorLoss, MUL( FloatVal.FVal, opt_ppm.FVal ) );
+END;
+
+RULE: ConfigCmd ::= 'BackgroundRegion' '=' IntegerPair COMPUTE
+  SetGlobalPair(BackgroundRegion, IntegerPair.Low, IntegerPair.High );
+END;
+
+RULE: ConfigCmd ::= 'SignalRegion' '=' IntegerPair COMPUTE
+  SetGlobalPair(SignalRegion, IntegerPair.Low, IntegerPair.High );
+END;
+
+RULE: ConfigCmd ::= 'CPCI14Range' '=' IntegerPair COMPUTE
+  SetGlobalPair(CPCI14Range, IntegerPair.Low, IntegerPair.High );
+END;
+
+RULE: ConfigCmd ::= 'Restart' 'at' Integer opt_preserve COMPUTE
+  SetGlobal( RestartAt, Integer );
+END;
+RULE: opt_preserve ::= 'PreserveOutput' COMPUTE
+  SetGlobal( PreserveOutput, 1 );
+END;
+
+RULE: ConfigCmd ::= 'DSFRLimits' '=' '[' FloatVal ',' FloatVal ']' COMPUTE
+  SetGlobalPair( DSFRLimits, FloatVal[1].FVal, FloatVal[2].FVal );
+END;
+RULE: ConfigCmd ::= 'EtalonFSR' '=' FloatVal opt_cm COMPUTE
+  SetGlobal(EtalonFSR, FloatVal.FVal );
+END;
+RULE: ConfigCmd ::= 'MinimumFringeSpacing' '=' FloatVal COMPUTE
+  SetGlobal(MinimumFringeSpacing, FloatVal.FVal );
+END;
+RULE: ConfigCmd ::= 'TolerableDrift' '=' FloatVal opt_cm COMPUTE
+  SetGlobal(TolerableDrift, FloatVal.FVal );
+END;
+RULE: ConfigCmd ::= 'LineMargin' '=' FloatVal opt_cm COMPUTE
+  SetGlobal(LineMargin, FloatVal.FVal );
+END;
+RULE: ConfigCmd ::= 'CavityLength' '=' FloatVal COMPUTE
+  SetGlobal(CavityLength, FloatVal.FVal );
+END;
+RULE: ConfigCmd ::= 'Sigma' '=' FloatVal COMPUTE
+  SetGlobal(Sigma, FloatVal.FVal );
+END;
+RULE: ConfigCmd ::= 'TuningRate' '=' FloatVal opt_tunerate COMPUTE
+  SetGlobal(TuningRate, FloatVal.FVal );
+END;
+RULE: ConfigCmd ::= 'SampleRate' '=' FloatVal Frequency COMPUTE
+  SetGlobal(SampleRate, MUL( FloatVal.FVal, Frequency.FVal ) );
+END;
+RULE: ConfigCmd ::= 'SkewTolerance' '=' FloatVal opt_ppm COMPUTE
+  SetGlobal(SkewTolerance, MUL( FloatVal.FVal, opt_ppm.FVal));
+END;
+RULE: ConfigCmd ::= 'nu0' '=' Integer COMPUTE
+  IF(Nu0IsSet,
+    message(ERROR, "Cannot redefine nu0",0,COORDREF),
+    SetNu0(Integer));
+END;
+
+RULE: ConfigCmd ::= 'Binary' COMPUTE
+  SetGlobal(binary, 1 );
+END;
+RULE: ConfigCmd ::= 'ASCII' COMPUTE
+  SetGlobal(binary, 0 );
+END;
+
+RULE: ConfigCmd ::= 'FitFunction' '=' Ident COMPUTE
+  message(ERROR, "FitFunction keyword is currently non-functional",0,COORDREF);
+  SetGlobal(FitFunction, StringTable(Ident));
+END;
+RULE: ConfigCmd ::= 'ICOSdir' '=' Path COMPUTE
+  SetGlobal(ICOSdir, StringTable(Path.String));
+END;
+RULE: ConfigCmd ::= 'PandTFile' '=' Path COMPUTE
+  SetGlobal(PTFile, StringTable(Path.String));
+  SetGlobal(PTformat, 0);
+END;
+RULE: ConfigCmd ::= 'PTFile' '=' Path COMPUTE
+  SetGlobal(PTFile, StringTable(Path.String));
+  SetGlobal(PTformat, 1);
+END;
+RULE: ConfigCmd ::= 'PTEFile' '=' Path COMPUTE
+  SetGlobal(PTFile, StringTable(Path.String));
+  SetGlobal(PTformat, 2);
+END;
+RULE: ConfigCmd ::= 'BaselineFile' '=' Path opt_BaselineInput COMPUTE
+  SetGlobal(BaselineFile, StringTable(Path.String));
+END;
+RULE: ConfigCmd ::= 'OutputDir' '=' Path COMPUTE
+  SetGlobal(OutputDir, StringTable(Path.String));
+END;
+RULE: ConfigCmd ::= 'OutputFile' '=' Path COMPUTE
+  SetGlobal(OutputFile, StringTable(Path.String));
+END;
+RULE: ConfigCmd ::= 'LogFile' '=' Path COMPUTE
+  SetGlobal(LogFile, StringTable(Path.String));
+END;
+RULE: ConfigCmd ::= 'MFile' '=' Path COMPUTE
+  SetGlobal(MFile, StringTable(Path.String));
+END;
+RULE: ConfigCmd ::= 'Verbosity' '=' Integer COMPUTE
+  SetGlobal(Verbosity, Integer);
+END;
+RULE: ConfigCmd ::= 'QCLI_Wave' '=' Integer COMPUTE
+  SetGlobal(QCLI_Wave, Integer);
+END;
+RULE: ConfigCmd ::= 'N_Passes' '=' Integer COMPUTE
+  SetGlobal(N_Passes, Integer);
+END;
+
+ATTR mol, iso, ierr, ipos, fixdoppler, fixlorentz : int;
+ATTR nu, S, Gair, E, n, delta, threshold : double;
+SYMBOL ConfigFile COMPUTE
+  SYNT.Key = NewKey();
+  SYNT.optsset = CONSTITUENTS ( Threshold.threshset, LineParam.optsset );
+END;
+
+RULE: Threshold ::= 'Threshold' '=' FloatVal COMPUTE
+  Threshold.threshold = FloatVal.FVal;
+  Threshold.Key = INCLUDING (Line.Key, ConfigFile.Key);
+  Threshold.threshset = IF ( HasThreshold( Threshold.Key ),
+    message(ERROR, "Multiple threshold definitions",0,COORDREF),
+	SetThreshold( Threshold.Key, Threshold.threshold, 0. ));
+END;
+RULE: Position ::= 'Position' '=' Integer COMPUTE
+  Position.Key = INCLUDING Line.Key;
+  Position.ipos = Integer;
+  Position.positionset = IF ( HasPosition( Position.Key ),
+    message(ERROR, "Multiple Position definitions",0,COORDREF),
+    SetPosition( Position.Key, Position.ipos, 0 ) );
+END;
+
+ATTR fixfloat : int;
+RULE: FixLineParam ::= FixFloat LineParam COMPUTE
+  FixLineParam.fixfloat = FixFloat.fixfloat;
+END;
+RULE: FixFloat ::= 'Fix' COMPUTE
+  FixFloat.fixfloat = 1;
+END;
+RULE: FixFloat ::= 'Float' COMPUTE
+  FixFloat.fixfloat = 0;
+END;
+RULE: LineParam ::= 'Doppler' COMPUTE
+  LineParam.Key = INCLUDING (Line.Key, ConfigFile.Key);
+  LineParam.optsset = IF ( HasFixDoppler( LineParam.Key ),
+    message(ERROR, "Multiple Fix/Float Doppler definitions",0,COORDREF),
+	SetFixDoppler( LineParam.Key, INCLUDING FixLineParam.fixfloat, 0 ));
+END;
+RULE: LineParam ::= 'Lorentz' COMPUTE
+  LineParam.Key = INCLUDING (Line.Key, ConfigFile.Key);
+  LineParam.optsset = IF ( HasFixLorentz( LineParam.Key ),
+    message(ERROR, "Multiple Fix/Float Lorentz definitions",0,COORDREF),
+	SetFixLorentz( LineParam.Key, INCLUDING FixLineParam.fixfloat, 0 ));
+END;
+RULE: LineParam ::= 'FinePosition' COMPUTE
+  LineParam.Key = INCLUDING (Line.Key, ConfigFile.Key);
+  LineParam.optsset = IF ( HasFixFinePosition( LineParam.Key ),
+    message(ERROR, "Multiple Fix/Float FinePosition definitions",0,COORDREF),
+	SetFixFinePosition( LineParam.Key, INCLUDING FixLineParam.fixfloat, 0 ));
+END;
+
+ATTR fixdoppler, fixlorentz, fixfinepos : int;
+RULE: Line ::= Integer Integer FloatVal FloatVal FloatVal FloatVal
+               FloatVal FloatVal Integer LineOpts ';' COMPUTE
+  Line.Key = NewKey();
+  Line.mol   = Integer[1];
+  Line.iso   = Integer[2];
+  Line.nu    = FloatVal[1].FVal;
+  Line.S     = FloatVal[2].FVal;
+  Line.Gair  = FloatVal[3].FVal;
+  Line.E     = FloatVal[4].FVal;
+  Line.n     = FloatVal[5].FVal;
+  Line.delta = FloatVal[6].FVal;
+  Line.ierr  = Integer[3];
+  Line.ipos = GetPosition(Line.Key, 0 ) <- CONSTITUENTS Position.positionset;
+  Line.threshold = GetThreshold(Line.Key,
+                    GetThreshold( INCLUDING ConfigFile.Key, 0.0001 )) <-
+                      INCLUDING ConfigFile.optsset;
+  Line.fixdoppler = GetFixDoppler(Line.Key,
+                     GetFixDoppler( INCLUDING ConfigFile.Key, 0)) <-
+                      INCLUDING ConfigFile.optsset;
+  Line.fixlorentz = GetFixLorentz(Line.Key,
+                     GetFixLorentz( INCLUDING ConfigFile.Key, 0)) <-
+                      INCLUDING ConfigFile.optsset;
+  Line.fixfinepos = GetFixFinePosition(Line.Key,
+                     GetFixFinePosition( INCLUDING ConfigFile.Key, 1)) <-
+                      INCLUDING ConfigFile.optsset;
+END;
+
+CHAIN Absorb : func_abs_p;
+SYMBOL ConfigFile COMPUTE
+  CHAINSTART HEAD.Absorb = new_func_abs();
+  SetGlobal( absorb, TAIL.Absorb );
+END;
+SYMBOL Line COMPUTE
+  THIS.Absorb = abs_append( THIS.Absorb,
+    new_voigt(THIS.mol, THIS.iso, THIS.nu, THIS.S, THIS.Gair, THIS.E,
+				THIS.n, THIS.delta, THIS.ipos, THIS.threshold,
+				THIS.fixdoppler, THIS.fixlorentz, THIS.fixfinepos ));
+END;
+
+RULE: opt_ppm ::=       COMPUTE opt_ppm.FVal = 1.; END;
+RULE: opt_ppm ::= '%'   COMPUTE opt_ppm.FVal = .01; END;
+RULE: opt_ppm ::= 'ppm' COMPUTE opt_ppm.FVal = .000001; END;
+RULE: Frequency ::=       COMPUTE Frequency.FVal = 1; END;
+RULE: Frequency ::= 'Hz'  COMPUTE Frequency.FVal = 1; END;
+RULE: Frequency ::= 'kHz' COMPUTE Frequency.FVal = 1000.; END;
+RULE: Frequency ::= 'MHz' COMPUTE Frequency.FVal = 100000.; END;
+RULE: opt_BaselineInput ::= '+' 'Input' COMPUTE SetGlobal( BaselineInput, 1 ); END;

@@ -1,0 +1,46 @@
+Program : 'Header:' HDef* 'Evaluation:' Statement* .
+HDef : PandT / IDir / ODir / OFile / ODesc / HITRANFile / ZeroRange / DataRange .
+PandT : 'Input' 'PandT:' Path ';' .
+IDir : 'Input' 'Directory:' Path ';' .
+ODir : 'Output' 'Directory:' Path ';' .
+OFile : 'Output' 'File:' Path ';' .
+ODesc : 'Output' 'Description:' Path ';' .
+HITRANFile : 'HITRAN' 'Source:' Path ';' .
+Path :
+  BarePath /
+  QuotedString .
+ZeroRange : 'Zero' 'Range:' '(' Integer ',' Integer ')' ';' .
+DataRange : 'Data' 'Range:' '(' Integer ',' Integer ')' ';' .
+
+Statement :
+  Assignment /
+  OutputSpec .
+
+OutputSpec : 'Output' OutputList ';' .
+OutputList : VarRef / OutputList ',' VarRef .
+
+Assignment : VarDef '=' Expression ';' .
+VarDef : DefModifier VarName .
+DefModifier : / 'const' / 'fixed' .
+
+Expression :
+  Expr_Sum /
+  '-' Expr_Sum .
+Expr_Sum :
+  Term /
+  Expr_Sum '+' Term /
+  Expr_Sum '-' Term .
+Term : 
+  Factor /
+  Term '*' Factor /
+  Term '/' Factor .
+Factor :
+  Number /
+  VarRef /
+  'exp(' Expression ')' /
+  'log(' Expression ')' /
+  'pow(' Expression ')' /
+  'voigt(' Expression ')' /
+  '(' Expression ')' .
+VarRef : VarName .
+

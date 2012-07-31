@@ -1,0 +1,21 @@
+# Empirical evidence indicates that -O2 is required for
+# correct operation of the fit. I have not localized
+# what is fixed by the optimization.
+
+%flags == <<
++cc='g++'
++lib=nort m +lib_sp=(/usr/local/lib)
++cc_flags='-Wall -O2'
+
+# Add this to %flags if necessary
+# +cc_flags='-I /usr/local/include'
+
+
+%dflags == <<
++cc_flags='-DHAVE_MALLOC_G_MALLOC_H -DHAVE_LIBMALLOC_G'
++lib=malloc_g +lib_sp=(/usr/lib/malloc_g)
+
+%help ! == %target :help
+%target == front.specs +(%flags) :exe
+%mdtarget == front.specs +(%flags) +(%dflags) +debug :exe
+%dtarget == front.specs +(%flags) +debug :exe

@@ -1,0 +1,48 @@
+#ifndef PTREAD_H_INCLUDED
+#define PTREAD_H_INCLUDED
+#include <stdio.h>
+#include "mlf.h"
+#include "f_vector.h"
+
+class PTfile {
+  public:
+    FILE *fp;
+    double time;
+    double P, T;
+    double cal_flow, inlet_flow;
+    unsigned long CPCI14, CPCI16;
+    int RORIS, RateS;
+    unsigned long next_CPCI14;
+
+    int readline();
+	void calc_wndata();
+    PTfile( const char *fname );
+  private:
+    int format;
+    int n_vars;
+	double Etln_params[8];
+};
+
+class ICOSfile {
+  public:
+    ICOSfile(const char *fbase, const char *obase, int bin );
+    int read(unsigned long int fileno);
+    FILE *writefp();
+    int fit_fringes(unsigned long int fileno);
+    int wn_sample( float wn );
+
+    mlf_def_t *mlf;
+    mlf_def_t *omlf;
+    FILE *ofp;
+    f_vector *sdata;
+    f_vector *edata;
+    f_vector *fdata;
+    static f_vector *bdata;
+    static f_vector *wndata;
+    static float nu_F0;
+    static int dFN;
+    int binary;
+    static const int mindatasize;
+};
+
+#endif

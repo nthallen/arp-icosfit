@@ -1,0 +1,55 @@
+ConfigFile : ConfigLine+ .
+ConfigLine : ConfigCmd ';' .
+ConfigCmd :
+  Linedef /
+  'BackgroundRegion' '=' IntegerPair /
+  'SignalRegion' '=' IntegerPair /
+  'CPCI14Range' '=' IntegerPair /
+  'Restart' 'at' Integer opt_preserve /
+  'nu0' '=' Integer /
+  'FitFunction' '=' Ident /
+  'MirrorLoss' '=' FloatVal opt_ppm /
+  'EtalonFSR' '=' FloatVal opt_cm /
+  'MinimumFringeSpacing' '=' FloatVal /
+  'DSFRLimits' '=' '[' FloatVal ',' FloatVal ']' /
+  'TolerableDrift' '=' FloatVal opt_cm /
+  'LineMargin' '=' FloatVal opt_cm /
+  'CavityLength' '=' FloatVal /
+  'Sigma' '=' FloatVal /
+  'QCLI_Wave' '=' Integer /
+  'TuningRate' '=' FloatVal opt_tunerate /
+  'SampleRate' '=' FloatVal Frequency /
+  'SkewTolerance' '=' FloatVal opt_ppm /
+  Threshold /
+  FixLineParam /
+  'Binary' / 'ASCII' /
+  'ICOSdir' '=' Path /
+  'PandTFile' '=' Path /
+  'PTFile' '=' Path /
+  'BaselineFile' '=' Path opt_BaselineInput /
+  'OutputDir' '=' Path /
+  'OutputFile' '=' Path /
+  'LogFile' '=' Path /
+  'MFile' '=' Path /
+  'Verbosity' '=' Integer /
+  'N_Passes' '=' Integer .
+Path : PathStr / Ident .
+IntegerPair : '[' Integer ',' Integer ']' .
+opt_BaselineInput : / '+' 'Input' .
+opt_ppm : / '%' / 'ppm' .
+opt_cm : / 'cm-1' .
+opt_preserve : / 'PreserveOutput' .
+opt_tunerate : / 'cm-1' '/' 'sample' .
+Frequency : / 'Hz' / 'kHz' / 'MHz' .
+Threshold : 'Threshold' '=' FloatVal .
+Position : 'Position' '=' Integer .
+Linedef : 'Lines' '=' '{' Lines '}' .
+Lines : / Lines Line .
+Line : Integer Integer FloatVal FloatVal FloatVal FloatVal
+                      FloatVal FloatVal Integer LineOpts ';' .
+LineOpts : / LineOpts ',' LineOpt .
+LineOpt : Threshold / Position / FixLineParam .
+FixLineParam : FixFloat LineParam .
+FixFloat : 'Fix' / 'Float' .
+LineParam : 'Lorentz' / 'Doppler' / 'FinePosition' .
+FloatVal : Float / Integer / '-' FloatVal .

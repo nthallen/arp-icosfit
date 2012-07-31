@@ -1,0 +1,10 @@
+Threshold : double [Has];
+Position : int [Has];
+FixDoppler : int [Has];
+FixLorentz : int [Has];
+FixFinePosition : int [Has];
+
+int Has (DefTableKey key) {
+  return(PRESENT);
+}
+
