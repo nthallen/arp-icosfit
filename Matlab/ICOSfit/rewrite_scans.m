@@ -1,6 +1,10 @@
-function rewrite_ssp
-ibase = 'SSP';
-obase = 'CPCI14';
+function rewrite_scans(ibase,obase)
+if nargin <1
+   ibase = 'SSP';
+end
+if nargin <2
+   obase = 'CPCI14';
+end
 index = 1;
 while 1
   pi = mlf_path(ibase,index);
