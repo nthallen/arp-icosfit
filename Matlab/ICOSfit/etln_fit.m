@@ -1,5 +1,5 @@
-function varargout = etln_fit8(varargin)
-% ETLN_FIT8 M-file for etln_fit8.fig
+function varargout = etln_fit(varargin)
+% ETLN_FIT8 M-file for etln_fit.fig
 % ETLN_FIT8( 'CPCI', cpci_vector, 'OFILE', output_filename, 'SAVEALL', 1 );
 %      ETLN_FIT8, by itself, creates a new ETLN_FIT8 or raises the existing
 %      singleton*.
@@ -12,9 +12,9 @@ function varargout = etln_fit8(varargin)
 %
 %      ETLN_FIT8('Property','Value',...) creates a new ETLN_FIT8 or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before etln_fit8_OpeningFunction gets called.  An
+%      applied to the GUI before etln_fit_OpeningFunction gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to etln_fit8_OpeningFcn via varargin.
+%      stop.  All inputs are passed to etln_fit_OpeningFcn via varargin.
 %
 %      CPCI - vector of CPCI numbers to fit
 %      OFILE - output file name
@@ -37,8 +37,8 @@ function varargout = etln_fit8(varargin)
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @etln_fit8_OpeningFcn, ...
-                   'gui_OutputFcn',  @etln_fit8_OutputFcn, ...
+                   'gui_OpeningFcn', @etln_fit_OpeningFcn, ...
+                   'gui_OutputFcn',  @etln_fit_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -53,15 +53,15 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before etln_fit8 is made visible.
-function etln_fit8_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before etln_fit is made visible.
+function etln_fit_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to etln_fit8 (see VARARGIN)
+% varargin   command line arguments to etln_fit (see VARARGIN)
 
-% Choose default command line output for etln_fit8
+% Choose default command line output for etln_fit
 handles.output = hObject;
 handles.data.ofile = 'PTE.txt';
 handles.data.saveall = 0;
@@ -142,12 +142,12 @@ update_X_to_fig(handles);
 next_cpci_file(hObject, handles );
 
 
-% UIWAIT makes etln_fit8 wait for user response (see UIRESUME)
+% UIWAIT makes etln_fit wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = etln_fit8_OutputFcn(hObject, eventdata, handles) 
+function varargout = etln_fit_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB

@@ -1,9 +1,9 @@
-function matchline7( op, line_obj )
-% matchline7( op[, lo] );
-% matchline7( 'init', lo );
-% matchline7( 'next' );
-% matchline7( 'prev' );
-% matchline7( 'save' );
+function matchline( op, line_obj )
+% matchline( op[, lo] );
+% matchline( 'init', lo );
+% matchline( 'next' );
+% matchline( 'prev' );
+% matchline( 'save' );
 %
 % lo is a line_obj struct from fitline.
 %
@@ -260,11 +260,11 @@ if nargin == 0 || strcmp(op,'init')
     fig = figure;
     ml_obj.ax = axes('position', [.1 .5 .8 .4 ]);
     set(fig,'UserData',ml_obj,'Name', 'matchline', 'Numbertitle', 'off');
-    uicontrol(fig,'style','pushbutton','string','Next','Callback','matchline7(''next'')',...
+    uicontrol(fig,'style','pushbutton','string','Next','Callback','matchline(''next'')',...
       'tag','next','position',[40 60 60 20]);
-    uicontrol(fig,'style','pushbutton','string','Prev','Callback','matchline7(''prev'')',...
+    uicontrol(fig,'style','pushbutton','string','Prev','Callback','matchline(''prev'')',...
       'tag','prev','enable','off','position',[110 60 60 20]);
-    uicontrol(fig,'style','pushbutton','string','Save','Callback','matchline7(''save'')',...
+    uicontrol(fig,'style','pushbutton','string','Save','Callback','matchline(''save'')',...
       'tag','save','position',[180 60 60 20]);
     draw_lines(ml_obj);
   end
@@ -291,7 +291,7 @@ else
     delete(fig);
     return
   else
-    fprintf(1,'matchline7(%s)\n', op);
+    fprintf(1,'matchline(%s)\n', op);
     return
   end
 end

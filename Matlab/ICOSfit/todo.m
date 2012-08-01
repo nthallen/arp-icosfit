@@ -1,6 +1,6 @@
 % todo.m
 % TODO {
-%   etln_fit8: the GUI
+%   etln_fit: the GUI
 % }
 % 
 % CR Data analysis procedures

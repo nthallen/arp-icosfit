@@ -8,7 +8,7 @@ function varargout = get_waveform_params( waveform, varargin )
 % Defaults for at least one parameter must be specified.
 
 % Parameters currently in use include:
-% matchline6a:
+% matchline:
 %   'hlf', 24
 %   'mfhw', 1
 %   'cv_hlf', 10
@@ -16,7 +16,7 @@ function varargout = get_waveform_params( waveform, varargin )
 %   'holdoff', 4e-4
 %   'SignalRegion', [round(wv.TzSamples + holdoff*SampleRate): ...
 %                          wv.NetSamples - wv.TzSamples - 1]
-% etln_fit7 & etln_fit8:
+% etln_fit:
 %   'prefilterwidth', 5
 %   'X', [10.2817    48.3    0   -2.6921  .1645924   -3.7796   .0689779 ]
 %   'SignalRegion', [wv.TzSamples+100:wv.NetSamples-wv.TzSamples-20]

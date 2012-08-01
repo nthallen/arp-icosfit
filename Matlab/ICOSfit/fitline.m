@@ -193,7 +193,7 @@ elseif strcmp(varargin{1},'matchline')
   f = get(gcbo,'parent');
   line_obj = update_line_obj(f);
   if length(line_obj)
-    matchline7('init',line_obj);
+    matchline('init',line_obj);
   end
   return
 elseif strcmp(varargin{1},'editregions')
