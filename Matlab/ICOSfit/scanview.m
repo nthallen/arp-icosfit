@@ -1,5 +1,5 @@
-function icosview( base, cpci14 );
-% icosview( base, cpci14 );
+function scanview( base, cpci14 );
+% scanview( base, cpci14 );
 % Display raw scan with etalon, optionally limited to a range
 % of CPCI14 values.
 % Attempting modification to support ringdown data as well
@@ -15,7 +15,7 @@ elseif nargin > 1
 else
   has_cpci = 0;
 end
-PT = load_crmat('PT');
+PT = load_mat_files('PT');
 WaveSpecs = load_waves;
 v = find(diff(PT.CPCI14)>0)+1; % index of new CPCI14 values
 v = [ v(1)-1; v ];
@@ -42,7 +42,7 @@ else
   roris = zeros(size(idx));
 end
 
-base = find_CPCI14_dir(base);
+base = find_scan_dir(base);
 binary = 1;
 if size(cpci14,1) > 1; cpci14 = cpci14'; end
 figno = figure;

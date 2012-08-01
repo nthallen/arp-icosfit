@@ -1,7 +1,7 @@
 % ICOS Viewing and Fitting
 % 
 % Raw Data:
-%   icosview.m - Display logged ICOS and Ringdown data
+%   scanview.m - Display logged ICOS and Ringdown data
 %   ringview.m - Display just Ringdown data and bin two ways
 %   icosnoise.m - Calculate noise statistics
 %   rawview.m - Review logged RAW ringdown data and compare fits
@@ -21,7 +21,7 @@
 % 
 % Utilities:
 %   fitfringe.m - Locate Diagnostic Etalon fringes
-%   cpciload.m - locate and load specified CPCI14 file
+%   scanload.m - locate and load specified CPCI14 file
 %   loadbin.m - simple binary loader for CPCI14 files
 %   writebin.m - produce icos-format binary files
 %   ICOSsetup.m - Common utility for locating directories, etc.

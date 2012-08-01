@@ -1,10 +1,10 @@
-function [ D, T ] = load_crmat( varargin );
-% [ D, T ] = load_crmat(...);
+function [ D, T ] = load_mat_files( varargin );
+% [ D, T ] = load_mat_files(...);
 % Load the first of the specified files found in the
 % usual places. Files are specified without '.mat' extension.
 % T if requested, gets set to the appropriate time variable.
 % Example:
-%  [D,T] = load_crmat('PT', 'PandT');
+%  [D,T] = load_mat_files('PT', 'PandT');
 run = getrun(1);
 cr_cfg = load_cr_cfg;
 dirs = { '.', [ cr_cfg.Matlab_CD_Path cr_cfg.HomeDir '/anal/' run ], ...

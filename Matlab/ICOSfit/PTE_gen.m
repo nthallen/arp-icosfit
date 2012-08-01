@@ -2,7 +2,7 @@ function PTE_gen( cpci, PTEfile, PTparams );
 % PTE_gen( [ cpci [, PTEfile [, PTparams ] ] ] );
 %  Make up numbers for a tuning rate in the absence of an etalon
 %  If we don't have P and T, make them up too.
-%  For cpci, use cpci_list
+%  For cpci, use listscans
 % PTparams correspond to columns 4:end of PTE.txt
 if nargin < 3
   PTparams = ...
@@ -14,7 +14,7 @@ if nargin < 2
   PTEfile = 'PTE.txt';
 end
 if nargin < 1
-  cpci = cpci_list;
+  cpci = listscans;
 end
 
 if exist('PT.mat','file')

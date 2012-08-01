@@ -67,7 +67,7 @@ for i=1:length(suffix)
         LW(1+end:end+l,:)=data(:,startn+5+([1:size(chi,2)]-1)*5);
     end
     disp(['Processing suffix ' suffix{i} ' ....']);
-    t=cpci14time(cpci14);
+    t=scantime(cpci14);
     %base = ['icosfit.' regions{1} '.' suffix{i}];
     %fid=fopen(base);
     %if fid>0

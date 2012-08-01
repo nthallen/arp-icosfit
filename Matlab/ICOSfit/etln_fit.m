@@ -83,7 +83,7 @@ end
 handles.data.wv = wv;
 handles.data.vZ = 1:wv.TzSamples;
 % Pick out P and T for output
-PT = load_crmat('PT');
+PT = load_mat_files('PT');
 dcpi = find(diff(PT.CPCI14)>0)+1; % index of new cpci numbers
 dcpi = [ dcpi(1)-1; dcpi ];
 idx = ceil(interp1(PT.CPCI14(dcpi),dcpi,handles.data.cpci));
@@ -110,7 +110,7 @@ end
   'threshold', .07  );
 handles.data.prefilterwidth = prefilterwidth;
 set(handles.prefilterwidth,'String',num2str(prefilterwidth));
-handles.data.CPCI14dir = find_CPCI14_dir([]);
+handles.data.CPCI14dir = find_scan_dir([]);
 handles.data.indexes = 1:length(handles.data.cpci);
 handles.data.peakx = [];
 handles.data.Xdflt = X;

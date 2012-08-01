@@ -86,8 +86,8 @@ for i=1:2:length(varargin)-1
   elseif strcmp(varargin{i}, 'cpci')
     handles.data.qclicomp = 1;
     cpci = varargin{i+1};
-    handles.data.rawdata = cpciload(cpci);
-    PT = load_crmat('PT');
+    handles.data.rawdata = scanload(cpci);
+    PT = load_mat_files('PT');
     v = find(diff(PT.CPCI14)>0)+1;
     wvno = interp1(PT.CPCI14(v), PT.QCLI_Wave(v), cpci, 'nearest')+1;
     handles.data.index = wvno;

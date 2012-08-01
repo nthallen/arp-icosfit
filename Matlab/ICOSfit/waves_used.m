@@ -9,7 +9,7 @@ function [ wvsused, ranges ] = waves_used(cpci14);
 %   The ranges field is an n x 2 matrix where the two columns
 %   are starting and ending CPCI numbers for each region
 WaveSpecs = load_waves;
-PT = load_crmat('PT');
+PT = load_mat_files('PT');
 dcpi = find(diff(PT.CPCI14)>0)+1; % index of new cpci numbers
 if nargin > 0
   dcpi = dcpi(ceil(interp1(PT.CPCI14(dcpi),1:length(dcpi),cpci14,'linear','extrap')));

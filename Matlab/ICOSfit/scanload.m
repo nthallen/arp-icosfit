@@ -1,5 +1,5 @@
-function fe = cpciload( CPCI14, base, binary );
-% f = cpciload( CPCI14 [, base[, binary]] )
+function fe = scanload( CPCI14, base, binary );
+% f = scanload( CPCI14 [, base[, binary]] )
 % binary defaults to TRUE
 % base defaults to CPCI14
 % Looks for the file either directly under base or

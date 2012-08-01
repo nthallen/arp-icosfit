@@ -1,11 +1,11 @@
-function cpci = cpci_list( base_in )
-% cpci = cpci_list( [ base_in ] )
+function cpci = listscans( base_in )
+% cpci = listscans( [ base_in ] )
 % Identifies what cpci indexes are actually present.
 % See also gen_PT
 if nargin < 1
   base_in = [];
 end
-base = find_CPCI14_dir(base_in);
+base = find_scans_dir(base_in);
 cpci = check_dir(base,0)+1;
 
 function cpci = check_dir( path, ctin )

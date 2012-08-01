@@ -15,7 +15,7 @@ if nargin < 4
 elseif zero ~= 0
   zero = 1;
 end
-basepath = find_CPCI14_dir(basepath);
+basepath = find_scans_dir(basepath);
 
 nscans = length(cpci14);
 wv = waves_used(cpci14);

@@ -48,7 +48,7 @@ end
 col = ones( size(fitdata,1), 1 );
 
 if by_time
-  x = time2d(cpci14time(cpci14));
+  x = time2d(scantime(cpci14));
 else
   x = cpci14;
 end

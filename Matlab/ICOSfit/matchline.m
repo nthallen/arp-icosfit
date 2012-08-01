@@ -58,7 +58,7 @@ if nargin == 0 || strcmp(op,'init')
   cr_cfg = load_cr_cfg;
   
   % Always load PT now to get waveform information
-  PT = load_crmat('PT', 'PandT');
+  PT = load_mat_files('PT', 'PandT');
   PTE = load(line_obj.PTEFile);
   WaveSpecs = load_waves;
   isicos = [ WaveSpecs.ISICOS ];
@@ -118,7 +118,7 @@ if nargin == 0 || strcmp(op,'init')
   % run = getrun(1);
   
   try
-    fe = cpciload( cpci_start );
+    fe = scanload( cpci_start );
   catch
     errordlg(lasterr);
     return
@@ -418,7 +418,7 @@ end
 fprintf( fid, 'EtalonFSR = %.6f cm-1;\n', EtalonFSR );
 fprintf( fid, '%s\n%s\n',...
   'Binary;', ...
-  [ 'ICOSdir = ' find_CPCI14_dir('',1) ';' ] );
+  [ 'ICOSdir = ' find_scans_dir('',1) ';' ] );
 fprintf( fid, 'PTEFile = %s;\n', ml_obj.line_obj.PTEFile );
 fprintf( fid, 'BaselineFile = %s;\n', ml_obj.line_obj.Baseline );
 fprintf( fid, 'OutputDir = ICOSout.%s%s;\n', reg_name, suffix );

@@ -233,7 +233,7 @@ elseif strcmp(varargin{1},'editregions')
       PTE = load(line_obj.PTEFile);
       ro.data.cpci = PTE(:,1);
       ro.data.P = PTE(:,2);
-      T = cpci14time(ro.data.cpci);
+      T = scantime(ro.data.cpci);
       ro.data.dT = [0;diff(T)];
       y = 60;
       uicontrol(line_obj.reg_fig,'style','popupmenu','string',{ ro.Regions.name },'value',ro.CurRegion, ...
