@@ -22,7 +22,7 @@ function varargout = scan_viewer(varargin)
 
 % Edit the above text to modify the response to help scan_viewer
 
-% Last Modified by GUIDE v2.5 22-Oct-2012 16:22:34
+% Last Modified by GUIDE v2.5 22-Oct-2012 21:53:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -58,7 +58,22 @@ handles.output = hObject;
 % Update handles structure
 set(handles.ViewerGroup, 'SelectionChangeFcn', ...
     @ViewerGroup_SelectionChangeFcn);
-handles.data.scan_increment = 0;
+handles.data.Scans = [];
+handles.data.Index = 1;
+for i=1:2:length(varargin)-1
+  if strcmpi(varargin{i},'Scans')
+      handles.data.Scans = varargin{i+1};
+  else
+      errordlg(sprintf('Unrecognized property: %s', varargin{i}));
+  end
+end
+handles.data.Index_max = length(handles.data.Scans);
+if isempty(handles.data.Scans)
+    errordlg('No scans specified','Trouble','modal');
+else
+    set(handles.Slider,'Min',1,'Max',handles.data.Index_max,'Value',1);
+    scan_display(handles);
+end
 guidata(hObject, handles);
 
 % UIWAIT makes scan_viewer wait for user response (see UIRESUME)
@@ -76,54 +91,119 @@ function varargout = scan_viewer_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 
 
-% --- Executes on slider movement.
-function slider_Callback(hObject, eventdata, handles)
-% hObject    handle to slider (see GCBO)
+% --- Executes on Slider movement.
+function Slider_Callback(hObject, eventdata, handles)
+% hObject    handle to Slider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'Value') returns position of slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+% Hints: get(hObject,'Value') returns position of Slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of Slider
+opmode = get(handles.ViewerGroup,'SelectedObject');
+if opmode == handles.Pause
+    handles.data.Index = round(get(hObject,'Value'));
+    scan_display(handles);
+    guidata(hObject,handles);
+end
 
 
 % --- Executes during object creation, after setting all properties.
-function slider_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to slider (see GCBO)
+function Slider_CreateFcn(hObject, ~, ~)
+% hObject    handle to Slider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
-% Hint: slider controls usually have a light gray background.
+% Hint: Slider controls usually have a light gray background.
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
 
-function ViewerGroup_SelectionChangeFcn(hObject, eventdata)
-handles = guidata(hObject);
-if eventdata.NewValue == handles.Play
-    handles.data.scan_increment = 1;
-elseif eventdata.NewValue == handles.FastFwd
-    if handles.data.scan_increment > 0
-        handles.data.scan_increment = handles.data.scan_increment * 3;
-    else
-        handles.data.scan_increment = 10;
+function ViewerGroup_SelectionChangeFcn(hObject, ~)
+while 1
+    handles = guidata(hObject);
+    Speed = get(handles.Speed,'UserData');
+    action = get(handles.ViewerGroup,'SelectedObject');
+    SIndex = round(get(handles.Slider,'Value'));
+    if SIndex ~= handles.data.Index && action ~= handles.Pause
+        set(handles.ViewerGroup,'SelectedObject',handles.Pause);
+        handles.data.Index = SIndex;
+        scan_display(handles);
     end
-elseif eventdata.NewValue == handles.Pause
-    handles.data.scan_increment = 0;
-elseif eventdata.NewValue == handles.Reverse
-    handles.data.scan_increment = -1;
-elseif eventdata.NewValue == handles.FastRev
-    if handles.data.scan_increment < 0
-        handles.data.scan_increment = handles.data.scan_increment * 3;
+    if action == handles.Pause
+        break;
+    elseif action == handles.Play
+        if handles.data.Index < handles.data.Index_max
+            handles.data.Index = handles.data.Index+1;
+            scan_display(handles);
+        end
+        set(handles.ViewerGroup,'SelectedObject',handles.Pause);
+    elseif action == handles.FastFwd
+        if handles.data.Index + Speed(2) < handles.data.Index_max
+            handles.data.Index = handles.data.Index + Speed(2);
+            scan_display(handles);
+            pause(Speed(1));
+        else
+            set(handles.ViewerGroup,'SelectedObject',handles.Pause);
+        end
+    elseif action == handles.Reverse
+        if handles.data.Index > 1
+            handles.data.Index = handles.data.Index-1;
+            scan_display(handles);
+        end
+        set(handles.ViewerGroup,'SelectedObject',handles.Pause);
+    elseif action == handles.FastRev
+        if handles.data.Index > 1
+            if handles.data.Index > Speed(2)
+                handles.data.Index = handles.data.Index - Speed(2);
+            else
+                handles.data.Index = 1;
+            end
+            scan_display(handles);
+            pause(Speed(1));
+        else
+            set(handles.ViewerGroup,'SelectedObject',handles.Pause);
+        end
     else
-        handles.data.scan_increment = -10;
+        errordlg('Unknown object');
     end
-else
-    errordlg('Unknown object');
+    guidata(hObject, handles);
 end
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
-function CrntScan_CreateFcn(hObject, eventdata, handles)
+function CrntScan_CreateFcn(~, ~, ~)
 % hObject    handle to CrntScan (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
+
+
+function P = Set_Speed(hObject, handle, Pin, Pnew)
+if hObject == handle
+    set(handle,'checked','on');
+    P = Pnew;
+else
+    set(handle,'checked','off');
+    P = Pin;
+end
+
+% --------------------------------------------------------------------
+function Speed_Callback(hObject, ~, handles)
+% hObject    handle to Speed (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+P = get(handles.Speed,'UserData');
+P = Set_Speed(hObject, handles.Spd_1Hz, P, [ 1, 1 ]);
+P = Set_Speed(hObject, handles.Spd_3Hz, P, [ 1/3 1]);
+P = Set_Speed(hObject, handles.Spd_10Hz, P, [1/10 1]);
+P = Set_Speed(hObject, handles.Spd_Step_1, P, [0 1]);
+P = Set_Speed(hObject, handles.Spd_Step_10, P, [0 10]);
+P = Set_Speed(hObject, handles.Spd_Step_100, P, [0 100]);
+set(handles.Speed, 'UserData', P);
+
+function scan_display(handles)
+% Update CrntScan, slider
+if handles.data.Index_max >= 1
+    set(handles.CrntScan,'String',num2str(handles.data.Scans(handles.data.Index)));
+    set(handles.Slider,'Value',handles.data.Index);
+    drawnow;
+end
