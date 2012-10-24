@@ -27,9 +27,13 @@ function varargout = scan_viewer(varargin)
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
+% To Do:
+%   Resize Axes on resize
+%   Make resize more responsive? (addlistener)
+
 % Edit the above text to modify the response to help scan_viewer
 
-% Last Modified by GUIDE v2.5 23-Oct-2012 22:48:43
+% Last Modified by GUIDE v2.5 24-Oct-2012 14:54:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -52,7 +56,7 @@ end
 
 
 % --- Executes just before scan_viewer is made visible.
-function scan_viewer_OpeningFcn(hObject, eventdata, handles, varargin)
+function scan_viewer_OpeningFcn(hObject, ~, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -89,7 +93,17 @@ for i=1:2:length(varargin)-1
       figure(handles.figure);
       for j=1:size(Pos,1)
           handles.Axes(j) = axes('Units','pixels','Position',Pos(j,:));
+          handles.data.xlim{j} = [];
+          handles.data.ylim{j} = [];
       end
+      handles.Zoom = zoom;
+      handles.data.SavedPreZoomState = handles.Pause;
+      set(handles.Zoom,'ActionPostCallback',@Zoom_PostCallback);
+      set(handles.Zoom,'ActionPreCallback',@Zoom_PreCallback);
+  elseif strcmpi(varargin{i},'AppData')
+      handles.data.AppData = varargin{i+1};
+  elseif strcmpi(varargin{i},'Callback')
+      handles.data.Callback = varargin{i+1};
   else
       errordlg(sprintf('Unrecognized property: %s', varargin{i}));
       close(handles.figure);
@@ -115,7 +129,7 @@ guidata(hObject, handles);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = scan_viewer_OutputFcn(hObject, eventdata, handles) 
+function varargout = scan_viewer_OutputFcn(~, ~, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -128,13 +142,24 @@ else
     varargout{1} = handles.output;
 end
 
+% --- Executes when user attempts to close figure.
+function figure_CloseRequestFcn(hObject, ~, ~)
+% hObject    handle to figure (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+% set(handles.ViewerGroup,'SelectedObject',handles.Pause);
+delete(hObject);
+
+% --- There is probably a slicker way to do this.
 function Slider_Listener(hObject, eventdata)
 % fprintf(1,'Slider_Listener event\n');
 handles = guidata(hObject);
-Slider_Callback(hObject,eventdata,handles,'Move');
+Slider_Callback(hObject,eventdata,handles);
 
 % --- Executes on Slider movement.
-function Slider_Callback(hObject, ~, handles, how)
+function Slider_Callback(~, ~, handles)
 % hObject    handle to Slider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -143,10 +168,8 @@ function Slider_Callback(hObject, ~, handles, how)
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of Slider
 NewIndex = round(get(handles.Slider,'Value'));
 if handles.data.Index ~= NewIndex
-    % fprintf(1,'New Slider val %s: %d\n', how, NewIndex);
     set(handles.ViewerGroup,'SelectedObject',handles.Pause);
     handles.data.Index = NewIndex;
-    % guidata(hObject,handles);
     scan_display(handles);
 end
 
@@ -162,7 +185,8 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
 end
 
 function ViewerGroup_SelectionChangeFcn(hObject, ~)
-while 1
+% fprintf(1,'State change\n');
+while ishandle(hObject)
     handles = guidata(hObject);
     Speed = get(handles.Speed,'UserData');
     action = get(handles.ViewerGroup,'SelectedObject');
@@ -173,7 +197,11 @@ while 1
         scan_display(handles);
     end
     if action == handles.Pause
-        break;
+        if handles.data.SavedPreZoomState ~= handles.Pause
+            pause(.1);
+        else
+            break;
+        end
     elseif action == handles.Play
         if handles.data.Index < handles.data.Index_max
             handles.data.Index = handles.data.Index+1;
@@ -209,9 +237,9 @@ while 1
     else
         errordlg('Unknown object');
     end
-    guidata(hObject, handles);
 end
-guidata(hObject, handles);
+% fprintf(1,'Leaving state change\n');
+% guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
 function CrntScan_CreateFcn(~, ~, ~)
@@ -244,7 +272,7 @@ P = Set_Speed(hObject, handles.Spd_Step_100, P, [0 100]);
 set(handles.Speed, 'UserData', P);
 
 % --- Executes when figure is resized.
-function figure_ResizeFcn(hObject, eventdata, handles)
+function figure_ResizeFcn(~, ~, handles)
 % hObject    handle to figure (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -263,14 +291,26 @@ if isfield(handles,'data') % first invocation comes before open fcn
     Srm = get(handles.CrntScan','UserData');
     SP(1) = FP(3)-Srm-SP(3)+delta;
     set(handles.CrntScan,'Position',SP);
+    if delta > 0
+        FP(3) = FP(3) + delta;
+        set(handles.figure,'Position',FP);
+    end
+    if isfield(handles,'Axes')
+        Pos = Axes_Positions(handles);
+        for i = 1:length(handles.Axes)
+            set(handles.Axes(i),'Position',Pos(i,:));
+        end
+    end
+    drawnow;
 end
 
+% ---- Will increase figure size if necessary
 function Pos = Axes_Positions(handles)
 Axes = handles.data.Axes;
 VGP = get(handles.ViewerGroup,'Position');
 cur_y = VGP(2)+VGP(4);
-min_width = sum(sum(Axes(:,[1:3])));
-min_height = sum(sum(Axes(:,[4:7]))) + cur_y;
+min_width = sum(sum(Axes(:,1:3)));
+min_height = sum(sum(Axes(:,4:7))) + cur_y;
 FP = get(handles.figure,'Position');
 readjust = 0;
 if (FP(3) < min_width)
@@ -278,6 +318,8 @@ if (FP(3) < min_width)
     readjust = 1;
 end
 if (FP(4) < min_height)
+    delta = min_height-FP(4);
+    FP(2) = FP(2) - delta;
     FP(4) = min_height;
     readjust = 1;
 end
@@ -308,16 +350,85 @@ if handles.data.Index_max >= 1
     guidata(handles.figure,handles);
     set(handles.CrntScan,'String',num2str(handles.data.Scans(handles.data.Index)));
     set(handles.Slider,'Value',handles.data.Index);
+    if isfield(handles.data, 'Callback')
+        handles.data.Callback(handles);
+        figure(handles.figure);
+        zoom(handles.figure, 'reset');
+        for i = 1:length(handles.Axes)
+            if ~isempty(handles.data.xlim{i})
+                set(handles.Axes(i),'xlim',handles.data.xlim{i});
+            end
+            if ~isempty(handles.data.ylim{i})
+                set(handles.Axes(i),'ylim',handles.data.ylim{i});
+            end
+        end
+    end
     drawnow;
 end
 
 
-% --- Executes when user attempts to close figure.
-function figure_CloseRequestFcn(hObject, eventdata, handles)
-% hObject    handle to figure (see GCBO)
+% --------------------------------------------------------------------
+function ZoomOn_Callback(hObject, eventdata, handles)
+% hObject    handle to ZoomOn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+zoom on;
 
-% Hint: delete(hObject) closes the figure
+% --------------------------------------------------------------------
+function ZoomOff_Callback(hObject, eventdata, handles)
+% hObject    handle to ZoomOff (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+zoom off;
+
+% --------------------------------------------------------------------
+function ZoomX_Callback(hObject, eventdata, handles)
+% hObject    handle to ZoomX (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+zoom xon;
+
+% --------------------------------------------------------------------
+function ZoomY_Callback(hObject, eventdata, handles)
+% hObject    handle to ZoomY (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+zoom yon;
+
+function Zoom_PreCallback(hObject, ~)
+handles = guidata(hObject);
+handles.data.SavedPreZoomState = get(handles.ViewerGroup,'SelectedObject');
 set(handles.ViewerGroup,'SelectedObject',handles.Pause);
-delete(hObject);
+guidata(hObject,handles);
+
+function Zoom_PostCallback(hObject, eventdata)
+handles = guidata(hObject);
+set(handles.ViewerGroup,'SelectedObject',handles.data.SavedPreZoomState);
+motion = get(handles.Zoom,'Motion');
+axes_idx = find(handles.Axes == eventdata.Axes);
+xlim = [];
+ylim = [];
+if strcmpi(motion,'horizontal')
+    xlim = get(eventdata.Axes,'xlim');
+    handles.data.xlim{axes_idx} = xlim;
+elseif strcmpi(motion,'vertical')
+    ylim = get(eventdata.Axes,'ylim');
+    handles.data.ylim{axes_idx} = ylim;
+elseif strcmpi(motion,'both')
+    xlim = get(eventdata.Axes,'xlim');
+    ylim = get(eventdata.Axes,'ylim');
+    handles.data.xlim{axes_idx} = xlim;
+    handles.data.ylim{axes_idx} = ylim;
+else
+    errordlg(sprintf('Unexpected motion: "%s"', motion));
+end
+if ~isempty(xlim)
+    for i = 1:length(handles.Axes)
+        if i ~= axes_idx
+            set(handles.Axes(i),'xlim',xlim);
+            handles.data.xlim{i} = xlim;
+        end
+    end
+end
+handles.data.SavedPreZoomState = handles.Pause;
+guidata(hObject, handles);
