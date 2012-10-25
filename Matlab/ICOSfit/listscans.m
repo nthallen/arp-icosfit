@@ -1,6 +1,6 @@
 function cpci = listscans( base_in )
-% cpci = listscans( [ base_in ] )
-% Identifies what cpci indexes are actually present.
+% scans = listscans( [ base_in ] )
+% Identifies what scan indexes are actually present.
 % See also gen_PT
 if nargin < 1
   base_in = [];

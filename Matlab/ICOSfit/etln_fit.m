@@ -1,16 +1,16 @@
 function varargout = etln_fit(varargin)
-% ETLN_FIT8 M-file for etln_fit.fig
-% ETLN_FIT8( 'CPCI', cpci_vector, 'OFILE', output_filename, 'SAVEALL', 1 );
-%      ETLN_FIT8, by itself, creates a new ETLN_FIT8 or raises the existing
+% ETLN_FIT M-file for etln_fit.fig
+% ETLN_FIT( 'CPCI', cpci_vector, 'OFILE', output_filename, 'SAVEALL', 1 );
+%      ETLN_FIT, by itself, creates a new ETLN_FIT or raises the existing
 %      singleton*.
 %
-%      H = ETLN_FIT8 returns the handle to a new ETLN_FIT8 or the handle to
+%      H = ETLN_FIT returns the handle to a new ETLN_FIT or the handle to
 %      the existing singleton*.
 %
-%      ETLN_FIT8('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in ETLN_FIT8.M with the given input arguments.
+%      ETLN_FIT('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in ETLN_FIT.M with the given input arguments.
 %
-%      ETLN_FIT8('Property','Value',...) creates a new ETLN_FIT8 or raises the
+%      ETLN_FIT('Property','Value',...) creates a new ETLN_FIT or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
 %      applied to the GUI before etln_fit_OpeningFunction gets called.  An
 %      unrecognized property name or invalid value makes property application
@@ -31,7 +31,7 @@ function varargout = etln_fit(varargin)
 
 %### Trouble in 070625.2 at 337 and 852
 
-% Last Modified by GUIDE v2.5 04-Nov-2008 15:30:15
+% Last Modified by GUIDE v2.5 24-Oct-2012 20:43:35
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -54,7 +54,7 @@ end
 
 
 % --- Executes just before etln_fit is made visible.
-function etln_fit_OpeningFcn(hObject, eventdata, handles, varargin)
+function etln_fit_OpeningFcn(hObject, ~, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -110,7 +110,7 @@ end
   'threshold', .07  );
 handles.data.prefilterwidth = prefilterwidth;
 set(handles.prefilterwidth,'String',num2str(prefilterwidth));
-handles.data.CPCI14dir = find_scan_dir([]);
+handles.data.CPCI14dir = find_scans_dir([]);
 handles.data.indexes = 1:length(handles.data.cpci);
 handles.data.peakx = [];
 handles.data.Xdflt = X;
@@ -131,7 +131,9 @@ handles.data.peakpts = [];
 handles.data.rxs = (1:length(range_dflt))'*1e-3;
 handles.data.Op = optimset('lsqcurvefit');
 handles.data.Op = ...
-  optimset(handles.data.Op,'Jacobian', 'on', 'LargeScale','off','TolFun',.1,'MaxFunEvals',100);
+  optimset(handles.data.Op,'Jacobian', 'on','TolFun',.1, ...
+    'MaxFunEvals',100,'Algorithm','levenberg-marquardt', ...
+    'Display','off');
 
 set(handles.Fitting,'visible','off');
 % Update handles structure
@@ -147,7 +149,7 @@ next_cpci_file(hObject, handles );
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = etln_fit_OutputFcn(hObject, eventdata, handles) 
+function varargout = etln_fit_OutputFcn(~, ~, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -182,7 +184,7 @@ varargout{1} = handles.output;
 
 %--------------------------------------------------------------------------
 % --- Executes on button press in handpickpeaks_btn.
-function handpickpeaks_btn_Callback(hObject, eventdata, handles)
+function handpickpeaks_btn_Callback(hObject, ~, handles)
 % hObject    handle to handpickpeaks_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -219,7 +221,7 @@ update_Y_to_fig(handles);
 
 %--------------------------------------------------------------------------
 % --- Executes on button press in findpeaks_btn.
-function findpeaks_btn_Callback(hObject, eventdata, handles)
+function findpeaks_btn_Callback(hObject, ~, handles)
 % hObject    handle to findpeaks_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -228,7 +230,7 @@ execute_level(hObject, handles);
 
 %--------------------------------------------------------------------------
 % --- Executes on button press in next_btn.
-function next_btn_Callback(hObject, eventdata, handles)
+function next_btn_Callback(hObject, ~, handles)
 % hObject    handle to next_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -256,7 +258,7 @@ switch handles.data.level
 end
 
 
-function X5_Callback(hObject, eventdata, handles)
+function X5_Callback(~, ~, ~)
 % hObject    handle to X5 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -266,7 +268,7 @@ function X5_Callback(hObject, eventdata, handles)
 
 
 % --- Executes during object creation, after setting all properties.
-function X5_CreateFcn(hObject, eventdata, handles)
+function X5_CreateFcn(hObject, ~, ~)
 % hObject    handle to X5 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -279,7 +281,7 @@ end
 
 
 
-function X6_Callback(hObject, eventdata, handles)
+function X6_Callback(~, ~, ~)
 % hObject    handle to X6 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -289,7 +291,7 @@ function X6_Callback(hObject, eventdata, handles)
 
 
 % --- Executes during object creation, after setting all properties.
-function X6_CreateFcn(hObject, eventdata, handles)
+function X6_CreateFcn(hObject, ~, ~)
 % hObject    handle to X6 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -302,7 +304,7 @@ end
 
 
 
-function X7_Callback(hObject, eventdata, handles)
+function X7_Callback(~, ~, ~)
 % hObject    handle to X7 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -313,7 +315,7 @@ function X7_Callback(hObject, eventdata, handles)
 
 %--------------------------------------------------------------------------
 % --- Executes during object creation, after setting all properties.
-function X7_CreateFcn(hObject, eventdata, handles)
+function X7_CreateFcn(hObject, ~, ~)
 % hObject    handle to X7 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -326,7 +328,7 @@ end
 
 
 % --- Executes on button press in back_btn.
-function back_btn_Callback(hObject, eventdata, handles)
+function back_btn_Callback(hObject, ~, handles)
 % hObject    handle to back_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -348,7 +350,7 @@ end
 
 %--------------------------------------------------------------------------
 % --- Executes on button press in reiterate_btn.
-function reiterate_btn_Callback(hObject, eventdata, handles)
+function reiterate_btn_Callback(hObject, ~, handles)
 % hObject    handle to reiterate_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -506,7 +508,7 @@ while 1
   switch handles.data.level
     case 1
       if handles.data.startlevel <= 1
-        axes(handles.axes1);
+        % axes(handles.axes1);
         ttl = '';
         if ~isempty(handles.data.peakx)
           if ~isempty(handles.data.peakpts)
@@ -514,7 +516,9 @@ while 1
           end
           hold on;
           handles.data.peakpts = ...
-            plot(handles.data.peakx+handles.data.samples(1)-1, handles.data.peaky, '*m');
+            plot(handles.axes1, ...
+                handles.data.peakx+handles.data.samples(1)-1, ...
+                handles.data.peaky, '*m');
           hold off;
           set(handles.next_btn,'enable','on');
           dfx = diff(handles.data.peakx);
@@ -526,8 +530,8 @@ while 1
         else
           set(handles.next_btn,'enable','off');
         end
-        xlabel('Sample');
-        title(ttl);
+        xlabel(handles.axes1,'Sample');
+        title(handles.axes1,ttl);
         zoom on;
         guidata(hObject, handles);
         return;
@@ -556,9 +560,12 @@ while 1
         else
           fX = handles.data.X(1:5);
         end
+        ThisOp = optimset('lsqcurvefit');
+        ThisOp = ...
+          optimset(ThisOp,'Display','off');
         fX = ...
           lsqcurvefit(@etln_evalJ, ...
-          fX, handles.data.peakx*1e-3, fn );
+          fX, handles.data.peakx*1e-3, fn, [], [], ThisOp );
         if dblexp
           handles.data.X = fX;
         else
@@ -570,12 +577,13 @@ while 1
         guidata(hObject,handles);
         if handles.data.startlevel <= 2
           fnm = etln_evalJ(handles.data.X, handles.data.peakx*1e-3);
-          axes(handles.axes1);
+          % axes(handles.axes1);
           cla(handles.axes1);
           handles.data.peakpts = [];
-          plot( handles.data.peakx+handles.data.samples(1)-1, (fn-fnm)*100, '*' );
-          title('Residual as percent of a fringe');
-          xlabel('Sample');
+          plot(handles.axes1, handles.data.peakx+handles.data.samples(1)-1, ...
+              (fn-fnm)*100, '*' );
+          title(handles.axes1, 'Residual as percent of a fringe');
+          xlabel(handles.axes1, 'Sample');
           zoom on;
           return;
         else
@@ -606,22 +614,23 @@ while 1
           handles.data.Y(6) = 0;
         end
         set_fitting(handles,0);
-        axes(handles.axes2)
+        % axes(handles.axes2)
         if ~any(isnan(handles.data.Y))
           emdl = etln_evalJ(handles.data.Y,handles.data.rxs);
           P = polyval(handles.data.Y(8:11),handles.data.rxs);
           handles.data.figerr = std(etln-emdl)/(max(etln)-min(etln));
           handles.data.figerrs(handles.data.index) = handles.data.figerr;
           cla(handles.axes2);
-          plot(handles.data.indexes,handles.data.figerrs);
+          plot(handles.axes2, handles.data.indexes,handles.data.figerrs);
           set(handles.axes2,'XTickLabel',[],'YTickLabel',[], ...
             'xlim', [1 length(handles.data.cpci)+1], ...
             'ylim', [0 handles.data.threshold], 'visible','on');
-          title(sprintf('Relative Error: %.2g', handles.data.figerr));
+          title(handles.axes2, sprintf('Relative Error: %.2g', ...
+              handles.data.figerr));
         else
           handles.data.figerr = -1;
           handles.data.figerrs(handles.data.index) = nan;
-          title('Fit failed');
+          title(handles.axes2, 'Fit failed');
         end
       else
         handles.data.figerr = -1;
@@ -632,19 +641,19 @@ while 1
       % handles.data.passes(handles.data.index) = handles.data.fitpass;
       guidata(hObject,handles);
       update_Y_to_fig(handles);
-      axes(handles.axes1);
+      % axes(handles.axes1);
       cla(handles.axes1);
       handles.data.peakpts = [];
       if handles.data.figerr >= 0
-        plot(handles.data.samples, etln, 'g', ...
+        plot(handles.axes1, handles.data.samples, etln, 'g', ...
           handles.data.samples, emdl, 'b', ...
           handles.data.samples, P, 'r');
       else
-        plot(handles.data.samples, etln, 'g' );
+        plot(handles.axes1, handles.data.samples, etln, 'g' );
       end
-      xlabel('Sample');
+      xlabel(handles.axes1, 'Sample');
 
-      axes(handles.axes3);
+      % axes(handles.axes3);
       cla(handles.axes3);
       colors = [ 1 1 1;
         0 1 0;
@@ -653,7 +662,7 @@ while 1
         1 0 0 ];
       C = zeros(1, length(handles.data.passes), 3);
       C(1,:,:) = colors(handles.data.passes+1,:);
-      image(C);
+      image(C,'Parent',handles.axes3);
       %plot(handles.data.indexes,handles.data.passes);
       set(handles.axes3,'XTickLabel',[],'YTickLabel',[],'Visible','on',...
         'XTick',[],'YTick',[]);
@@ -730,7 +739,7 @@ Y(12) = str2double(get(handles.X12,'String'));
 handles.data.Y = Y;
 
 % --- Executes on button press in Pause.
-function Pause_Callback(hObject, eventdata, handles)
+function Pause_Callback(~, ~, ~)
 % hObject    handle to Pause (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -752,7 +761,7 @@ else
   set(handles.back_btn,'enable','on');
 end
 
-function close_request_fcn(hObject, eventdata, handles)
+function close_request_fcn(~, ~, handles)
 if ~isempty(handles.data.ofd)
   fclose(handles.data.ofd);
 end
@@ -776,7 +785,7 @@ save_waveform_params( waveform, 'threshold', handles.data.threshold, ...
 
 
 % --- Executes on button press in defaults_btn.
-function defaults_btn_Callback(hObject, eventdata, handles)
+function defaults_btn_Callback(~, ~, handles)
 % hObject    handle to defaults_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -786,7 +795,7 @@ save_defaults(handles);
 
 
 % --- Executes on button press in dblexp.
-function dblexp_Callback(hObject, eventdata, handles)
+function dblexp_Callback(hObject, ~, handles)
 % hObject    handle to dblexp (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
