@@ -40,7 +40,7 @@ if plotcode >= 10 && plotcode < 30
   ICOSfit_cfg = load_ICOSfit_cfg;
   run = getrun(1);
   ak = load([ ICOSfit_cfg.Matlab_Path filesep run '/answerkey.mat' ]);
-  aChi = ak.ppm(cpci14)*1e-6*row;
+  aChi = ak.ppm(scannum)*1e-6*row;
   aN = aChi .* C;
   PowerScale = ak.mirrorloss * 1e-6 / (2 - ak.mirrorloss*1e-6);
   if plotcode < 20; plotans = 1; end
@@ -81,9 +81,9 @@ else
   if size(range,2) > 1
     range = range';
   end
-  rows = unique(interp1( cpci14, [1:length(cpci14)]', range, 'nearest' ));
+  rows = unique(interp1( scannum, [1:length(scannum)]', range, 'nearest' ));
   rows = rows(isfinite(rows));
-  % rows = find(cpci14 >= min(range) & cpci14 <= max(range));
+  % rows = find(scannum >= min(range) & scannum <= max(range));
 end
 
 figno = figure;
@@ -91,9 +91,9 @@ for i=rows'
   lasterr('');
   % try
   if ICOS_debug
-    path = sprintf( '%s/%04d.dat', base, cpci14(i));
+    path = sprintf( '%s/%04d.dat', base, scannum(i));
   else
-    path = mlf_path( base, cpci14(i));
+    path = mlf_path( base, scannum(i));
   end
   if exist(path,'file')
     f = load(path);
@@ -137,7 +137,7 @@ for i=rows'
       if strcmp(ak.runname,'quadtocubic')
         V0 = [0 -60 1.333e5 0];
         V1 = [.011 -83 1.43e5 0];
-        r = (cpci14(i)-1)/200;
+        r = (scannum(i)-1)/200;
         V = (1-r)*V0 + r*V1;
         abase = polyval(V,ak.x') * PowerScale;
       else
@@ -155,7 +155,7 @@ for i=rows'
     if plotfit
       clf;
       sdev = sqrt(mean((residual).^2));
-      ttltext = [ 'Scan:' num2str(cpci14(i)) ...
+      ttltext = [ 'Scan:' num2str(scannum(i)) ...
             ' \sigma = ' num2str(sdev)  ' ' getrun '/' path ];
       if plotans; nsubplots=4; else nsubplots=3; end
       if plotbase==1; nsubplots=5; end

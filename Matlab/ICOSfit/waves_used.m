@@ -1,21 +1,21 @@
-function [ wvsused, ranges ] = waves_used(cpci14)
-% waves_used( [cpci14] );
+function [ wvsused, ranges ] = waves_used(ScanNum)
+% waves_used( [ScanNum] );
 %   Lists waveforms used in the current run.
-% wvs = waves_used([cpci14]);
+% wvs = waves_used([ScanNum]);
 %   Returns a struct array of waveform definitions
-% [wvs,ranges] = waves_used([cpci14]);
+% [wvs,ranges] = waves_used([ScanNum]);
 %   Returns two struct arrays of the same length
 %   ranges has 'wvno' and 'ranges' fields.
 %   The ranges field is an n x 2 matrix where the two columns
-%   are starting and ending CPCI numbers for each region
+%   are starting and ending Scan numbers for each region
 WaveSpecs = load_waves;
 PT = load_mat_files('PT');
-dcpi = find(diff(PT.CPCI14)>0)+1; % index of new cpci numbers
+dcpi = find(diff(PT.ScanNum)>0)+1; % index of new scan numbers
 if nargin > 0
-  dcpi = dcpi(ceil(interp1(PT.CPCI14(dcpi),1:length(dcpi),cpci14,'linear','extrap')));
+  dcpi = dcpi(ceil(interp1(PT.ScanNum(dcpi),1:length(dcpi),ScanNum,'linear','extrap')));
   dcpi = dcpi(find(~isnan(dcpi)));
 else
-  cpci14 = PT.CPCI14;
+  ScanNum = PT.ScanNum;
 end
 wvs = PT.QCLI_Wave(dcpi);
 wvnos = unique(wvs)';
@@ -26,8 +26,8 @@ if nargout == 1; return; end
 if nargout >= 2; ranges = []; end
 for wvno=wvnos
   dw = diff([-1;wvs;-1] == wvno);
-  wvbeg = PT.CPCI14(dcpi((find(dw > 0)))-1)+1;
-  wvend = PT.CPCI14(dcpi(find(dw < 0)-1));
+  wvbeg = PT.ScanNum(dcpi((find(dw > 0)))-1)+1;
+  wvend = PT.ScanNum(dcpi(find(dw < 0)-1));
   if length(wvbeg) ~= length(wvend)
     error('Different lengths');
   end

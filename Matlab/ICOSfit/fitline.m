@@ -56,7 +56,7 @@ if nargin == 0 || load_only
     line_obj.PTEFile = 'PTE.txt';
     line_obj.Baseline = 'sbase.cubic';
     line_obj.Regions.name = 'all';
-    line_obj.Regions.cpci = [];
+    line_obj.Regions.scan = [];
     line_obj.CurRegion = 1;
     save fitline.mat line_obj
   end
@@ -211,7 +211,7 @@ elseif strcmp(varargin{1},'editregions')
         return
       end
       % New figure includes:
-      %   two axes to display pressure and dT vs cpci
+      %   two axes to display pressure and dT vs scan
       %   should probably show Y(:,1) as well
       %   'Region:' and popupmenu
       %   'Apply' and 'Save' buttons
@@ -223,7 +223,7 @@ elseif strcmp(varargin{1},'editregions')
       % Data needed includes:
       %   Parent figure for callback
       %   Region definitions, current region
-      %   data.cpci,P,dT
+      %   data.scan,P,dT
       ro.parent = f;
       line_obj.reg_fig = figure('visible','off','MenuBar','none',...
         'DeleteFcn','fitline(''reg_deletefig'')','UserData',ro);
@@ -231,9 +231,9 @@ elseif strcmp(varargin{1},'editregions')
       ro.Regions = line_obj.Regions;
       ro.CurRegion = line_obj.CurRegion;
       PTE = load(line_obj.PTEFile);
-      ro.data.cpci = PTE(:,1);
+      ro.data.scan = PTE(:,1);
       ro.data.P = PTE(:,2);
-      T = scantime(ro.data.cpci);
+      T = scantime(ro.data.scan);
       ro.data.dT = [0;diff(T)];
       y = 60;
       uicontrol(line_obj.reg_fig,'style','popupmenu','string',{ ro.Regions.name },'value',ro.CurRegion, ...
@@ -259,20 +259,20 @@ elseif strcmp(varargin{1},'editregions')
       set(line_obj.reg_fig,'visible','on','name','Regions','NumberTitle','off');
       drawnow; shg;
       ro.ax(1) = axes('position',[.1 .7 .8 .2 ]);
-      if length(ro.data.cpci) > 1000
+      if length(ro.data.scan) > 1000
         lstyle = '-';
       else
         lstyle = '.-';
       end
-      plot(ro.data.cpci,ro.data.P,lstyle);
+      plot(ro.data.scan,ro.data.P,lstyle);
       set(ro.ax(1),'xticklabel',[]);
       ylabel('Torr');
       ro.ax(2) = axes('position',[.1 .5 .8 .2 ]);
-      semilogy(ro.data.cpci,ro.data.dT,'-');
+      semilogy(ro.data.scan,ro.data.dT,'-');
       set(ro.ax(2),'YAxisLocation','right','XTickLabel',[]);
       ylabel('sec');
       ro.ax(3) = axes('position',[.1 .3 .8 .2 ]);
-      plot(ro.data.cpci,PTE(:,5)+PTE(:,8)+PTE(:,10));
+      plot(ro.data.scan,PTE(:,5)+PTE(:,8)+PTE(:,10));
       ylabel('fringes');
       xlabel('CPCI14');
       for i=1:3
@@ -280,7 +280,7 @@ elseif strcmp(varargin{1},'editregions')
         ylim(ylim);
         set(ro.ax(i),'ButtonDownFcn','fitline(''reg_click'')');
       end
-      ro.cpci = [];
+      ro.scan = [];
       ro.lines = [];
       ro.modified = 0;
       ro = reg_update_cursor(line_obj.reg_fig, ro);
@@ -310,9 +310,9 @@ elseif strcmp(varargin{1},'reg_click')
   if strcmp(seltype,'normal')
     cp = get(ax,'CurrentPoint');
     newx = cp(1,1);
-    dist = abs(ro.cpci-newx);
+    dist = abs(ro.scan-newx);
     which = min(find(dist == min(dist)));
-    ro.cpci(which) = newx;
+    ro.scan(which) = newx;
     ro.modified = 1;
     h = findobj(rf,'Label','Save');
     set(h,'Enable','on');
@@ -349,9 +349,9 @@ elseif strcmp(varargin{1},'reg_select')
   else
     ro.CurRegion = get(h,'value');
   end
-  ro.cpci = ro.Regions(ro.CurRegion).cpci;
+  ro.scan = ro.Regions(ro.CurRegion).scan;
   ro = reg_update_cursor( rf, ro );
-  xl = [ min(ro.data.cpci) max(ro.data.cpci) ];
+  xl = [ min(ro.data.scan) max(ro.data.scan) ];
   xl = mean(xl) + diff(xl)*.525*[-1 1];
   for i=1:3
     xlim(ro.ax(i),xl);
@@ -360,14 +360,14 @@ elseif strcmp(varargin{1},'reg_select')
 elseif strcmp(varargin{1},'reg_zoom_range')
   rf = get(get(gcbo,'parent'),'parent');
   ro = get(rf,'UserData');
-  xl = mean(ro.cpci) + diff(ro.cpci)*.525*[-1 1];
+  xl = mean(ro.scan) + diff(ro.scan)*.525*[-1 1];
   for i=1:3
     xlim(ro.ax(i),xl);
   end
 elseif strcmp(varargin{1},'reg_zoom_all')
   rf = get(get(gcbo,'parent'),'parent');
   ro = get(rf,'UserData');
-  xl = [ min(ro.data.cpci) max(ro.data.cpci) ];
+  xl = [ min(ro.data.scan) max(ro.data.scan) ];
   xl = mean(xl) + diff(xl)*.525*[-1 1];
   for i=1:3
     xlim(ro.ax(i),xl);
@@ -376,7 +376,7 @@ elseif strcmp(varargin{1},'reg_zoom_right')
   rf = get(get(gcbo,'parent'),'parent');
   ro = get(rf,'UserData');
   xl = xlim(ro.ax(1));
-  xl = ro.cpci(2) + diff(xl)*.1*[-1 1];
+  xl = ro.scan(2) + diff(xl)*.1*[-1 1];
   for i=1:3
     xlim(ro.ax(i),xl);
   end
@@ -384,7 +384,7 @@ elseif strcmp(varargin{1},'reg_zoom_left')
   rf = get(get(gcbo,'parent'),'parent');
   ro = get(rf,'UserData');
   xl = xlim(ro.ax(1));
-  xl = ro.cpci(1) + diff(xl)*.1*[-1 1];
+  xl = ro.scan(1) + diff(xl)*.1*[-1 1];
   for i=1:3
     xlim(ro.ax(i),xl);
   end
@@ -404,9 +404,9 @@ elseif strcmp(varargin{1},'reg_create')
     if any(strcmp({ro.Regions.name}, name{1}))
       errordlg(['Region name "' name{1} '" already in use']);
     else
-      ro.Regions(end+1) = struct( 'name', name{1}, 'cpci', [] );
+      ro.Regions(end+1) = struct( 'name', name{1}, 'scan', [] );
       ro.CurRegion = length(ro.Regions);
-      ro.cpci = [];
+      ro.scan = [];
       [ names, ndx ] = sort( {ro.Regions.name} );
       ro.Regions = ro.Regions(ndx);
       ro.CurRegion = find(ndx==ro.CurRegion);
@@ -490,7 +490,7 @@ elseif strcmp(varargin{1},'region')
   if length(rno) ~= 1
     error('Bad region');
   end
-  lo_out = lo.Regions(rno).cpci;
+  lo_out = lo.Regions(rno).scan;
   PTE = load(lo.PTEFile);
   if length(lo_out) == 0
     lo_out = [min(PTE(:,1)) max(PTE(:,1))];
@@ -611,32 +611,32 @@ width = ext(3);
 return
 
 function ro_out = reg_update_cursor(rf, ro)
-% If ro.cpci is empty, initialize it appropriately
+% If ro.scan is empty, initialize it appropriately
 % based on ro.Regions.CurRegion
-% Given current setting of ro.cpci, delete existing
+% Given current setting of ro.scan, delete existing
 % cursor lines and draw new ones.
-if length(ro.cpci) == 0
-  ro.cpci = ro.Regions(ro.CurRegion).cpci;
-  if length(ro.cpci) == 0
-    ro.cpci = [ min(ro.data.cpci) max(ro.data.cpci) ];
+if length(ro.scan) == 0
+  ro.scan = ro.Regions(ro.CurRegion).scan;
+  if length(ro.scan) == 0
+    ro.scan = [ min(ro.data.scan) max(ro.data.scan) ];
   end
 end
-idx = min(find(ro.data.cpci>=ro.cpci(1)));
+idx = min(find(ro.data.scan>=ro.scan(1)));
 if length(idx) == 0
-  errordlg('Somehow ran out of cpcis on the left');
+  errordlg('Somehow ran out of scans on the left');
   return
 end
-ro.cpci(1) = ro.data.cpci(idx);
-idx = max(find(ro.data.cpci<=ro.cpci(2)));
+ro.scan(1) = ro.data.scan(idx);
+idx = max(find(ro.data.scan<=ro.scan(2)));
 if length(idx) == 0
-  errordlg('Somehow ran out of cpcis on the right');
+  errordlg('Somehow ran out of scans on the right');
   return
 end
-ro.cpci(2) = ro.data.cpci(idx);
+ro.scan(2) = ro.data.scan(idx);
 st_h = findobj(rf,'tag','reg_start');
-set(st_h,'string',num2str(ro.cpci(1)));
+set(st_h,'string',num2str(ro.scan(1)));
 st_h = findobj(rf,'tag','reg_end');
-set(st_h,'string',num2str(ro.cpci(2)));
+set(st_h,'string',num2str(ro.scan(2)));
 for h=ro.lines(:)
   if h > 0
     delete(h);
@@ -646,15 +646,15 @@ for i=1:3
   axes(ro.ax(i));
   hold on;
   yl = ylim;
-  ro.lines(i,1) = plot(ro.cpci(1)*[1 1],ylim,'k--');
-  ro.lines(i,2) = plot(ro.cpci(2)*[1 1],ylim,'k--');
+  ro.lines(i,1) = plot(ro.scan(1)*[1 1],ylim,'k--');
+  ro.lines(i,2) = plot(ro.scan(2)*[1 1],ylim,'k--');
 end
 set(rf,'UserData',ro);
 ro_out = ro;
 return
 
 function ro_out = save_region(rf, ro)
-ro.Regions(ro.CurRegion).cpci = ro.cpci;
+ro.Regions(ro.CurRegion).scan = ro.scan;
 f = ro.parent;
 line_obj = get(f,'UserData');
 line_obj.Regions = ro.Regions;

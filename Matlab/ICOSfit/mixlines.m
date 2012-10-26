@@ -1,8 +1,8 @@
 function [ Chiout, xout, Pout, lines_out ] = mixlines( base, by_molecule );
 % Chi = mixlines( [base [, by_molecule ] );
-% [ Chi, cpci ] = mixlines( [base [, by_molecule ] );
-% [ Chi, cpci, P ] = mixlines( ... );
-% [ Chi, cpci, P, lines ] = mixlines( ... );
+% [ Chi, scannum ] = mixlines( [base [, by_molecule ] );
+% [ Chi, scannum, P ] = mixlines( ... );
+% [ Chi, scannum, P, lines ] = mixlines( ... );
 % base is the directory where the output files are located
 % by_molecule:
 %   0: Create a separate graph for each isotope
@@ -28,7 +28,7 @@ ICOSsetup;
 if nargout > 0
   Chiout = Chi;
   if nargout > 1
-    xout = cpci14;
+    xout = scannum;
     if nargout > 2
       Pout = P(:,1);
       if nargout > 3
@@ -48,9 +48,9 @@ end
 col = ones( size(fitdata,1), 1 );
 
 if by_time
-  x = time2d(scantime(cpci14));
+  x = time2d(scantime(scannum));
 else
-  x = cpci14;
+  x = scannum;
 end
 
 % v_mn is transition energy in cm-1 

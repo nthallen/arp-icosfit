@@ -64,32 +64,32 @@ if nargin == 0 || strcmp(op,'init')
   isicos = [ WaveSpecs.ISICOS ];
   ISICOS = isicos(PT.QCLI_Wave+1);
   if size(ISICOS,2) > 1, ISICOS = ISICOS'; end
-  cpci14 = PT.CPCI14;
-  CPCI14 = line_obj.Regions(line_obj.CurRegion).cpci;
-  if isempty(CPCI14)
-    CPCI14 = cpci14([ find(cpci14>0 & ISICOS,1) find(cpci14>0 & ISICOS,1,'last') ]);
+  scannum = PT.ScanNum;
+  ScanNum = line_obj.Regions(line_obj.CurRegion).scan;
+  if isempty(ScanNum)
+    ScanNum = scannum([ find(scannum>0 & ISICOS,1) find(scannum>0 & ISICOS,1,'last') ]);
   end
-  idx = find(PTE(:,1)>=CPCI14(1) & PTE(:,1)<=CPCI14(2),1);
+  idx = find(PTE(:,1)>=ScanNum(1) & PTE(:,1)<=ScanNum(2),1);
   if all(diff(PTE(:,1))<0)
-    CPCI14(2) = PTE(idx,1);
+    ScanNum(2) = PTE(idx,1);
   else
-    CPCI14(1) = PTE(idx,1);
+    ScanNum(1) = PTE(idx,1);
   end
-  cpci_start = PTE(idx,1);
-  idx = find(cpci14 >= cpci_start, 1);
+  scan_start = PTE(idx,1);
+  idx = find(scannum >= scan_start, 1);
   QCLI_Wave = PT.QCLI_Wave(idx);
-  if length(CPCI14) < 2
-    nxt_cpci = cpci14(find(cpci14 > CPCI14(1) & PT.QCLI_Wave ~= QCLI_Wave,1))-1;
-    if isempty(nxt_cpci)
-      nxt_cpci = max(cpci14);
+  if length(ScanNum) < 2
+    nxt_scan = scannum(find(scannum > ScanNum(1) & PT.QCLI_Wave ~= QCLI_Wave,1))-1;
+    if isempty(nxt_scan)
+      nxt_scan = max(scannum);
     end
-    CPCI14(2) = nxt_cpci;
+    ScanNum(2) = nxt_scan;
   end
   
   % Find
-  wv = waves_used(CPCI14(1):CPCI14(2));
+  wv = waves_used(ScanNum(1):ScanNum(2));
   if length(wv) > 1
-    waves_used(CPCI14(1):CPCI14(2));
+    waves_used(ScanNum(1):ScanNum(2));
     errordlg('More than one waveform used in specified range');
     return
   end
@@ -118,7 +118,7 @@ if nargin == 0 || strcmp(op,'init')
   % run = getrun(1);
   
   try
-    fe = scanload( cpci_start );
+    fe = scanload( scan_start );
   catch
     errordlg(lasterr);
     return
@@ -137,9 +137,9 @@ if nargin == 0 || strcmp(op,'init')
   % rsabswvno - covers the same range as wvno but at the
   %             same resolution as rswvno
   % rsabsorb - resampled absorption
-  i = find(PTE(:,1)==CPCI14(1),1);
+  i = find(PTE(:,1)==ScanNum(1),1);
   if isempty(i)
-    errordlg(sprintf('CPCI14 %d not found in PTE.txt',CPCI14(1)));
+    errordlg(sprintf('ScanNum %d not found in PTE.txt',ScanNum(1)));
     return
   end
 
@@ -241,7 +241,7 @@ if nargin == 0 || strcmp(op,'init')
   ml_obj.base = base;
   ml_obj.cvx = cvx;
   ml_obj.cur_pk = 1;
-  ml_obj.CPCI14 = CPCI14;
+  ml_obj.ScanNum = ScanNum;
   ml_obj.QCLI_Wave = QCLI_Wave;
   ml_obj.wv = wv;
   ml_obj.SampleRate = SampleRate;
@@ -352,7 +352,7 @@ else
 end
 
 EtalonFSR = load_FSR;
-CPCI14 = ml_obj.CPCI14;
+ScanNum = ml_obj.ScanNum;
 reg_name = ml_obj.line_obj.Regions(ml_obj.line_obj.CurRegion).name;
 suffix = ml_obj.line_obj.Suffix;
 ofile = [ 'icosfit.' reg_name suffix ];
@@ -368,7 +368,7 @@ fprintf( fid, '# Configuration for %s region %s line set %s\n', ...
   ml_obj.run, reg_name, suffix );
 fprintf( fid, 'Verbosity = 1;\n' );
 fprintf( fid, 'QCLI_Wave = %d; # Waveform %s\n', ml_obj.QCLI_Wave, ml_obj.wv.Name );
-fprintf( fid, 'CPCI14Range = [ %d, %d ];\n', CPCI14(1), CPCI14(2) );
+fprintf( fid, 'ScanNumRange = [ %d, %d ];\n', ScanNum(1), ScanNum(2) );
 fprintf( fid, 'SignalRegion = [ %d, %d ];\n', min(ml_obj.x), max(ml_obj.x) );
 fprintf( fid, 'BackgroundRegion = [ %d, %d ];\n', 5, ml_obj.wv.TzSamples );
 % fprintf( fid, 'MinimumFringeSpacing = %.1f;\n', min(diff(frx)));

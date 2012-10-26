@@ -1,7 +1,7 @@
-function [ base, etln, bkgd ] = loadscans(basepath, cpci14, x, zero)
-% [ icos, etln, bkgd ] = loadscans(basepath, cpci14[, x[, zero]]);
+function [ base, etln, bkgd ] = loadscans(basepath, scannum, x, zero)
+% [ icos, etln, bkgd ] = loadscans(basepath, scannum[, x[, zero]]);
 % Extracts a number of ICOS scans from the raw files.
-% base has length(x) rows and length(cpci14) columns
+% base has length(x) rows and length(scannum) columns
 % x defaults to the entire scan;
 % etln and bkgd are an optional outputs.
 % The optional zero input if non-zero indicates that
@@ -17,8 +17,8 @@ elseif zero ~= 0
 end
 basepath = find_scans_dir(basepath);
 
-nscans = length(cpci14);
-wv = waves_used(cpci14);
+nscans = length(scannum);
+wv = waves_used(scannum);
 if length(wv) > 1
   error('More than one waveform used');
 end
@@ -34,7 +34,7 @@ if length(x)
   end
 end
 for i=1:nscans
-  path=mlf_path(basepath,cpci14(i));
+  path=mlf_path(basepath,scannum(i));
   if ~exist(path, 'file')
     error(['File not found: ' path]);
   end
@@ -50,7 +50,7 @@ for i=1:nscans
     end
   end
   if size(fe,1) < max(x)
-    error(['Bad input at Scan number ' num2str(cpci14(i)) ', ' path ]);
+    error(['Bad input at Scan number ' num2str(scannum(i)) ', ' path ]);
   end
   base(:,i) = fe(x,1) - zero * mean(fe(x0,1));
   if nargout > 1

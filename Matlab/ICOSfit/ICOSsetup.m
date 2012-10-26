@@ -3,7 +3,7 @@
 % Loads ICOSout.sum into fitdata and defines
 % C               ICOS_debug      chi2            n_input_params  
 % Chi             Nfit            col             n_line_params   
-% En              P               cpci14          n_lines         
+% En              P               scannum          n_lines         
 % Gair            S0 Scorr        delta dFN dnu   nu nu_P
 % Ged             STdep           fitdata         nu_F0           
 % Gedcalc         T               iso             nu_text         
@@ -93,10 +93,10 @@ if n_cols ~= size(fitdata,2)
 end
 
 if n_input_params == 4
-  cpci14 = fitdata(:,1);
+  scannum = fitdata(:,1);
   chi2 = fitdata(:,4);
 else
-  cpci14 = fitdata(:,6);
+  scannum = fitdata(:,6);
   chi2 = fitdata(:,8);
 end
 if n_abs_params
