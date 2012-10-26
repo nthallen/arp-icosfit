@@ -188,18 +188,21 @@ function handpickpeaks_btn_Callback(hObject, ~, handles)
 % hObject    handle to handpickpeaks_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-axes(handles.axes1);
-zoom off;
+zh = zoom(handles.figure1);
+set(zh, 'Enable','off');
+% zoom off;
 if ~isempty(handles.data.peakpts)
   delete(handles.data.peakpts)
 end
+axes(handles.axes1);
 [X,Y] = ginput;
 X = sort(X);
 Y = interp1(handles.data.samples, handles.data.raw, X, 'nearest');
-axes(handles.axes1);
-hold on;
-handles.data.peakpts = plot(X,Y,'.r');
-zoom on;
+% axes(handles.axes1);
+hold(handles.axes1,'on');
+handles.data.peakpts = plot(handles.axes1,X,Y,'.r');
+set(zh,'Motion','both','Enable','on');
+% zoom on;
 df = ceil(min(diff(X))*.3);
 handles.data.prefilterwidth = df;
 set(handles.prefilterwidth,'String',num2str(handles.data.prefilterwidth));
@@ -374,9 +377,9 @@ if handles.data.level >= handles.data.startlevel
       set(handles.Pause,'visible','off');
       % expose level 1 elements
       set(handles.peakdet_panel,'visible','on');
-      axes(handles.axes1);
+      % axes(handles.axes1);
       cla(handles.axes1);
-      plot(handles.data.samples, handles.data.raw);
+      plot(handles.axes1, handles.data.samples, handles.data.raw);
       handles.data.peakpts = [];
       guidata(hObject,handles);
     case 2
