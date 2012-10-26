@@ -1,4 +1,4 @@
-function [ base, etln, bkgd ] = loadscans(basepath, cpci14, x, zero);
+function [ base, etln, bkgd ] = loadscans(basepath, cpci14, x, zero)
 % [ icos, etln, bkgd ] = loadscans(basepath, cpci14[, x[, zero]]);
 % Extracts a number of ICOS scans from the raw files.
 % base has length(x) rows and length(cpci14) columns
@@ -50,7 +50,7 @@ for i=1:nscans
     end
   end
   if size(fe,1) < max(x)
-    error(['Bad input at CPCI14 ' num2str(cpci14(i)) ', ' path ]);
+    error(['Bad input at Scan number ' num2str(cpci14(i)) ', ' path ]);
   end
   base(:,i) = fe(x,1) - zero * mean(fe(x0,1));
   if nargout > 1

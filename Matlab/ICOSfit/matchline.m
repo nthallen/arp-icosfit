@@ -55,7 +55,7 @@ if nargin == 0 || strcmp(op,'init')
     errordlg(sprintf('PTEFile "%s" missing', line_obj.PTEFile));
     return
   end
-  cr_cfg = load_cr_cfg;
+  ICOSfit_cfg = load_ICOSfit_cfg;
   
   % Always load PT now to get waveform information
   PT = load_mat_files('PT', 'PandT');
@@ -249,7 +249,7 @@ if nargin == 0 || strcmp(op,'init')
   ml_obj.CavityLength = CavityLength;
   ml_obj.N_Passes = N_Passes;
   ml_obj.run = run;
-  ml_obj.cr_cfg = cr_cfg;
+  ml_obj.ICOSfit_cfg = ICOSfit_cfg;
   if size(spk,1) == 0
     button = questdlg('No Lines Found: Create icosfit file anyway?','Error', ...
       'Yes', 'No', 'Yes' );

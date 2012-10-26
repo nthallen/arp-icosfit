@@ -11,8 +11,8 @@ if nargin < 2
   figno = -1;
   if nargin < 1
     dirname = [];
-    cr_cfg = load_cr_cfg;
-    dirs = { 'RAW', [ cr_cfg.Matlab_CD_Path '/home/CR/' getrun(1) '/CPCI/RAW' ] };
+    ICOSfit_cfg = load_ICOSfit_cfg;
+    dirs = { 'RAW', [ ICOSfit_cfg.Matlab_Path '/' getrun(1) '/' ICOSfit_cfg.ScanDir ] };
     for i=1:length(dirs)
       if exist( dirs{i}, 'dir' )
         dirname = dirs{i};

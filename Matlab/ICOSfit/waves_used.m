@@ -1,4 +1,4 @@
-function [ wvsused, ranges ] = waves_used(cpci14);
+function [ wvsused, ranges ] = waves_used(cpci14)
 % waves_used( [cpci14] );
 %   Lists waveforms used in the current run.
 % wvs = waves_used([cpci14]);

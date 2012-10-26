@@ -37,9 +37,9 @@ if plotcode == 0
 end
 if plotcode >= 10 && plotcode < 30
   % load the answerkey
-  cr_cfg = load_cr_cfg;
+  ICOSfit_cfg = load_ICOSfit_cfg;
   run = getrun(1);
-  ak = load([ cr_cfg.Matlab_CD_Path cr_cfg.HomeDir filesep run '/answerkey.mat' ]);
+  ak = load([ ICOSfit_cfg.Matlab_Path filesep run '/answerkey.mat' ]);
   aChi = ak.ppm(cpci14)*1e-6*row;
   aN = aChi .* C;
   PowerScale = ak.mirrorloss * 1e-6 / (2 - ak.mirrorloss*1e-6);
@@ -164,8 +164,10 @@ for i=rows'
         plot(nux,f(:,3)./f(:,5)*100,nux,f(:,4)./f(:,5)*100,X,Y,'r')
         yl=ylim;
         ylim([yl(1),100+diff(yl)*.025]);
+       % xlim([2309.5,2309.7])
       else
         plot(nux,f(:,[3:5]), X, Y, 'r');
+        %xlim([2309.5,2309.7])
       end
       %legend('raw','fit','base');
       set( gca, 'XDir', 'reverse','YAxisLocation','Right' );
@@ -173,10 +175,13 @@ for i=rows'
       xr = [min(nux) max(nux)];
       if length(xlim_in)
         xlim(xlim_in);
+      %xlim([2309.5,2309.7])
       else
         xlim( xr + [-1 1]*.05*diff(xr));
+       % xlim([2309.5,2309.7])
       end
       xl = xlim;
+      %xl=[2309.5,2309.7];
       if length(ylim_in)
         ylim(ylim_in);
       end

@@ -1,22 +1,22 @@
-function fe = scanload( CPCI14, base, binary );
+function fe = scanload( ScanNum, base, binary );
 % f = scanload( CPCI14 [, base[, binary]] )
 % binary defaults to TRUE
-% base defaults to CPCI14
+% base defaults to Config File ScanDir
 % Looks for the file either directly under base or
 % prefixes base with 'E:/home/CR/<run>/CPCI/' to look
 % on a CD (assuming the CD is at E:)
-cr_cfg = load_cr_cfg;
+ICOSfit_cfg = load_ICOSfit_cfg;
 if nargin < 3
   binary = 1;
   if nargin < 2
-    base = 'CPCI14';
+    base = ICOSfit_cfg.ScanDir;
   end
 end
-ifile = mlf_path(base,CPCI14,'.dat');
+ifile = mlf_path(base,ScanNum,'.dat');
 run = getrun(1);
 iifile = ifile;
 if ~exist( iifile, 'file')
-  iifile = [ cr_cfg.Matlab_CD_Path cr_cfg.HomeDir filesep run cr_cfg.CPCI14link ifile ];
+  iifile = [ ICOSfit_cfg.Matlab_Path filesep run filesep ifile ];
 end
 if binary == 0
   fe = load(iifile);

@@ -31,7 +31,7 @@ function varargout = etln_fit(varargin)
 
 %### Trouble in 070625.2 at 337 and 852
 
-% Last Modified by GUIDE v2.5 24-Oct-2012 20:43:35
+% Last Modified by GUIDE v2.5 19-Oct-2012 11:58:44
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -131,9 +131,7 @@ handles.data.peakpts = [];
 handles.data.rxs = (1:length(range_dflt))'*1e-3;
 handles.data.Op = optimset('lsqcurvefit');
 handles.data.Op = ...
-  optimset(handles.data.Op,'Jacobian', 'on','TolFun',.1, ...
-    'MaxFunEvals',100,'Algorithm','levenberg-marquardt', ...
-    'Display','off');
+  optimset(handles.data.Op,'Jacobian', 'on','TolFun',.1,'MaxFunEvals',100);
 
 set(handles.Fitting,'visible','off');
 % Update handles structure
@@ -818,3 +816,18 @@ else
   set(handles.X6, 'Visible', 'off');
   set(handles.X7, 'Visible', 'off');
 end
+
+
+% --- Executes during object creation, after setting all properties.
+function peakfit_panel_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to peakfit_panel (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+
+% --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% --- Otherwise, executes on mouse press in 5 pixel border or over findpeaks_btn.
+function findpeaks_btn_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to findpeaks_btn (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)

@@ -6,9 +6,9 @@ function [ D, T ] = load_mat_files( varargin );
 % Example:
 %  [D,T] = load_mat_files('PT', 'PandT');
 run = getrun(1);
-cr_cfg = load_cr_cfg;
-dirs = { '.', [ cr_cfg.Matlab_CD_Path cr_cfg.HomeDir '/anal/' run ], ...
-    [ cr_cfg.Matlab_CD_Path cr_cfg.HomeDir run ] };
+ICOSfit_cfg = load_ICOSfit_cfg;
+dirs = { '.', [ ICOSfit_cfg.Matlab_Path '/anal/' run ], ...
+    [ ICOSfit_cfg.Matlab_Path run ] };
 for i = 1:length(varargin)
   file = varargin{i};
   for j = 1:length(dirs);
