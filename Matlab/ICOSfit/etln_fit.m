@@ -16,7 +16,7 @@ function varargout = etln_fit(varargin)
 %      unrecognized property name or invalid value makes property application
 %      stop.  All inputs are passed to etln_fit_OpeningFcn via varargin.
 %
-%      CPCI - vector of CPCI numbers to fit
+%      Scans - vector of scan numbers to fit
 %      OFILE - output file name
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
@@ -66,15 +66,15 @@ handles.output = hObject;
 handles.data.ofile = 'PTE.txt';
 handles.data.saveall = 0;
 for i=1:2:length(varargin)-1
-  if strcmpi(varargin{i},'CPCI')
-    handles.data.cpci = varargin{i+1};
+  if strcmpi(varargin{i},'Scans')
+    handles.data.scans = varargin{i+1};
   elseif strcmpi(varargin{i},'OFILE')
     handles.data.ofile = varargin{i+1};
   elseif strcmpi(varargin{i},'SAVEALL')
     handles.data.saveall = varargin{i+1};
   end
 end
-wv = waves_used(handles.data.cpci);
+wv = waves_used(handles.data.scans);
 if length(wv) > 1
   errordlg( 'Multiple waveforms specified' );
   delete(handles.figure1);
@@ -86,7 +86,7 @@ handles.data.vZ = 1:wv.TzSamples;
 PT = load_mat_files('PT');
 dcpi = find(diff(PT.CPCI14)>0)+1; % index of new cpci numbers
 dcpi = [ dcpi(1)-1; dcpi ];
-idx = ceil(interp1(PT.CPCI14(dcpi),dcpi,handles.data.cpci));
+idx = ceil(interp1(PT.CPCI14(dcpi),dcpi,handles.data.scans));
 if any(isnan(idx))
   errordlg('Input cpci14 range exceeds PT record');
   delete(handles.figure1);
@@ -111,7 +111,7 @@ end
 handles.data.prefilterwidth = prefilterwidth;
 set(handles.prefilterwidth,'String',num2str(prefilterwidth));
 handles.data.CPCI14dir = find_scans_dir([]);
-handles.data.indexes = 1:length(handles.data.cpci);
+handles.data.indexes = 1:length(handles.data.scans);
 handles.data.peakx = [];
 handles.data.Xdflt = X;
 handles.data.Xlast = [];
@@ -120,8 +120,8 @@ handles.data.Y = [];
 handles.data.samples = range_dflt;
 handles.data.threshold = threshold;
 set(handles.threshold,'String',num2str(handles.data.threshold));
-handles.data.figerrs = nan * handles.data.cpci;
-handles.data.passes = 0*handles.data.cpci;
+handles.data.figerrs = nan * handles.data.scans;
+handles.data.passes = 0*handles.data.scans;
 handles.data.index = 0;
 handles.data.level = 0;
 handles.data.startlevel = 1;
@@ -398,7 +398,7 @@ if handles.data.level >= handles.data.startlevel
       set(handles.reiterate_btn,'enable','on');
       set(handles.back_btn,'enable','on');
       set(handles.next_btn,'String','Next');
-      if handles.data.index < length(handles.data.cpci)
+      if handles.data.index < length(handles.data.scans)
         set(handles.next_btn,'enable','on');
       else
         set(handles.next_btn,'enable','off');
@@ -423,19 +423,19 @@ while 1
     if handles.data.saveall
       fprintf( handles.data.ofd, ...
         '%d %.2f %.1f %d %.7g %.7g %.7g %.7g %.7g %.7g %.7g %.7g %.7g %.7g %.7g %.7g %.7g %.7g\n', ...
-        handles.data.cpci(i), handles.data.P(i), ...
+        handles.data.scans(i), handles.data.P(i), ...
         handles.data.T(i), ...
         handles.data.samples(1), handles.data.Y(1:12), ...
         handles.data.fitpass, handles.data.figerr );
     else
       fprintf( handles.data.ofd, ...
         '%d %.2f %.1f %d %.7g %.7g %.7g %.7g %.7g %.7g %.7g\n', ...
-        handles.data.cpci(i), handles.data.P(i), ...
+        handles.data.scans(i), handles.data.P(i), ...
         handles.data.T(i), ...
         handles.data.samples(1), handles.data.Y(1:7) );
     end
   end
-  if handles.data.index >= length(handles.data.cpci)
+  if handles.data.index >= length(handles.data.scans)
     all_done = 1;
     fclose(handles.data.ofd);
     handles.data.ofd = [];
@@ -446,7 +446,7 @@ while 1
   end
   handles.data.index = handles.data.index+1;
   handles.data.fitpass = 1;
-  cpci = handles.data.cpci(handles.data.index);
+  cpci = handles.data.scans(handles.data.index);
   fe = loadbin(mlf_path(handles.data.CPCI14dir, cpci));
   if ~isempty(fe) && size(fe,2) >= 2 && size(fe,1) >= max(handles.data.samples)
     set(handles.CPCI,'String',num2str(cpci));
@@ -624,7 +624,7 @@ while 1
           cla(handles.axes2);
           plot(handles.axes2, handles.data.indexes,handles.data.figerrs);
           set(handles.axes2,'XTickLabel',[],'YTickLabel',[], ...
-            'xlim', [1 length(handles.data.cpci)+1], ...
+            'xlim', [1 length(handles.data.scans)+1], ...
             'ylim', [0 handles.data.threshold], 'visible','on');
           title(handles.axes2, sprintf('Relative Error: %.2g', ...
               handles.data.figerr));
