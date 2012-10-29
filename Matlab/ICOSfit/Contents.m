@@ -30,6 +30,7 @@
 %   dispfix.m - View ICOSfit fix/float status
 %   rrfit.m - Display individual fit files
 %   rrcompare.m - Plots to compare fit files from two bases
+%   rrresid.m - Outputs residuals from fits. Useful with dft.m 
 %   allan_var_plot.m - creates a simple Allan Variance plot
 % 
 % Utilities:
