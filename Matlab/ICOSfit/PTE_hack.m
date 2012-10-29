@@ -19,8 +19,8 @@ end
 if nargin<2
     PTEout=PTEin;
 end
-t2=ones(range(CPCI14),1)*t(PTEnumber,:);
-t2(:,1)=1:range(CPCI14);
-t2(:,2)=interp1(CPCI14(diff(CPCI14)>0),CellP(diff(CPCI14)>0),t2(:,1));
-t2(:,3)=interp1(CPCI14(diff(CPCI14)>0),Tavg(diff(CPCI14)>0),t2(:,1));
+t2=ones(range(ScanNum),1)*t(PTEnumber,:);
+t2(:,1)=1:range(ScanNum);
+t2(:,2)=interp1(ScanNum(diff(ScanNum)>0),CellP(diff(ScanNum)>0),t2(:,1));
+t2(:,3)=interp1(ScanNum(diff(ScanNum)>0),Tavg(diff(ScanNum)>0),t2(:,1));
 save(PTEout,'t2','-ascii');

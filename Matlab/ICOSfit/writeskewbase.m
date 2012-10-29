@@ -1,6 +1,6 @@
 function Uout = writeskewbase( region, U, S, V, tol );
 % Uout = writeskewbase( region, U, S, V [ , tol ] );
-% region should be the CPCI14 number of the start of the
+% region should be the scan number of the start of the
 % baseline region or the region name.
 % U, S and V are the relevant outputs from SVDS()
 % Requires MirrorLoss.mat and CavityLength.mat

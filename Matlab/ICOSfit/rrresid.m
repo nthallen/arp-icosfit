@@ -9,7 +9,7 @@ ICOSsetup;
 xmin = [];
 resids = [];
 nscans = 0;
-for i = cpci14'
+for i = scannum'
   path = mlf_path( base, i );
   f = load(path);
   nscans = nscans+1;
@@ -31,7 +31,7 @@ for i = cpci14'
 end
 if nargin < 3; PTEfile = ''; end
 x = xmin:xmin+size(resids,1)-1;
-nus = get_nu(region, suffix, x, PTEfile, cpci14);
+nus = get_nu(region, suffix, x, PTEfile, scannum);
 [ nu, rresid ] = icos_resample(nus,resids,1e-4);
 mresid = nanmean(rresid,2);
 if nargout >= 3; nus_out = nus; end

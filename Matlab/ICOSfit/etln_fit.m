@@ -1,6 +1,6 @@
 function varargout = etln_fit(varargin)
 % ETLN_FIT M-file for etln_fit.fig
-% ETLN_FIT( 'CPCI', cpci_vector, 'OFILE', output_filename, 'SAVEALL', 1 );
+% ETLN_FIT( 'SCANNUM', scannum_vector, 'OFILE', output_filename, 'SAVEALL', 1 );
 %      ETLN_FIT, by itself, creates a new ETLN_FIT or raises the existing
 %      singleton*.
 %
@@ -84,11 +84,11 @@ handles.data.wv = wv;
 handles.data.vZ = 1:wv.TzSamples;
 % Pick out P and T for output
 PT = load_mat_files('PT');
-dcpi = find(diff(PT.CPCI14)>0)+1; % index of new cpci numbers
+dcpi = find(diff(PT.ScanNum)>0)+1; % index of new scannum numbers
 dcpi = [ dcpi(1)-1; dcpi ];
-idx = ceil(interp1(PT.CPCI14(dcpi),dcpi,handles.data.scans));
+idx = ceil(interp1(PT.ScanNum(dcpi),dcpi,handles.data.scans));
 if any(isnan(idx))
-  errordlg('Input cpci14 range exceeds PT record');
+  errordlg('Input scan number range exceeds PT record');
   delete(handles.figure1);
   return;
 end
@@ -110,7 +110,7 @@ end
   'threshold', .07  );
 handles.data.prefilterwidth = prefilterwidth;
 set(handles.prefilterwidth,'String',num2str(prefilterwidth));
-handles.data.CPCI14dir = find_scans_dir([]);
+handles.data.ScanNumdir = find_scans_dir([]);
 handles.data.indexes = 1:length(handles.data.scans);
 handles.data.peakx = [];
 handles.data.Xdflt = X;
@@ -139,7 +139,7 @@ guidata(hObject, handles);
 update_X_to_fig(handles);
 
 % handles = setup_level(hObject, handles);
-next_cpci_file(hObject, handles );
+next_scannum_file(hObject, handles );
 
 
 % UIWAIT makes etln_fit wait for user response (see UIRESUME)
@@ -251,7 +251,7 @@ switch handles.data.level
   case 3
     % Write out current fit
     guidata(hObject, handles);
-    if next_cpci_file(hObject, handles)
+    if next_scannum_file(hObject, handles)
       set(handles.next_btn,'enable','off');
       set(handles.reiterate_btn,'enable','off');
       set(handles.back_btn,'enable','off');
@@ -413,7 +413,7 @@ if handles.data.level >= handles.data.startlevel
 end
 
 %--------------------------------------------------------------------------
-function all_done = next_cpci_file(hObject, handles )
+function all_done = next_scannum_file(hObject, handles )
 % handles may be modified as a side effect.
 while 1
   if handles.data.index > 0 && handles.data.figerr >= 0 && ...
@@ -446,10 +446,10 @@ while 1
   end
   handles.data.index = handles.data.index+1;
   handles.data.fitpass = 1;
-  cpci = handles.data.scans(handles.data.index);
-  fe = loadbin(mlf_path(handles.data.CPCI14dir, cpci));
+  scannum = handles.data.scans(handles.data.index);
+  fe = loadbin(mlf_path(handles.data.ScanNumdir, scannum));
   if ~isempty(fe) && size(fe,2) >= 2 && size(fe,1) >= max(handles.data.samples)
-    set(handles.CPCI,'String',num2str(cpci));
+    set(handles.SCANNUM,'String',num2str(scannum));
     if isempty(handles.data.vZ)
       handles.data.raw = fe(handles.data.samples,2);
     else
@@ -471,7 +471,7 @@ while 1
     % handles.data.passes(handles.data.index) = 4; % total failure
     handles.data.passes = update_passes(handles,4);
     guidata(hObject,handles);
-    fprintf(1, 'Error reading cpci file %d\n', cpci );
+    fprintf(1, 'Error reading scannum file %d\n', scannum );
   end
 end
 
@@ -501,7 +501,7 @@ function interact = execute_level(hObject, handles)
 % handles has been initialized, and now we do what we need to do at the
 % current operating level. This function should return a non-zero value
 % if the GUI should interact. It should return zero only if the fit for
-% the current cpci number is complete and we want to advance to the next
+% the current scannum number is complete and we want to advance to the next
 % scan.
 % handles may be modified as a side effect.
 interact = 1;

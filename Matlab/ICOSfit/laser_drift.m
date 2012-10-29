@@ -1,5 +1,5 @@
-function [drift,cpci] = laser_drift(base, ptefile);
-% [drift,cpci] = laser_drift(base, ptefile);
+function [drift,scannum] = laser_drift(base, ptefile);
+% [drift,scannum] = laser_drift(base, ptefile);
 if nargin < 2 || length(ptefile) == 0
   ptefile = 'PTE.txt';
 end
@@ -17,5 +17,5 @@ fnb = interp1(ca,fn,cb);
 drift = fnb - nu_F0;
 drift = drift-drift(1);
 if nargout > 1
-  cpci = cb;
+  scannum = cb;
 end

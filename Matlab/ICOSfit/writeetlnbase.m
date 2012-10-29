@@ -1,6 +1,6 @@
 function [ nu_out, Vout ] = writeetlnbase( name, p_coeffs, c_nu, ...
-   c_vector, periods, cpci )
-% [ nu_out, Vout ] = writeetlnbase( name, poly_coeffs, c_nu, c_vector, periods[,cpci] );
+   c_vector, periods, scannum )
+% [ nu_out, Vout ] = writeetlnbase( name, poly_coeffs, c_nu, c_vector, periods[,scannum] );
 % Creates sbase.<name>.ptb specifying a baseline
 % function containing a polynomial of sample number, an arbitrary
 % number of explicit basis vectors as a function of wavenumber,
@@ -20,7 +20,7 @@ function [ nu_out, Vout ] = writeetlnbase( name, p_coeffs, c_nu, ...
 % periods is a vector of wave periods to include in the baseline. For each
 % period, two vectors (cos & sin) will be included in the baseline.
 %
-% cpci is a representative cpci number to use for approximating the polynomial
+% scannum is a representative scannum number to use for approximating the polynomial
 % coefficients for Herriot Cell configurations. Could be extended for use with
 % ICOS.
 %
@@ -64,9 +64,9 @@ if p_coeffs>0
   x = (300:2644)'/1000;
   if N_Passes
     if nargin >= 6
-      wv = waves_used(cpci);
+      wv = waves_used(scannum);
       x = get_waveform_params(wv.Name,'SignalRegion', 1:wv.NetSamples);
-      rawdata = loadscans([],cpci,x);
+      rawdata = loadscans([],scannum,x);
       x = x'/1000;
     else
       error('Cannot currently guess suitable raw source for Herriot');

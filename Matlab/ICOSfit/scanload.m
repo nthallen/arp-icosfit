@@ -1,5 +1,5 @@
 function fe = scanload( ScanNum, base, binary );
-% f = scanload( CPCI14 [, base[, binary]] )
+% f = scanload( ScanNum [, base[, binary]] )
 % binary defaults to TRUE
 % base defaults to Config File ScanDir
 % Looks for the file either directly under base or
