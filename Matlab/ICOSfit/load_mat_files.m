@@ -8,7 +8,7 @@ function [ D, T ] = load_mat_files( varargin );
 run = getrun(1);
 ICOSfit_cfg = load_ICOSfit_cfg;
 dirs = { '.', [ ICOSfit_cfg.Matlab_Path '/anal/' run ], ...
-    [ ICOSfit_cfg.Matlab_Path run ] };
+    [ ICOSfit_cfg.Matlab_Path '/' run ] };
 for i = 1:length(varargin)
   file = varargin{i};
   for j = 1:length(dirs);

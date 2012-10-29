@@ -3,7 +3,7 @@ function fe = scanload( ScanNum, base, binary );
 % binary defaults to TRUE
 % base defaults to Config File ScanDir
 % Looks for the file either directly under base or
-% prefixes base with 'E:/home/CR/<run>/CPCI/' to look
+% prefixes base with 'E:/home/CR/<run>/ScanDir/' to look
 % on a CD (assuming the CD is at E:)
 ICOSfit_cfg = load_ICOSfit_cfg;
 if nargin < 3
