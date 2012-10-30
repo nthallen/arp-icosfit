@@ -58,10 +58,10 @@ if nargin >= 2 && strcmp(varargin{1},'Config')
 else
   ICOSfit_cfg = load_ICOSfit_cfg(1);
 end
-set(handles.N_Passes,'String', ICOSfit_cfg.WavesFile);
-set(handles.CavityLength,'String',ICOSfit_cfg.Matlab_Path);
-set(handles.fsr,'String',ICOSfit_cfg.ICOSfit_Path);
-set(handles.MirrorLoss,'String',ICOSfit_cfg.ScanDir);
+set(handles.WavesFile,'String', ICOSfit_cfg.WavesFile);
+set(handles.Matlab_Path,'String',ICOSfit_cfg.Matlab_Path);
+set(handles.ICOSfit_Path,'String',ICOSfit_cfg.ICOSfit_Path);
+set(handles.ScanDir,'String',ICOSfit_cfg.ScanDir);
 S{1} = pwd;
 cd ..
 S{2} = pwd;

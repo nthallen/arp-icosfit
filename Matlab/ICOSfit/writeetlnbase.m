@@ -48,11 +48,9 @@ if nargout > 0
 end
 
 % Load N_Passes to determine whether this is ICOS or Herriot.
-N_Passes = 0;
-NP_path = findinpath('N_Passes.mat', {'.','..'});
-if ~isempty(NP_path)
-  load(NP_path);
-end
+cellparams=load_cell_cfg;
+N_Passes = cellparams.N_Passes;
+
 % icos = loadscans([],30000); % random scan
 % plot(icos); % to pick x range
 % x = [500:2644]';
@@ -62,7 +60,7 @@ end
 % % integrating cavity, you don't get that gain.
 if p_coeffs>0
   x = (300:2644)'/1000;
-  if N_Passes
+  if N_Passes ~= 0
     if nargin >= 6
       wv = waves_used(scannum);
       x = get_waveform_params(wv.Name,'SignalRegion', 1:wv.NetSamples);

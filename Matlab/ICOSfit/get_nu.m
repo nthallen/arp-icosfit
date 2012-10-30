@@ -48,7 +48,8 @@ if length(PTEfile) == 0
 end
 PTE = load(PTEfile);
 nu = zeros(length(x),length(scannums));
-FSR = load_FSR; % 0.0198;
+cellparams=load_cell_cfg;
+FSR = cellparams.fsr; % 0.0198;
 for i=1:length(scannums)
   j = find(PTE(:,1)==scannums(i));
   if length(j) > 1

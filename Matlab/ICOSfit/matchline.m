@@ -9,15 +9,13 @@ function matchline( op, line_obj )
 %
 % Requires:
 %   fitline.mat in the current or parent directory.
-%   CavityLength.mat in the current or parent directory
-%   MirrorLoss.mat in the current directory or
-%    N_Passes.mat
+%   Cell_Config.m in the current or parent directory
 %   PTE file specified in fitline.mat in the current directory
 %   A skew baseline file sbase*.dat in the current directory
 %   icosfit 2.2c or later (uses 'nu0' keyword)
 % Local Configuration Items:
-%   Matlab_CD_Path
-%   ICOSfit_CD_Path
+%   Matlab_Path
+%   ICOSfit_Path
 
 % Update from matchline6a() using line definitions to decide optimal
 % fit parameters:
@@ -25,31 +23,15 @@ function matchline( op, line_obj )
 %  mfhw = min(ceil(.2 * voigt_half_width)) (was '1')
 %  cv_hlf = max(ceil(voigt_half_width))    (was '10')
 %  cv_mfhw = 1;                            (was '1')
-
-EtalonFSR = load_FSR; % .019805;
+cellparams=load_cell_cfg;
+EtalonFSR = cellparams.fsr; % .019805;
 if nargin == 0 || strcmp(op,'init')
   if nargin == 1
     line_obj = fitline('load');
   end
-  CavityLength = load_cavity_length;
-  N_Passes = 0;
-  dirs = { '.', '..' };
-  for i = 1:length(dirs)
-    path = [ dirs{i} '/N_Passes.mat' ];
-    if exist(path,'file')
-      load(path);
-      break;
-    end
-  end
-  if N_Passes == 0
-    if ~exist('MirrorLoss.mat','file')
-      errordlg('Must calculate Mirror Loss (or specify N_Passes) first');
-      return
-    end
-    load MirrorLoss.mat;
-  else
-    MirrorLoss = 0.;
-  end
+  CavityLength = cellparams.CavityLength;
+  N_Passes = cellparams.N_Passes;
+  MirrorLoss = cellparams.MirrorLoss;
   run = getrun(1);
   if ~exist(line_obj.PTEFile,'file')
     errordlg(sprintf('PTEFile "%s" missing', line_obj.PTEFile));
@@ -246,6 +228,7 @@ if nargin == 0 || strcmp(op,'init')
   ml_obj.wv = wv;
   ml_obj.SampleRate = SampleRate;
   ml_obj.MirrorLoss = MirrorLoss;
+  ml_obj.EtalonFSR = cellparams.fsr;
   ml_obj.CavityLength = CavityLength;
   ml_obj.N_Passes = N_Passes;
   ml_obj.run = run;
@@ -351,7 +334,6 @@ else
   linesample = floor(interp1(ml_obj.wvno+ml_obj.cvx(pk),ml_obj.x,ml_obj.linewvno)+.5);
 end
 
-EtalonFSR = load_FSR;
 ScanNum = ml_obj.ScanNum;
 reg_name = ml_obj.line_obj.Regions(ml_obj.line_obj.CurRegion).name;
 suffix = ml_obj.line_obj.Suffix;
@@ -415,7 +397,7 @@ fprintf( fid, 'CavityLength = %.2f;\n', ml_obj.CavityLength );
 if ml_obj.N_Passes > 0
   fprintf( fid, 'N_Passes = %d;\n', ml_obj.N_Passes );
 end
-fprintf( fid, 'EtalonFSR = %.6f cm-1;\n', EtalonFSR );
+fprintf( fid, 'EtalonFSR = %.6f cm-1;\n', ml_obj.EtalonFSR );
 fprintf( fid, '%s\n%s\n',...
   'Binary;', ...
   [ 'ICOSdir = ' find_scans_dir('',1) ';' ] );

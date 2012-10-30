@@ -219,10 +219,10 @@ SaveDir = SaveDirs{get(handles.SaveDir,'value')};
 fd = fopen([ SaveDir '/Cell_Config.m'], 'w');
 fprintf(fd, 'function cell_cfg = Cell_Config;\n');
 fprintf(fd, '% ICOSfit_Config defines local configuration\n');
-fprintf(fd, 'cell_cfg.MirrorLoss = ''%s'';\n', cell_cfg.MirrorLoss );
-fprintf(fd, 'cell_cfg.fsr = ''%s'';\n', cell_cfg.fsr );
-fprintf(fd, 'cell_cfg.CavityLength = ''%s'';\n', cell_cfg.CavityLength );
-fprintf(fd, 'cell_cfg.N_Passes = ''%s'';\n', cell_cfg.N_Passes );
+fprintf(fd, 'cell_cfg.MirrorLoss = %s;\n', cell_cfg.MirrorLoss );
+fprintf(fd, 'cell_cfg.fsr = %s;\n', cell_cfg.fsr );
+fprintf(fd, 'cell_cfg.CavityLength = %s;\n', cell_cfg.CavityLength );
+fprintf(fd, 'cell_cfg.N_Passes = %s;\n', cell_cfg.N_Passes );
 fclose(fd);
 uiresume(handles.figure1);
 

@@ -25,8 +25,9 @@ fprintf(1,'ScanNum: %d QCLI_Wave: %s fsam: %f\n', scannum(1), wv.Name, fsam );
 if nargin < 3
   tol = 10e-6;
 end
-CavityLength = load_cavity_length;
-load('MirrorLoss.mat');
+cellparams=load_cell_cfg;
+CavityLength = cellparams.CavityLength;
+MirrorLoss = cellparams.MirrorLoss;
 c = lightspeed; % cm/sec
 R = 1-MirrorLoss;
 N = c/(2*CavityLength*fsam);
