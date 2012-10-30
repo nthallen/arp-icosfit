@@ -1,35 +1,35 @@
-function varargout = edit_ICOSfit_cfg(varargin)
-% EDIT_ICOSFIT_CFG M-file for edit_ICOSfit_cfg.fig
-%      EDIT_ICOSFIT_CFG, by itself, creates a new EDIT_ICOSFIT_CFG or raises the existing
+function varargout = edit_cell_cfg(varargin)
+% EDIT_CELL_CFG M-file for edit_cell_cfg.fig
+%      EDIT_CELL_CFG, by itself, creates a new EDIT_CELL_CFG or raises the existing
 %      singleton*.
 %
-%      H = EDIT_ICOSFIT_CFG returns the handle to a new EDIT_ICOSFIT_CFG or the handle to
+%      H = EDIT_CELL_CFG returns the handle to a new EDIT_CELL_CFG or the handle to
 %      the existing singleton*.
 %
-%      EDIT_ICOSFIT_CFG('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in EDIT_ICOSFIT_CFG.M with the given input arguments.
+%      EDIT_CELL_CFG('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in EDIT_CELL_CFG.M with the given input arguments.
 %
-%      EDIT_ICOSFIT_CFG('Property','Value',...) creates a new EDIT_ICOSFIT_CFG or raises the
+%      EDIT_CELL_CFG('Property','Value',...) creates a new EDIT_CELL_CFG or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before edit_ICOSfit_cfg_OpeningFunction gets called.  An
+%      applied to the GUI before edit_cell_cfg_OpeningFunction gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to edit_ICOSfit_cfg_OpeningFcn via varargin.
+%      stop.  All inputs are passed to edit_cell_cfg_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help edit_ICOSfit_cfg
+% Edit the above text to modify the response to help edit_cell_cfg
 
-% Last Modified by GUIDE v2.5 30-Oct-2012 11:53:51
+% Last Modified by GUIDE v2.5 30-Oct-2012 11:54:17
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @edit_ICOSfit_cfg_OpeningFcn, ...
-                   'gui_OutputFcn',  @edit_ICOSfit_cfg_OutputFcn, ...
+                   'gui_OpeningFcn', @edit_cell_cfg_OpeningFcn, ...
+                   'gui_OutputFcn',  @edit_cell_cfg_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -44,24 +44,24 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before edit_ICOSfit_cfg is made visible.
-function edit_ICOSfit_cfg_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before edit_cell_cfg is made visible.
+function edit_cell_cfg_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to edit_ICOSfit_cfg (see VARARGIN)
+% varargin   command line arguments to edit_cell_cfg (see VARARGIN)
 
-% Choose default command line output for edit_ICOSfit_cfg
+% Choose default command line output for edit_cell_cfg
 if nargin >= 2 && strcmp(varargin{1},'Config')
-  ICOSfit_cfg = varargin{2};
+  cell_cfg = varargin{2};
 else
-  ICOSfit_cfg = load_ICOSfit_cfg(1);
+  cell_cfg = load_cell_cfg(1);
 end
-set(handles.N_Passes,'String', ICOSfit_cfg.WavesFile);
-set(handles.CavityLength,'String',ICOSfit_cfg.Matlab_Path);
-set(handles.fsr,'String',ICOSfit_cfg.ICOSfit_Path);
-set(handles.MirrorLoss,'String',ICOSfit_cfg.ScanDir);
+set(handles.N_Passes,'String', cell_cfg.N_Passes);
+set(handles.CavityLength,'String',cell_cfg.CavityLength);
+set(handles.fsr,'String',cell_cfg.fsr);
+set(handles.MirrorLoss,'String',cell_cfg.MirrorLoss);
 S{1} = pwd;
 cd ..
 S{2} = pwd;
@@ -69,17 +69,17 @@ cd ..
 S{3} = pwd;
 cd(S{1});
 set(handles.SaveDir, 'String', S, 'value', 1);
-handles.output = ICOSfit_cfg;
+handles.output = cell_cfg;
 
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes edit_ICOSfit_cfg wait for user response (see UIRESUME)
+% UIWAIT makes edit_cell_cfg wait for user response (see UIRESUME)
 uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = edit_ICOSfit_cfg_OutputFcn(hObject, eventdata, handles) 
+function varargout = edit_cell_cfg_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -208,21 +208,21 @@ function Save_btn_Callback(hObject, eventdata, handles)
 % hObject    handle to Save_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-ICOSfit_cfg.WavesFile = get(handles.N_Passes,'String');
-ICOSfit_cfg.Matlab_Path = get(handles.CavityLength,'String');
-ICOSfit_cfg.ICOSfit_Path = get(handles.fsr,'String');
-ICOSfit_cfg.ScanDir = get(handles.MirrorLoss,'String');
-handles.output = ICOSfit_cfg;
+cell_cfg.N_Passes = get(handles.N_Passes,'String');
+cell_cfg.CavityLength = get(handles.CavityLength,'String');
+cell_cfg.fsr = get(handles.fsr,'String');
+cell_cfg.MirrorLoss = get(handles.MirrorLoss,'String');
+handles.output = cell_cfg;
 guidata(hObject, handles);
 SaveDirs = get(handles.SaveDir,'String');
 SaveDir = SaveDirs{get(handles.SaveDir,'value')};
-fd = fopen([ SaveDir '/ICOSfit_Config.m'], 'w');
-fprintf(fd, 'function ICOSfit_cfg = ICOSfit_Config;\n');
+fd = fopen([ SaveDir '/Cell_Config.m'], 'w');
+fprintf(fd, 'function cell_cfg = Cell_Config;\n');
 fprintf(fd, '% ICOSfit_Config defines local configuration\n');
-fprintf(fd, 'ICOSfit_cfg.Matlab_Path = ''%s'';\n', ICOSfit_cfg.Matlab_Path );
-fprintf(fd, 'ICOSfit_cfg.ICOSfit_Path = ''%s'';\n', ICOSfit_cfg.ICOSfit_Path );
-fprintf(fd, 'ICOSfit_cfg.WavesFile = ''%s'';\n', ICOSfit_cfg.WavesFile );
-fprintf(fd, 'ICOSfit_cfg.ScanDir = ''%s'';\n', ICOSfit_cfg.ScanDir );
+fprintf(fd, 'cell_cfg.MirrorLoss = ''%s'';\n', cell_cfg.MirrorLoss );
+fprintf(fd, 'cell_cfg.fsr = ''%s'';\n', cell_cfg.fsr );
+fprintf(fd, 'cell_cfg.CavityLength = ''%s'';\n', cell_cfg.CavityLength );
+fprintf(fd, 'cell_cfg.N_Passes = ''%s'';\n', cell_cfg.N_Passes );
 fclose(fd);
 uiresume(handles.figure1);
 
