@@ -66,7 +66,7 @@ handles.output = hObject;
 handles.data.ofile = 'PTE.txt';
 handles.data.saveall = 0;
 for i=1:2:length(varargin)-1
-  if strcmpi(varargin{i},'Scans')
+  if strcmpi(varargin{i},'SCANNUM')
     handles.data.scans = varargin{i+1};
   elseif strcmpi(varargin{i},'OFILE')
     handles.data.ofile = varargin{i+1};

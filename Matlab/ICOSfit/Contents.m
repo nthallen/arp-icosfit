@@ -23,9 +23,9 @@
 %
 % Looking at Raw Data:
 %   loadscans.m - read binary data and return data, etalon, and bkgd vectors.
-%   scan_viewer.m - gui for scanning through raw spectra files.
-%   scanview.m - Display logged ICOS and Ringdown data. (obsolete by scan_viewer)
-%   rawview.m - Review logged RAW ringdown data and compare fits
+%   scan_viewer.m - called by scanview
+%   scanview.m - Program for scanning through raw data.
+%   *rawview.m - Review logged RAW ringdown data and compare fits
 %     logchi.m - called via fmins() by rawview.m
 %     lvoffset.m - Display results of rawview.m
 % 
