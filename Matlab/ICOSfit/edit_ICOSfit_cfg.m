@@ -22,7 +22,7 @@ function varargout = edit_ICOSfit_cfg(varargin)
 
 % Edit the above text to modify the response to help edit_ICOSfit_cfg
 
-% Last Modified by GUIDE v2.5 30-Oct-2012 11:53:51
+% Last Modified by GUIDE v2.5 26-Oct-2012 15:17:09
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -89,18 +89,18 @@ function varargout = edit_ICOSfit_cfg_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 delete(handles.figure1);
 
-function CavityLength_Callback(hObject, eventdata, handles)
-% hObject    handle to CavityLength (see GCBO)
+function Matlab_Path_Callback(hObject, eventdata, handles)
+% hObject    handle to Matlab_Path (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of CavityLength as text
-%        str2double(get(hObject,'String')) returns contents of CavityLength as a double
+% Hints: get(hObject,'String') returns contents of Matlab_Path as text
+%        str2double(get(hObject,'String')) returns contents of Matlab_Path as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function CavityLength_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to CavityLength (see GCBO)
+function Matlab_Path_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Matlab_Path (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -112,18 +112,18 @@ end
 
 
 
-function fsr_Callback(hObject, eventdata, handles)
-% hObject    handle to fsr (see GCBO)
+function ICOSfit_Path_Callback(hObject, eventdata, handles)
+% hObject    handle to ICOSfit_Path (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of fsr as text
-%        str2double(get(hObject,'String')) returns contents of fsr as a double
+% Hints: get(hObject,'String') returns contents of ICOSfit_Path as text
+%        str2double(get(hObject,'String')) returns contents of ICOSfit_Path as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function fsr_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to fsr (see GCBO)
+function ICOSfit_Path_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ICOSfit_Path (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -135,18 +135,18 @@ end
 
 
 
-function N_Passes_Callback(hObject, eventdata, handles)
-% hObject    handle to N_Passes (see GCBO)
+function WavesFile_Callback(hObject, eventdata, handles)
+% hObject    handle to WavesFile (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of N_Passes as text
-%        str2double(get(hObject,'String')) returns contents of N_Passes as a double
+% Hints: get(hObject,'String') returns contents of WavesFile as text
+%        str2double(get(hObject,'String')) returns contents of WavesFile as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function N_Passes_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to N_Passes (see GCBO)
+function WavesFile_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to WavesFile (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -158,18 +158,18 @@ end
 
 
 
-function MirrorLoss_Callback(hObject, eventdata, handles)
-% hObject    handle to MirrorLoss (see GCBO)
+function ScanDir_Callback(hObject, eventdata, handles)
+% hObject    handle to ScanDir (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of MirrorLoss as text
-%        str2double(get(hObject,'String')) returns contents of MirrorLoss as a double
+% Hints: get(hObject,'String') returns contents of ScanDir as text
+%        str2double(get(hObject,'String')) returns contents of ScanDir as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function MirrorLoss_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to MirrorLoss (see GCBO)
+function ScanDir_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ScanDir (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -208,10 +208,10 @@ function Save_btn_Callback(hObject, eventdata, handles)
 % hObject    handle to Save_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-ICOSfit_cfg.WavesFile = get(handles.N_Passes,'String');
-ICOSfit_cfg.Matlab_Path = get(handles.CavityLength,'String');
-ICOSfit_cfg.ICOSfit_Path = get(handles.fsr,'String');
-ICOSfit_cfg.ScanDir = get(handles.MirrorLoss,'String');
+ICOSfit_cfg.WavesFile = get(handles.WavesFile,'String');
+ICOSfit_cfg.Matlab_Path = get(handles.Matlab_Path,'String');
+ICOSfit_cfg.ICOSfit_Path = get(handles.ICOSfit_Path,'String');
+ICOSfit_cfg.ScanDir = get(handles.ScanDir,'String');
 handles.output = ICOSfit_cfg;
 guidata(hObject, handles);
 SaveDirs = get(handles.SaveDir,'String');

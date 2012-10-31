@@ -1,16 +1,7 @@
 function ICOSfit_cfg = load_ICOSfit_cfg(use_default);
 % ICOSfit_cfg = load_ICOSfit_cfg;
-% Checks for the existence of a CR_Config script and complains
-% if one cannot be found. Below is a sample version of a
-% CR_Config function.
-%
-%  function ICOSfit_cfg = CR_Config;
-%  % CR_Config defines local configuration and should be located
-%  % in a local configuration directory (as opposed to a directory
-%  % of shared scripts).
-%  ICOSfit_cfg.Matlab_CD_Path = 'E:';
-%  ICOSfit_cfg.ICOSfit_CD_Path = '/cd';
-%  ICOSfit_cfg.HomeDir = '/home/CR';
+% Checks for the existence of a ICOSfit_Config script and complains
+% if one cannot be found. 
 if nargin < 1
   use_default = 0;
 end
