@@ -1,9 +1,12 @@
 function rewrite_scans(ibase,obase)
+%This program is useful if spectra are inverted. It is better to fix it in hardware. 
+% Should be customized for each axis and probably a specific version should be made 
+% and copied into local directories.
 if nargin <1
    ibase = 'SSP';
 end
 if nargin <2
-   obase = 'CPCI14';
+   obase = 'SSPo';
 end
 index = 1;
 while 1

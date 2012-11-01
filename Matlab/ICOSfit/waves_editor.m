@@ -1,13 +1,13 @@
 function varargout = waves_editor(varargin)
 % WAVES_EDITOR M-file for waves_editor.fig
 % WAVES_EDITOR( 'data', data, 'index', 3, 'qclicomp', 1 );
-% WAVES_EDITOR( 'cpci', cpci_number[, 'qclicomp', 1] );
+% WAVES_EDITOR( 'scannum', scan_number[, 'qclicomp', 1] );
 %      data is a vector of raw data
 %      index specifies which waveform to start editting
 %      qclicomp if specified limits which elements of the waveform can be
 %        edited, and does not allow switching between waveforms, since the
 %        input data is presumably from a specific pre-defined waveform.
-%      If cpci is specified, the data will be retrieved from the usual
+%      If scannum is specified, the data will be retrieved from the usual
 %        place and the waveform will be identified from PT.mat. In this
 %        case, qclicomp is assumed to be true.
 
@@ -83,13 +83,13 @@ for i=1:2:length(varargin)-1
     handles.data.index = varargin{i+1};
   elseif strcmp(varargin{i},'qclicomp')
     handles.data.qclicomp = varargin{i+1};
-  elseif strcmp(varargin{i}, 'cpci')
+  elseif strcmp(varargin{i}, 'scannum')
     handles.data.qclicomp = 1;
-    cpci = varargin{i+1};
-    handles.data.rawdata = scanload(cpci);
+    scannum = varargin{i+1};
+    handles.data.rawdata = scanload(scannum);
     PT = load_mat_files('PT');
-    v = find(diff(PT.CPCI14)>0)+1;
-    wvno = interp1(PT.CPCI14(v), PT.QCLI_Wave(v), cpci, 'nearest')+1;
+    v = find(diff(PT.ScanNum)>0)+1;
+    wvno = interp1(PT.ScanNum(v), PT.QCLI_Wave(v), scannum, 'nearest')+1;
     handles.data.index = wvno;
   end
 end

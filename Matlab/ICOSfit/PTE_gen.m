@@ -1,8 +1,8 @@
-function PTE_gen( cpci, PTEfile, PTparams );
-% PTE_gen( [ cpci [, PTEfile [, PTparams ] ] ] );
+function PTE_gen( scannums, PTEfile, PTparams );
+% PTE_gen( [ scannums [, PTEfile [, PTparams ] ] ] );
 %  Make up numbers for a tuning rate in the absence of an etalon
 %  If we don't have P and T, make them up too.
-%  For cpci, use listscans
+%  For scannums, use listscans
 % PTparams correspond to columns 4:end of PTE.txt
 if nargin < 3
   PTparams = ...
@@ -14,7 +14,7 @@ if nargin < 2
   PTEfile = 'PTE.txt';
 end
 if nargin < 1
-  cpci = listscans;
+  scannums = listscans;
 end
 
 if exist('PT.mat','file')
@@ -22,30 +22,30 @@ if exist('PT.mat','file')
 else
   PT = [];
 end
-if isfield(PT,'CPCI14')
-  if min(cpci) < min(PT.CPCI14) | max(cpci) > max(PT.CPCI14)
-    warning('CPCI14 files exceed PT file indices');
+if isfield(PT,'ScanNum')
+  if min(scannums) < min(PT.ScanNum) | max(scannums) > max(PT.ScanNum)
+    warning('ScanNum files exceed PT file indices');
   end
-  v = find(diff(PT.CPCI14)>0)+1;
+  v = find(diff(PT.ScanNum)>0)+1;
 end
-if isfield(PT,'CPCI14') && isfield(PT,'CellP')
-  P = interp1(PT.CPCI14(v),PT.CellP(v),cpci,'nearest');
+if isfield(PT,'ScanNum') && isfield(PT,'CellP')
+  P = interp1(PT.ScanNum(v),PT.CellP(v),scannums,'nearest');
 else
   warning('Assuming 40 Torr');
-  P = 40*ones(size(cpci));
+  P = 40*ones(size(scannums));
 end
-if isfield(PT,'CPCI14') && isfield(PT,'Tavg')
-  T = interp1(PT.CPCI14(v),PT.Tavg(v),cpci,'nearest');
+if isfield(PT,'ScanNum') && isfield(PT,'Tavg')
+  T = interp1(PT.ScanNum(v),PT.Tavg(v),scannums,'nearest');
 else
   warning('Assuming 25 Celcius');
-  T = (25+273.15)*ones(size(cpci));
+  T = (25+273.15)*ones(size(scannums));
 end
 ofp = fopen(PTEfile, 'a');
 %fprintf( ofp, '%d %.2f %.1f %d %.7g %.7g %.7g %.7g %.7g %.7g %.7g\n', ...
 %  0, P(1), T(1), PTparams );
-for i=1:length(cpci)
+for i=1:length(scannums)
   fprintf( ofp, '%d %.2f %.1f %d %.7g %.7g %.7g %.7g %.7g %.7g %.7g\n', ...
-    cpci(i), P(i), T(i), PTparams );
+    scannums(i), P(i), T(i), PTparams );
 end
 fclose(ofp);
 

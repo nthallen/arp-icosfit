@@ -1,4 +1,4 @@
-function cpci = listscans( base_in )
+function scannums = listscans( base_in )
 % scans = listscans( [ base_in ] )
 % Identifies what scan indexes are actually present.
 % See also gen_PT
@@ -6,9 +6,9 @@ if nargin < 1
   base_in = [];
 end
 base = find_scans_dir(base_in);
-cpci = check_dir(base,0)+1;
+scannums = check_dir(base,0)+1;
 
-function cpci = check_dir( path, ctin )
+function scannums = check_dir( path, ctin )
 D = dir(path);
 dirs = regexp({D.name}, '^\d+$');
 I = [];
@@ -28,16 +28,16 @@ if isempty(I)
     end
   end
   % I = find(~cellfun(@isempty, J));
-  cpci = [];
+  scannums = [];
   for i=1:length(I)
-    cpci = [ cpci; ctin + str2num(J{I(i)}{1}) ];
+    scannums = [ scannums; ctin + str2num(J{I(i)}{1}) ];
   end
-  % cpci = ctin + cellfun( @decell, {J{I}} )';
+  % scannums = ctin + cellfun( @decell, {J{I}} )';
 else
   ind = ctin+str2num(char({D(I).name}));
-  cpci = [];
+  scannums = [];
   for i=1:length(I)
-    cpci = [ cpci; check_dir( [ path '/' D(I(i)).name ], 60*ind(i) ) ];
+    scannums = [ scannums; check_dir( [ path '/' D(I(i)).name ], 60*ind(i) ) ];
   end
 end
 return

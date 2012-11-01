@@ -274,7 +274,7 @@ elseif strcmp(varargin{1},'editregions')
       ro.ax(3) = axes('position',[.1 .3 .8 .2 ]);
       plot(ro.data.scan,PTE(:,5)+PTE(:,8)+PTE(:,10));
       ylabel('fringes');
-      xlabel('CPCI14');
+      xlabel('Scan Number');
       for i=1:3
         axes(ro.ax(i));
         ylim(ylim);

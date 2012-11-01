@@ -16,7 +16,7 @@ for j = 1:length(dirs);
     % with forward slashes.
     savedir = pwd;
     cd(dirs{j});
-     eval(['run ' ICOSfit_cfg.WavesFile]);
+     eval(['run ' path]);
     cd(savedir);
     return;
   end

@@ -12,21 +12,22 @@ function [A,k] = skew_matrix(region,npts,tol)
 %
 % A is normalized
 if isnumeric(region)
-  cpci = region;
+  scannum = region;
 else
-  cpci = fitline('region',region);
+  scannum = fitline('region',region);
 end
-wv = waves_used(cpci);
+wv = waves_used(scannum);
 if length(wv) > 1
   error('More than one waveform used in specified region');
 end
 fsam = wv.RawRate/wv.NAverage;
-fprintf(1,'CPCI14: %d QCLI_Wave: %s fsam: %f\n', cpci(1), wv.Name, fsam );
+fprintf(1,'ScanNum: %d QCLI_Wave: %s fsam: %f\n', scannum(1), wv.Name, fsam );
 if nargin < 3
   tol = 10e-6;
 end
-CavityLength = load_cavity_length;
-load('MirrorLoss.mat');
+cellparams=load_cell_cfg;
+CavityLength = cellparams.CavityLength;
+MirrorLoss = cellparams.MirrorLoss;
 c = lightspeed; % cm/sec
 R = 1-MirrorLoss;
 N = c/(2*CavityLength*fsam);

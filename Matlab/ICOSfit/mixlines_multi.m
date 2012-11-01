@@ -1,14 +1,14 @@
-function [chi,cpci,lines] = mixlines_multi( Regions, Suffixes )
-% [chi,cpci,lines] = mixlines_multi( Regions, Suffixes );
+function [chi,scannum,lines] = mixlines_multi( Regions, Suffixes )
+% [chi,scannum,lines] = mixlines_multi( Regions, Suffixes );
 % Assuming output directories of the form ICOSout.<region>.<suffix>,
-% calls mixlines on each directory and builds up combined chi, cpci
+% calls mixlines on each directory and builds up combined chi, scannum
 % and lines matrices. Each output directory for a specified region
-% must have exactly the same cpci numbers, and each output directory
+% must have exactly the same scannum numbers, and each output directory
 % for a given suffix must have the same line definitions (both of
 % which requirements are checked.)
 chi = [];
-cpci = [];
-Cpci = {}; % keep track of cpci vectors for each region
+scannum = [];
+ScanNum = {}; % keep track of scannum vectors for each region
 lines = [];
 if ~iscell(Regions)
   Regions = { Regions };
@@ -27,7 +27,7 @@ for i = 1:length(Suffixes)
   chi_s = []; % cumulative chi for this suffix
   lines_s = [];
   for j = 1:length(Regions)
-    [chi_sr,cpci_sr,P,lines_sr] = mixlines(['ICOSout.' Regions{j} suffix ], 4);
+    [chi_sr,scannum_sr,P,lines_sr] = mixlines(['ICOSout.' Regions{j} suffix ], 4);
     if size(lines_s,2) > 0
       if any(size(lines_s) ~= size(lines_sr)) | ...
           any(any((lines_s(:,[1:3]) ~= lines_sr(:,[1:3]))))
@@ -36,14 +36,14 @@ for i = 1:length(Suffixes)
     else
       lines_s = lines_sr;
     end
-    if length(Cpci) < j
-      Cpci{j} = cpci_sr;
-      cpci = [ cpci; NaN; cpci_sr ];
-    elseif length(Cpci{j}) ~= length(cpci_sr)
-      error(sprintf('cpci for %s.%s is different length than previous suffixes', ...
+    if length(ScanNum) < j
+      ScanNum{j} = scannum_sr;
+      scannum = [ scannum; NaN; scannum_sr ];
+    elseif length(ScanNum{j}) ~= length(scannum_sr)
+      error(sprintf('scannum for %s.%s is different length than previous suffixes', ...
         Regions{j}, Suffixes{i} ));
-    elseif any(Cpci{j} ~= cpci_sr)
-      error(sprintf('cpci values differ for %s.%s from previous suffixes', ...
+    elseif any(ScanNum{j} ~= scannum_sr)
+      error(sprintf('scannum values differ for %s.%s from previous suffixes', ...
         Regions{j}, Suffixes{i} ));
     end
     chi_s = [ chi_s; NaN*ones(1,size(chi_sr,2)); chi_sr ];

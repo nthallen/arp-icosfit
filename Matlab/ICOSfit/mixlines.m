@@ -7,8 +7,8 @@ function [ Chiout, xout, Pout, lines_out ] = mixlines( base, by_molecule );
 % by_molecule:
 %   0: Create a separate graph for each isotope
 %   1: Plot all isotopes of a molecule on the same graph
-%   2: Same as 0, but list x axis as time rather than CPCI14
-%   3: Same as 1, but list x axis as time rather than CPCI14
+%   2: Same as 0, but list x axis as time rather than Scan Number
+%   3: Same as 1, but list x axis as time rather than Scan Number
 %   4: Don't plot, just return the outputs.
 % base defaults to 'ICOSout'
 % base/ICOSsum.dat summary
