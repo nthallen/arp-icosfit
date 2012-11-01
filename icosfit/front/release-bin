@@ -6,8 +6,8 @@ function nl_error {
 rev=$1
 [ -z "$rev" ] && nl_error "Usage: release-bin <release-number>"
 ofile="icosfit_$rev.tgz"
-tar -czf $ofile -T - <<EOF
-/usr/local/bin/icosfit.exe
+tar -czf $ofile -C / -T - <<EOF
+usr/local/bin/icosfit.exe
 EOF
 
 # These files no longer appear to be relevant.
