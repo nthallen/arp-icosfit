@@ -824,11 +824,3 @@ function peakfit_panel_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to peakfit_panel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-
-
-% --- If Enable == 'on', executes on mouse press in 5 pixel border.
-% --- Otherwise, executes on mouse press in 5 pixel border or over findpeaks_btn.
-function findpeaks_btn_ButtonDownFcn(hObject, eventdata, handles)
-% hObject    handle to findpeaks_btn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
