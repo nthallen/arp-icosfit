@@ -53,7 +53,7 @@ function edit_ICOSfit_cfg_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to edit_ICOSfit_cfg (see VARARGIN)
 
 % Choose default command line output for edit_ICOSfit_cfg
-if nargin >= 2 && strcmp(varargin{1},'Config')
+if length(varargin) >= 2 && strcmp(varargin{1},'Config')
   ICOSfit_cfg = varargin{2};
 else
   ICOSfit_cfg = load_ICOSfit_cfg(1);
