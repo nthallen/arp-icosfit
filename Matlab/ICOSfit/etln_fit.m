@@ -16,7 +16,7 @@ function varargout = etln_fit(varargin)
 %      unrecognized property name or invalid value makes property application
 %      stop.  All inputs are passed to etln_fit_OpeningFcn via varargin.
 %
-%      Scans - vector of scan numbers to fit
+%      SCANNUM - vector of scan numbers to fit
 %      OFILE - output file name
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
@@ -131,7 +131,8 @@ handles.data.peakpts = [];
 handles.data.rxs = (1:length(range_dflt))'*1e-3;
 handles.data.Op = optimset('lsqcurvefit');
 handles.data.Op = ...
-  optimset(handles.data.Op,'Jacobian', 'on','TolFun',.1,'MaxFunEvals',100);
+  optimset(handles.data.Op,'Jacobian', 'on','TolFun',.1, ...
+  'MaxFunEvals',100,'Display','off','Algorithm','levenberg-marquardt');
 
 set(handles.Fitting,'visible','off');
 % Update handles structure
@@ -515,12 +516,12 @@ while 1
           if ~isempty(handles.data.peakpts)
             delete(handles.data.peakpts);
           end
-          hold on;
+          hold(handles.axes1, 'on');
           handles.data.peakpts = ...
             plot(handles.axes1, ...
                 handles.data.peakx+handles.data.samples(1)-1, ...
                 handles.data.peaky, '*m');
-          hold off;
+          hold(handles.axes1, 'off');
           set(handles.next_btn,'enable','on');
           dfx = diff(handles.data.peakx);
           dsfr = dfx(2:end)./dfx(1:end-1);
@@ -823,11 +824,3 @@ function peakfit_panel_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to peakfit_panel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-
-
-% --- If Enable == 'on', executes on mouse press in 5 pixel border.
-% --- Otherwise, executes on mouse press in 5 pixel border or over findpeaks_btn.
-function findpeaks_btn_ButtonDownFcn(hObject, eventdata, handles)
-% hObject    handle to findpeaks_btn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
