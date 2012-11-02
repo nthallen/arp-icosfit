@@ -31,7 +31,7 @@ function varargout = etln_fit(varargin)
 
 %### Trouble in 070625.2 at 337 and 852
 
-% Last Modified by GUIDE v2.5 01-Nov-2012 16:49:42
+% Last Modified by GUIDE v2.5 02-Nov-2012 15:36:33
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -134,15 +134,22 @@ handles.data.Op = ...
   optimset(handles.data.Op,'Jacobian', 'on','TolFun',.1, ...
   'MaxFunEvals',100,'Display','off','Algorithm','levenberg-marquardt');
 
+if handles.data.X(6) == 0
+    set(handles.dblexp,'Value',0);
+else
+    set(handles.dblexp,'Value',1);
+end
 handles.data.polling = 0;
 handles.data.Xcolor.full = [1 1 1];
 handles.data.Xcolor.fit = [.8 .8 .8];
 handles.data.Xcolor.fixed = [.7 .7 .7];
-handles.data.SliderSelected = handles.X5;
+set(handles.tc_select,'SelectedObject',handles.X5);
+% handles.data.SliderSelected = handles.X5;
 handles.SliderListener = ...
     addlistener(handles.Slider,'Value','PostSet', ...
     @(hObj,eventdat)etln_fit('Slider_Motion', ...
        hObject,eventdat,guidata(hObject)));
+warning('off','MATLAB:rankDeficientMatrix');
 set(handles.Fitting,'visible','off');
 % Update handles structure
 guidata(hObject, handles);
@@ -289,6 +296,7 @@ if handles.data.level >= handles.data.startlevel
       cla(handles.axes3);
       set(handles.Pause,'visible','off');
       set(handles.Slider,'visible','off');
+      set(handles.tc_select,'visible','off');
       % expose level 1 elements
       set(handles.peakdet_panel,'visible','on');
       set([handles.X1 handles.X2 handles.X3 handles.X4 handles.X6 ...
@@ -312,21 +320,20 @@ if handles.data.level >= handles.data.startlevel
       set([handles.X1 handles.X2 handles.X3 handles.X4 handles.X6], ...
           'BackgroundColor',handles.data.Xcolor.fit);
       if get(handles.dblexp,'Value') == 0
-          handles.data.SliderSelected = handles.X5;
-      end
-      if handles.data.SliderSelected == handles.X5
-          set(handles.X5,'BackgroundColor',handles.data.Xcolor.full);
-          set(handles.X7,'BackgroundColor',handles.data.Xcolor.fixed);
+          set(handles.tc_select,'SelectedObject',handles.tc1_enbl);
+          set(handles.tc_select,'visible','off');
       else
-          set(handles.X5,'BackgroundColor',handles.data.Xcolor.fixed);
-          set(handles.X7,'BackgroundColor',handles.data.Xcolor.full);
+          set(handles.tc_select,'visible','on');
       end
+      set(handles.X5,'BackgroundColor',handles.data.Xcolor.full);
+      set(handles.X7,'BackgroundColor',handles.data.Xcolor.full);
       set(handles.peakdet_panel,'visible','off');
       set(handles.fullfit_panel,'visible','off');
       set(handles.Pause,'visible','off');
       % update_X_to_fig(handles);
     case 3
       set(handles.Slider,'visible','off');
+      set(handles.tc_select,'visible','off');
       set(handles.reiterate_btn,'enable','on');
       set(handles.back_btn,'enable','on');
       set(handles.next_btn,'String','Next');
@@ -706,42 +713,21 @@ function close_request_fcn(~, ~, handles)
 if ~isempty(handles.data.ofd)
   fclose(handles.data.ofd);
 end
+warning('on','MATLAB:rankDeficientMatrix');
 delete(handles.figure1);
 
-function save_defaults(handles)
+% --- Executes on button press in defaults_btn.
+function defaults_btn_Callback(hObject, ~, handles)
+if handles.data.level == 3
+    handles.data.X = handles.data.Y(1:7);
+    guidata(hObject,handles);
+end
 waveform = handles.data.wv.Name;
 save_waveform_params( waveform, 'threshold', handles.data.threshold, ...
   'prefilterwidth', handles.data.prefilterwidth,'X', handles.data.X );
-% fname = findinpath( [ waveform '_etln.mat' ], { '.', '..', '../..' } );
-% if length(fname)
-%   fprintf(1, 'Reading waveform configuration from %s\n', fname );
-%   vals = load(fname);
-%   vals.threshold = handles.data.threshold;
-% else
-%   vals = struct('threshold',handles.data.threshold);
-% end
-% vals.X = handles.data.X;
-% vals.prefilterwidth = handles.data.prefilterwidth;
-% save( [waveform '_etln.mat'], '-struct', 'vals' );
-
-
-% --- Executes on button press in defaults_btn.
-function defaults_btn_Callback(~, ~, handles)
-% hObject    handle to defaults_btn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-save_defaults(handles);
-
-
-
 
 % --- Executes on button press in dblexp.
 function dblexp_Callback(hObject, ~, handles)
-% hObject    handle to dblexp (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of dblexp
 dblexp = get(hObject,'Value');
 if dblexp
   set(handles.dblexp1,'Visible','on');
@@ -749,12 +735,16 @@ if dblexp
   set(handles.dblexp3,'Visible','on');
   set(handles.X6, 'Visible', 'on');
   set(handles.X7, 'Visible', 'on');
+  set(handles.tc_select,'Visible','on');
+  set(handles.tc_select,'SelectedObject',handles.tc2_enbl);
 else
   set(handles.dblexp1,'Visible','off');
   set(handles.dblexp2,'Visible','off');
   set(handles.dblexp3,'Visible','off');
   set(handles.X6, 'Visible', 'off');
   set(handles.X7, 'Visible', 'off');
+  set(handles.tc_select,'Visible','off');
+  set(handles.tc_select,'SelectedObject',handles.tc1_enbl);
 end
 if handles.data.level > 1
     execute_level(hObject, handles);
@@ -791,11 +781,11 @@ while 1
     Val = get(handles.Slider,'Value');
     stepsize = 10^(abs(Val)-3);
     step = sign(Val)*stepsize;
-    Movee = handles.data.SliderSelected;
-    if Movee == handles.X5
+    Movee = get(handles.tc_select,'SelectedObject'); % handles.data.SliderSelected;
+    if Movee == handles.tc1_enbl
         handles.data.X(5) = ...
             apply_step(handles.data.X(5), step, handles.X5);
-    elseif Movee == handles.X7
+    elseif Movee == handles.tc2_enbl
         handles.data.X(7) = ...
             apply_step(handles.data.X(7), step, handles.X7);
     end
@@ -818,13 +808,13 @@ handles.data.polling = 0;
 guidata(hObject,handles);
 
 
-% --- If Enable == 'on', executes on mouse press in 5 pixel border.
-% --- Otherwise, executes on mouse press in 5 pixel border or over X5.
-function X57_ButtonDownFcn(hObject, eventdata, handles)
-% hObject    handle to X5 or X7 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-handles.data.SliderSelected = hObject;
-guidata(hObject, handles);
-handles = setup_level(hObject, handles);
-execute_level(hObject, handles);
+% % --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% % --- Otherwise, executes on mouse press in 5 pixel border or over X5.
+% function X57_ButtonDownFcn(hObject, eventdata, handles)
+% % hObject    handle to X5 or X7 (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% handles.data.SliderSelected = hObject;
+% guidata(hObject, handles);
+% handles = setup_level(hObject, handles);
+% execute_level(hObject, handles);
