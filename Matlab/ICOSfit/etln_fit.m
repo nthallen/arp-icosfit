@@ -31,7 +31,7 @@ function varargout = etln_fit(varargin)
 
 %### Trouble in 070625.2 at 337 and 852
 
-% Last Modified by GUIDE v2.5 19-Oct-2012 11:58:44
+% Last Modified by GUIDE v2.5 02-Nov-2012 15:36:33
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -134,10 +134,27 @@ handles.data.Op = ...
   optimset(handles.data.Op,'Jacobian', 'on','TolFun',.1, ...
   'MaxFunEvals',100,'Display','off','Algorithm','levenberg-marquardt');
 
+if handles.data.X(6) == 0
+    set(handles.dblexp,'Value',0);
+else
+    set(handles.dblexp,'Value',1);
+end
+handles.data.polling = 0;
+handles.data.Xcolor.full = [1 1 1];
+handles.data.Xcolor.fit = [.8 .8 .8];
+handles.data.Xcolor.fixed = [.7 .7 .7];
+set(handles.tc_select,'SelectedObject',handles.X5);
+% handles.data.SliderSelected = handles.X5;
+handles.SliderListener = ...
+    addlistener(handles.Slider,'Value','PostSet', ...
+    @(hObj,eventdat)etln_fit('Slider_Motion', ...
+       hObject,eventdat,guidata(hObject)));
+warning('off','MATLAB:rankDeficientMatrix');
 set(handles.Fitting,'visible','off');
 % Update handles structure
 guidata(hObject, handles);
 update_X_to_fig(handles);
+dblexp_Callback(handles.dblexp, [], handles);
 
 % handles = setup_level(hObject, handles);
 next_scannum_file(hObject, handles );
@@ -157,30 +174,6 @@ function varargout = etln_fit_OutputFcn(~, ~, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
-
-% 
-% function prefilterwidth_Callback(hObject, eventdata, handles)
-% % hObject    handle to prefilterwidth (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    structure with handles and user data (see GUIDATA)
-% 
-% % Hints: get(hObject,'String') returns contents of prefilterwidth as text
-% %        str2double(get(hObject,'String')) returns contents of prefilterwidth as a double
-
-% 
-% % --- Executes during object creation, after setting all properties.
-% function prefilterwidth_CreateFcn(hObject, eventdata, handles)
-% % hObject    handle to prefilterwidth (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    empty - handles not created until after all CreateFcns called
-% 
-% % Hint: edit controls usually have a white background on Windows.
-% %       See ISPC and COMPUTER.
-% if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-%     set(hObject,'BackgroundColor','white');
-% end
-% 
-
 %--------------------------------------------------------------------------
 % --- Executes on button press in handpickpeaks_btn.
 function handpickpeaks_btn_Callback(hObject, ~, handles)
@@ -189,7 +182,6 @@ function handpickpeaks_btn_Callback(hObject, ~, handles)
 % handles    structure with handles and user data (see GUIDATA)
 zh = zoom(handles.figure1);
 set(zh, 'Enable','off');
-% zoom off;
 if ~isempty(handles.data.peakpts)
   delete(handles.data.peakpts)
 end
@@ -201,7 +193,6 @@ Y = interp1(handles.data.samples, handles.data.raw, X, 'nearest');
 hold(handles.axes1,'on');
 handles.data.peakpts = plot(handles.axes1,X,Y,'.r');
 set(zh,'Motion','both','Enable','on');
-% zoom on;
 df = ceil(min(diff(X))*.3);
 handles.data.prefilterwidth = df;
 set(handles.prefilterwidth,'String',num2str(handles.data.prefilterwidth));
@@ -259,76 +250,6 @@ switch handles.data.level
     end
 end
 
-
-function X5_Callback(~, ~, ~)
-% hObject    handle to X5 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of X5 as text
-%        str2double(get(hObject,'String')) returns contents of X5 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function X5_CreateFcn(hObject, ~, ~)
-% hObject    handle to X5 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function X6_Callback(~, ~, ~)
-% hObject    handle to X6 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of X6 as text
-%        str2double(get(hObject,'String')) returns contents of X6 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function X6_CreateFcn(hObject, ~, ~)
-% hObject    handle to X6 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function X7_Callback(~, ~, ~)
-% hObject    handle to X7 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of X7 as text
-%        str2double(get(hObject,'String')) returns contents of X7 as a double
-
-
-%--------------------------------------------------------------------------
-% --- Executes during object creation, after setting all properties.
-function X7_CreateFcn(hObject, ~, ~)
-% hObject    handle to X7 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes on button press in back_btn.
 function back_btn_Callback(hObject, ~, handles)
 % hObject    handle to back_btn (see GCBO)
@@ -374,28 +295,45 @@ if handles.data.level >= handles.data.startlevel
       set(handles.axes3,'visible','off');
       cla(handles.axes3);
       set(handles.Pause,'visible','off');
+      set(handles.Slider,'visible','off');
+      set(handles.tc_select,'visible','off');
       % expose level 1 elements
       set(handles.peakdet_panel,'visible','on');
-      % axes(handles.axes1);
+      set([handles.X1 handles.X2 handles.X3 handles.X4 handles.X6 ...
+           handles.X5 handles.X7], ...
+          'BackgroundColor',handles.data.Xcolor.full);
       cla(handles.axes1);
       plot(handles.axes1, handles.data.samples, handles.data.raw);
       handles.data.peakpts = [];
       guidata(hObject,handles);
     case 2
-      set(handles.axes2,'visible','off');
+      set(handles.axes2,'visible','on');
       cla(handles.axes2);
       set(handles.axes3,'visible','off');
       cla(handles.axes3);
-      set(handles.reiterate_btn,'enable','on');
+      set(handles.reiterate_btn,'enable','off');
       set(handles.back_btn,'enable','on');
       set(handles.next_btn,'enable','on','String','Next');
       set(handles.peakfit_panel,'visible','on');
       set(handles.peakfit_panel,'Title','Preliminary Fit to Peaks');
+      set(handles.Slider,'visible','on');
+      set([handles.X1 handles.X2 handles.X3 handles.X4 handles.X6], ...
+          'BackgroundColor',handles.data.Xcolor.fit);
+      if get(handles.dblexp,'Value') == 0
+          set(handles.tc_select,'SelectedObject',handles.tc1_enbl);
+          set(handles.tc_select,'visible','off');
+      else
+          set(handles.tc_select,'visible','on');
+      end
+      set(handles.X5,'BackgroundColor',handles.data.Xcolor.full);
+      set(handles.X7,'BackgroundColor',handles.data.Xcolor.full);
       set(handles.peakdet_panel,'visible','off');
       set(handles.fullfit_panel,'visible','off');
       set(handles.Pause,'visible','off');
       % update_X_to_fig(handles);
     case 3
+      set(handles.Slider,'visible','off');
+      set(handles.tc_select,'visible','off');
       set(handles.reiterate_btn,'enable','on');
       set(handles.back_btn,'enable','on');
       set(handles.next_btn,'String','Next');
@@ -404,6 +342,9 @@ if handles.data.level >= handles.data.startlevel
       else
         set(handles.next_btn,'enable','off');
       end
+      set([handles.X1 handles.X2 handles.X3 handles.X4 handles.X6 ...
+           handles.X5 handles.X7], ...
+          'BackgroundColor',handles.data.Xcolor.full);
       set(handles.peakfit_panel,'visible','on');
       set(handles.peakfit_panel,'Title','Full Fit');
       set(handles.peakdet_panel,'visible','off');
@@ -534,7 +475,8 @@ while 1
         end
         xlabel(handles.axes1,'Sample');
         title(handles.axes1,ttl);
-        zoom on;
+        zh = zoom(handles.figure1);
+        set(zh,'Enable','on');
         guidata(hObject, handles);
         return;
       else
@@ -543,7 +485,7 @@ while 1
       end
     case 2
       %### Should have X displayed at level 1, I guess
-      handles = update_X_from_fig(handles);
+      % handles = update_X_from_fig(handles);
       if isempty(handles.data.peakx)
         % We found no peaks at all, so we want to set up to skip
         % at level 3
@@ -553,28 +495,23 @@ while 1
         handles.data.fitpass = 4;
       else
         fn = (1:length(handles.data.peakx))';
-        % May need to tweak some options. etln_fit7 is still using fminsearch
-        % options, which may or may not apply to lsqcurvefit.
-        set_fitting(handles, 1);
+        px = handles.data.peakx*1e-3;
+        XX = [ ones(size(px)) px px.*px ];
+        set_fitting(handles, 2);
         dblexp = get(handles.dblexp,'Value');
         if dblexp
-          fX = handles.data.X;
+            M = [XX exp(-px/handles.data.X(5)) exp(-px/handles.data.X(7))];
+            ffX = M\fn;
+            handles.data.X(1:4) = ffX(1:4);
+            handles.data.X(6) = ffX(5);
+            ffn = etln_evalJ(handles.data.X, handles.data.rxs);
         else
-          fX = handles.data.X(1:5);
+            M = [XX exp(-px/handles.data.X(5))];
+            ffX = M\fn;
+            handles.data.X(1:4) = ffX(1:4);
+            handles.data.X(6) = 0;
+            ffn = etln_evalJ(handles.data.X(1:5), handles.data.rxs);
         end
-        ThisOp = optimset('lsqcurvefit');
-        ThisOp = ...
-          optimset(ThisOp,'Display','off');
-        fX = ...
-          lsqcurvefit(@etln_evalJ, ...
-          fX, handles.data.peakx*1e-3, fn, [], [], ThisOp );
-        if dblexp
-          handles.data.X = fX;
-        else
-          handles.data.X(1:5) = fX;
-          handles.data.X(6) = 0;
-        end
-        set_fitting(handles, 0);
         update_X_to_fig(handles);
         guidata(hObject,handles);
         if handles.data.startlevel <= 2
@@ -582,11 +519,15 @@ while 1
           % axes(handles.axes1);
           cla(handles.axes1);
           handles.data.peakpts = [];
-          plot(handles.axes1, handles.data.peakx+handles.data.samples(1)-1, ...
-              (fn-fnm)*100, '*' );
-          title(handles.axes1, 'Residual as percent of a fringe');
-          xlabel(handles.axes1, 'Sample');
-          zoom on;
+          x = handles.data.peakx+handles.data.samples(1)-1;
+          plot(handles.axes2, x, (fn-fnm)*100, '*' );
+          title(handles.axes2, 'Residual as percent of a fringe');
+          % xlabel(handles.axes2, 'Sample');
+          plot(handles.axes1, x, fn, '*', handles.data.samples, ffn);
+          % xlabel(handles.axes1, 'Sample');
+          ylabel(handles.axes1, 'Fringe Number');
+          zh = zoom(handles.figure1);
+          set(zh,'Enable','on');
           return;
         else
           handles.data.level = 3;
@@ -594,7 +535,7 @@ while 1
       end
     case 3
       handles.data.startlevel = 3;
-      handles = update_Y_from_fig(handles);
+      % handles = update_Y_from_fig(handles);
       handles.data.threshold = str2num(get(handles.threshold,'String'));
       etln = handles.data.raw;
       % [ Y, resnorm,residual,exitflag,output ] = ...
@@ -720,25 +661,25 @@ set(handles.X10, 'String', num2str(handles.data.Y(10)));
 set(handles.X11, 'String', num2str(handles.data.Y(11)));
 set(handles.X12, 'String', num2str(handles.data.Y(12)));
 
-function handles = update_X_from_fig(handles)
-X(1) = str2double(get(handles.X1,'String'));
-X(2) = str2double(get(handles.X2,'String'));
-X(3) = str2double(get(handles.X3,'String'));
-X(4) = str2double(get(handles.X4,'String'));
-X(5) = str2double(get(handles.X5,'String'));
-X(6) = str2double(get(handles.X6,'String'));
-X(7) = str2double(get(handles.X7,'String'));
-handles.data.X = X;
+% function handles = update_X_from_fig(handles)
+% X(1) = str2double(get(handles.X1,'String'));
+% X(2) = str2double(get(handles.X2,'String'));
+% X(3) = str2double(get(handles.X3,'String'));
+% X(4) = str2double(get(handles.X4,'String'));
+% X(5) = str2double(get(handles.X5,'String'));
+% X(6) = str2double(get(handles.X6,'String'));
+% X(7) = str2double(get(handles.X7,'String'));
+% handles.data.X = X;
 
-function handles = update_Y_from_fig(handles)
-handles = update_X_from_fig(handles);
-Y = handles.data.X;
-Y(8) = str2double(get(handles.X8,'String'));
-Y(9) = str2double(get(handles.X9,'String'));
-Y(10) = str2double(get(handles.X10,'String'));
-Y(11) = str2double(get(handles.X11,'String'));
-Y(12) = str2double(get(handles.X12,'String'));
-handles.data.Y = Y;
+% function handles = update_Y_from_fig(handles)
+% handles = update_X_from_fig(handles);
+% Y = handles.data.X;
+% Y(8) = str2double(get(handles.X8,'String'));
+% Y(9) = str2double(get(handles.X9,'String'));
+% Y(10) = str2double(get(handles.X10,'String'));
+% Y(11) = str2double(get(handles.X11,'String'));
+% Y(12) = str2double(get(handles.X12,'String'));
+% handles.data.Y = Y;
 
 % --- Executes on button press in Pause.
 function Pause_Callback(~, ~, ~)
@@ -750,16 +691,21 @@ function Pause_Callback(~, ~, ~)
 
 
 function set_fitting(handles, turn_on )
-if turn_on
+if turn_on == 1
   set(handles.Fitting,'visible','on');
   set(handles.next_btn,'enable','off');
   set(handles.reiterate_btn,'enable','off');
   set(handles.back_btn,'enable','off');
   drawnow;
-else
+elseif turn_on == 0
   set(handles.Fitting,'visible','off');
   set(handles.next_btn,'enable','on');
   set(handles.reiterate_btn,'enable','on');
+  set(handles.back_btn,'enable','on');
+elseif turn_on == 2
+  set(handles.Fitting,'visible','off');
+  set(handles.next_btn,'enable','on');
+  set(handles.reiterate_btn,'enable','off');
   set(handles.back_btn,'enable','on');
 end
 
@@ -767,42 +713,21 @@ function close_request_fcn(~, ~, handles)
 if ~isempty(handles.data.ofd)
   fclose(handles.data.ofd);
 end
+warning('on','MATLAB:rankDeficientMatrix');
 delete(handles.figure1);
 
-function save_defaults(handles)
+% --- Executes on button press in defaults_btn.
+function defaults_btn_Callback(hObject, ~, handles)
+if handles.data.level == 3
+    handles.data.X = handles.data.Y(1:7);
+    guidata(hObject,handles);
+end
 waveform = handles.data.wv.Name;
 save_waveform_params( waveform, 'threshold', handles.data.threshold, ...
   'prefilterwidth', handles.data.prefilterwidth,'X', handles.data.X );
-% fname = findinpath( [ waveform '_etln.mat' ], { '.', '..', '../..' } );
-% if length(fname)
-%   fprintf(1, 'Reading waveform configuration from %s\n', fname );
-%   vals = load(fname);
-%   vals.threshold = handles.data.threshold;
-% else
-%   vals = struct('threshold',handles.data.threshold);
-% end
-% vals.X = handles.data.X;
-% vals.prefilterwidth = handles.data.prefilterwidth;
-% save( [waveform '_etln.mat'], '-struct', 'vals' );
-
-
-% --- Executes on button press in defaults_btn.
-function defaults_btn_Callback(~, ~, handles)
-% hObject    handle to defaults_btn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-save_defaults(handles);
-
-
-
 
 % --- Executes on button press in dblexp.
 function dblexp_Callback(hObject, ~, handles)
-% hObject    handle to dblexp (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of dblexp
 dblexp = get(hObject,'Value');
 if dblexp
   set(handles.dblexp1,'Visible','on');
@@ -810,12 +735,19 @@ if dblexp
   set(handles.dblexp3,'Visible','on');
   set(handles.X6, 'Visible', 'on');
   set(handles.X7, 'Visible', 'on');
+  set(handles.tc_select,'Visible','on');
+  set(handles.tc_select,'SelectedObject',handles.tc2_enbl);
 else
   set(handles.dblexp1,'Visible','off');
   set(handles.dblexp2,'Visible','off');
   set(handles.dblexp3,'Visible','off');
   set(handles.X6, 'Visible', 'off');
   set(handles.X7, 'Visible', 'off');
+  set(handles.tc_select,'Visible','off');
+  set(handles.tc_select,'SelectedObject',handles.tc1_enbl);
+end
+if handles.data.level > 1
+    execute_level(hObject, handles);
 end
 
 
@@ -824,3 +756,65 @@ function peakfit_panel_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to peakfit_panel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
+
+function newval = apply_step(oldval, step, handle)
+newval = oldval + step;
+if newval < 0
+    newval = oldval;
+else
+    set(handle,'String',num2str(newval));
+end
+
+% --- There is probably a slicker way to do this.
+function Slider_Motion(hObject, ~, handles)
+% fprintf(1,'Slider_Listener event\n');
+if handles.data.polling
+    return;
+end
+handles.data.polling = 1;
+guidata(hObject,handles);
+while 1
+    handles = guidata(hObject);
+    if ~handles.data.polling
+        return;
+    end
+    Val = get(handles.Slider,'Value');
+    stepsize = 10^(abs(Val)-3);
+    step = sign(Val)*stepsize;
+    Movee = get(handles.tc_select,'SelectedObject'); % handles.data.SliderSelected;
+    if Movee == handles.tc1_enbl
+        handles.data.X(5) = ...
+            apply_step(handles.data.X(5), step, handles.X5);
+    elseif Movee == handles.tc2_enbl
+        handles.data.X(7) = ...
+            apply_step(handles.data.X(7), step, handles.X7);
+    end
+    guidata(hObject,handles);
+    execute_level(hObject, handles);
+    pause(.1);
+end
+
+
+% --- Executes on slider movement.
+function Slider_Callback(hObject, eventdata, handles)
+% hObject    handle to Slider (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+set(handles.Slider,'Value',0);
+handles.data.polling = 0;
+guidata(hObject,handles);
+
+
+% % --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% % --- Otherwise, executes on mouse press in 5 pixel border or over X5.
+% function X57_ButtonDownFcn(hObject, eventdata, handles)
+% % hObject    handle to X5 or X7 (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% handles.data.SliderSelected = hObject;
+% guidata(hObject, handles);
+% handles = setup_level(hObject, handles);
+% execute_level(hObject, handles);
