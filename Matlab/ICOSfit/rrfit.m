@@ -8,6 +8,8 @@ function rrfit( base, range, plotcode );
 %   3: Plots line strength and residual
 %   4,5,6: Same as 1,2,3, but plots versus sample number instead of
 %           wavenumber.
+%   7,8,9: Same as 1,2,3, but also plots the baseline and detrended
+%           baseline on seperate axes.
 if nargin < 1
   disp('Error: Must define base. eg ''ICOSout.R1.3p''')
   return
@@ -26,13 +28,19 @@ end
 if nargin < 3
     plotcode = 1;
 end
-if plotcode > 6
+plotbase = 0;
+if plotcode >= 7
+    plotbase = 1;
+    plotcode = plotcode - 6;
+end
+if plotcode > 9
     disp('Error: Invalid plotcode.');
     return
 end
 
 AppData.base = base;
 AppData.plotcode = plotcode;
+AppData.plotbase = plotbase;
 AppData.scannum = scannum;
 AppData.nu = nu;
 AppData.nu0 = nu0;
@@ -46,11 +54,20 @@ AppData.Nfit = Nfit;
 AppData.Ged = Ged;
 AppData.v = v;
 
+if plotbase == 0
 Axes = [
-    60    45    60     1    20    30     0     1
-    60    45    60     1     0    30    60     1
+    60    45    60     1    20    15     0     .5
+    60    45    60     1     0    45    60     1
     ];
-scan_viewer('Scans', scans, 'Axes', Axes, 'Name', 'rrfit View', ...
+elseif plotbase == 1
+    Axes = [
+    60    45    60     1    20    15     0     .5
+    60    45    60     1     0    45     0     1
+    60    45    60     1     0    30     0     .5
+    60    45    60     1     0    30    60     .5
+    ];
+end
+scan_viewer('Scans', scans, 'Axes', Axes, 'Name', 'rrfit Viewer', ...
     'Callback', @rrfitview_callback, 'AppData', AppData);
 
 function rrfitview_callback(handles)
@@ -75,15 +92,16 @@ if data_ok
             nux = nux+AppData.nu_F0(i)+AppData.nu0; % This may change
         end
         xdir = 'reverse';
+        ttlx = 'Wavenumber (cm-1)';
     elseif AppData.plotcode > 3
         nux = fe(:,1);
         xdir = 'normal';
+        ttlx = 'Sample Number';
     end
     dataX = nux;
     resX = nux;
     if AppData.plotcode == 1 || AppData.plotcode == 4
         dataY = fe(:,[3:5]);
-        ttlx = 'Wavenumber (cm-1)';
         resY = fe(:,3)-fe(:,4);
         reslbl = 'Fit Res';
         sdev = sqrt(mean((resY).^2));
@@ -97,7 +115,6 @@ if data_ok
         
     elseif AppData.plotcode == 2 || AppData.plotcode == 5
         dataY = [fe(:,3)./fe(:,5)*100, fe(:,4)./fe(:,5)*100];
-        ttlx = 'Wavenumber (cm-1)';
         resY = (fe(:,3)-fe(:,4))./fe(:,5)*100;
         reslbl = 'Fit Res (%)';
         sdev = sqrt(mean((resY).^2));
@@ -110,7 +127,6 @@ if data_ok
         maxp = ones(size(lpos))*100;
     elseif AppData.plotcode == 3 || AppData.plotcode == 6
         dataY = fe(:,6);
-        ttlx = 'Wavenumber (cm-1)';
         resY = fe(:,3)-fe(:,4);
         reslbl = 'Fit Res';
         sdev = sqrt(mean((resY).^2));
@@ -129,6 +145,7 @@ if data_ok
       
     plot(handles.Axes(1),resX, resY);
     set(handles.Axes(1),'XDir',xdir,'xticklabel',[],'Xgrid','on','Ygrid','on');
+    ylabel(handles.Axes(1),reslbl);
     title(handles.Axes(1),ttltext);
 
     if AppData.plotcode <= 3
@@ -137,5 +154,16 @@ if data_ok
         plot(handles.Axes(2), dataX,dataY);
     end
     set(handles.Axes(2),'XDir', xdir,'YAxisLocation','right','Xgrid','on','Ygrid','on');
-    xlabel(handles.Axes(2),ttlx);
+    if AppData.plotbase == 1
+          set(handles.Axes(2),'XTickLabel',[]);
+          plot(handles.Axes(3),dataX,fe(:,5),'r'); 
+          set(handles.Axes(3),'XTickLabel',[],'XDir',xdir,'Xgrid','on','Ygrid','on');
+          ylabel(handles.Axes(3),'Baseline');
+          plot(handles.Axes(4),dataX,detrend(fe(:,5)),'r');
+          set(handles.Axes(4),'XDir',xdir,'YAxisLocation','right','Xgrid','on','Ygrid','on');
+          ylabel(handles.Axes(4),'Detrended Baseline'); 
+          xlabel(handles.Axes(4),ttlx);
+    else
+          xlabel(handles.Axes(2),ttlx);
+    end
 end
