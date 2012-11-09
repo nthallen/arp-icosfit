@@ -4,7 +4,7 @@ ConfigCmd :
   Linedef /
   'BackgroundRegion' '=' IntegerPair /
   'SignalRegion' '=' IntegerPair /
-  'CPCI14Range' '=' IntegerPair /
+   '=' IntegerPair /
   'Restart' 'at' Integer opt_preserve /
   'nu0' '=' Integer /
   'FitFunction' '=' Ident /
@@ -33,6 +33,7 @@ ConfigCmd :
   'MFile' '=' Path /
   'Verbosity' '=' Integer /
   'N_Passes' '=' Integer .
+ScanNumRange : 'CPCI14Range' / 'ScanNumRange' .
 Path : PathStr / Ident .
 IntegerPair : '[' Integer ',' Integer ']' .
 opt_BaselineInput : / '+' 'Input' .

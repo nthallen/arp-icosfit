@@ -91,19 +91,19 @@ void fitdata::handle_restart( const char *ofname ) {
     }
 
     { char buf[RESTART_BUFSIZE];
-      unsigned int cpci14 = 0;
+      unsigned int ScanNum = 0;
       while ( fgets( buf, RESTART_BUFSIZE, ifp ) != 0 ) {
         int col;
         char *p = buf;
         fprintf( IFile->ofp, "%s", buf );
         while ( isspace( *p ) ) p++;
-        for ( col = 1; col < cpci14_col; col++ ) {
+        for ( col = 1; col < ScanNum_col; col++ ) {
           while ( ! isspace(*p) && *p != '\0' ) p++;
           while ( isspace(*p) ) p++;
         }
         if ( *p == '\0' ) break;
-        cpci14 = strtoul( p, &p, 10 );
-        if ( cpci14 >= GlobalData.RestartAt - 1 ) {
+        ScanNum = strtoul( p, &p, 10 );
+        if ( ScanNum >= GlobalData.RestartAt - 1 ) {
           for ( col++; col < dFN_col; col++ ) {
             while ( isspace(*p) ) p++;
             while ( ! isspace(*p) && *p != '\0' ) p++;
@@ -123,8 +123,8 @@ void fitdata::handle_restart( const char *ofname ) {
             else nl_error( 3, "Expected 0 or 1 during Restart" );
           }
           if ( i <= ma ) break;
-          IFile->read( cpci14 ); // To initialize wndata
-          GlobalData.CPCI14Range[0] = cpci14+1;
+          IFile->read( ScanNum ); // To initialize wndata
+          GlobalData.ScanNumRange[0] = ScanNum+1;
           fclose( ifp );
           { func_line *line;
             for ( line = absorb->lfirst(); line != 0; line = line->lnext() ) {
@@ -140,9 +140,9 @@ void fitdata::handle_restart( const char *ofname ) {
           return;
         }
       }
-      nl_error( 3, "Reached EOF or line too long after cpci14 %d", cpci14 );
+      nl_error( 3, "Reached EOF or line too long after ScanNum %d", ScanNum );
     }
-    nl_error( 3, "Did not find CPCI14 %d in %s", ofname );
+    nl_error( 3, "Did not find ScanNum %d in %s", ofname );
   } else {
     IFile->ofp = fopen( ofname, "a" );
     if ( IFile->ofp == 0 )
@@ -377,7 +377,7 @@ int fitdata::fit( ) {
 }
 
 const int fitdata::n_input_params = 9;
-const int fitdata::cpci14_col = 6;
+const int fitdata::ScanNum_col = 6;
 const int fitdata::dFN_col = 9;
 
 void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
@@ -417,7 +417,7 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
     for ( i = 1; i <= ma; i++ ) {
       if ( ia[i] != 0 ) mfit++;
     }
-    assert( cpci14_col == 6 && n_input_params == 9 );
+    assert( ScanNum_col == 6 && n_input_params == 9 );
     fprintf( ofp, "%10.0lf %6.2lf %6.2lf %7.2lf %7.2lf %6d %d %12.5le"
       // " %11.6lf"
       " %d",
@@ -438,5 +438,5 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
 
 void fitdata::write() {
   FILE *fp = (verbose&1) ? IFile->writefp() : 0;
-  this->lwrite( IFile->ofp, fp, PTf->CPCI14 );
+  this->lwrite( IFile->ofp, fp, PTf->ScanNum );
 }

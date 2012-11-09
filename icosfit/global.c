@@ -7,7 +7,7 @@ GlobalData_t::GlobalData_t() {
   BackgroundRegion[1] = 200;
   SignalRegion[0] = 350;
   SignalRegion[1] = 1750;
-  CPCI14Range[0] = CPCI14Range[1] = 0;
+  ScanNumRange[0] = ScanNumRange[1] = 0;
   RestartAt = 0;
   PreserveOutput = 0;
   FitFunction = "func_tau";
@@ -26,7 +26,7 @@ GlobalData_t::GlobalData_t() {
   SkewTolerance = 1e-5;
   DefaultTemp = 22.56;
   binary = 1;
-  ICOSdir = "CPCI14";
+  ICOSdir = "Scans";
   PTFile = "INPUTFILE.txt";
   PTformat = 0;
   BaselineFile = 0;

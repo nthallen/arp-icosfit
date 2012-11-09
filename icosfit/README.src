@@ -73,7 +73,7 @@ PTE.txt format: This is the format for files specified with
    function etln_evalJ().
 
   Column Name    Description             Units
-  0      CPCI14  File Index      
+  0      ScanNum File Index      
   1      CellP   Cell Pressure           Torr
   2      Tavg    Cell Temperature        K
   3      E0      Sample Number Offset    Samples
@@ -90,7 +90,7 @@ PT.txt format: This is the "new" format for files specified with
   PT        [ 0] = Time (seconds since 00:00:00 1/1/70 UTC)
   PT        [ 1] = CellP Torr
   PT        [ 2] = Tavg Kelvin
-  PT        [ 3] = CPCI14
+  PT        [ 3] = CPCI14/ScanNum
   PT        [ 4] = Cal_F SCCM
   PT        [ 5] = InltF SCCM
   PT        [ 6] = RORIS 1 = Ringdown, 0 = ICOS
@@ -148,7 +148,7 @@ ICOSsum.dat format:
   3 = Gas_T Kelvin
   4 = Cal_F SCCM
   5 = InltF SCCM
-  6 = CPCI14
+  6 = ScanNum
   7 = RateS 1 = 50 Hz, 0 = 10 Hz
   8 = Reduce chi squared (more or less)
   9 = nu_F0 wavenumber of fringe zero

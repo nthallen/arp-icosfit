@@ -6,7 +6,7 @@ class GlobalData_t {
   public:
 	unsigned int BackgroundRegion[2];
 	unsigned int SignalRegion[2];
-	unsigned int CPCI14Range[2];
+	unsigned int ScanNumRange[2];
 	unsigned int RestartAt;
 	int PreserveOutput;
 	const char *FitFunction;

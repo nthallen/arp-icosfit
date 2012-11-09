@@ -10,9 +10,9 @@ class PTfile {
     double time;
     double P, T;
     double cal_flow, inlet_flow;
-    unsigned long CPCI14, CPCI16;
+    unsigned long ScanNum;
     int RORIS, RateS;
-    unsigned long next_CPCI14;
+    unsigned long next_ScanNum;
 
     int readline();
 	void calc_wndata();

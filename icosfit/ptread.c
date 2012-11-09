@@ -14,7 +14,7 @@
 
 PTfile::PTfile( const char *fname ) {
   fp = fopen( fname, "r" );
-  CPCI14 = next_CPCI14 = 0;
+  ScanNum = next_ScanNum = 0;
   if ( fp == 0 )
     nl_error( nl_response, "Unable to open input file '%s'", fname );
   format = GlobalData.PTformat;
@@ -32,10 +32,10 @@ const int MAX_VARS = 12;
 int PTfile::readline() {
 
   if ( fp == 0 ) return 0;
-  if ( CPCI14 < next_CPCI14 ) {
-    // This does not include the case where CPCI14==0, because then
-    // next_CPCI14 == 0 as well.
-    CPCI14++;
+  if ( ScanNum < next_ScanNum ) {
+    // This does not include the case where ScanNum==0, because then
+    // next_ScanNum == 0 as well.
+    ScanNum++;
     return 1;
   }
   for (;;) {
@@ -62,7 +62,7 @@ int PTfile::readline() {
     }
     if ( format == 2 ) {
       time = 0.;
-      CPCI14 = int(data[0]);
+      ScanNum = int(data[0]);
       P = data[1];
       T = data[2];
       for ( i = 0; i < 8; i++ ) Etln_params[i] = data[i+3];
@@ -72,26 +72,26 @@ int PTfile::readline() {
       P = data[1];
       if ( format == 0 ) {
         T = 273.15 + ( data[2] + data[3] + data[4] + data[5] ) / 4.;
-        next_CPCI14 = int(data[6]);
+        next_ScanNum = int(data[6]);
         cal_flow = data[8];
         inlet_flow = data[9];
         RORIS = int(data[10]);
         RateS = int(data[11]);
       } else {
         T = data[2];
-        next_CPCI14 = int(data[3]);
+        next_ScanNum = int(data[3]);
         cal_flow = data[4];
         inlet_flow = data[5];
         RORIS = int(data[6]);
         RateS = 0;
       }
       if ( T < 249. ) T = 273.15 + GlobalData.DefaultTemp;
-      if ( CPCI14 != next_CPCI14 ) {
+      if ( ScanNum != next_ScanNum ) {
         if ( RORIS == GlobalData.QCLI_Wave ) {
-          CPCI14 = (CPCI14==0) ? next_CPCI14 :
-            ( (CPCI14<next_CPCI14) ? CPCI14+1 : CPCI14-1 );
+          ScanNum = (ScanNum==0) ? next_ScanNum :
+            ( (ScanNum<next_ScanNum) ? ScanNum+1 : ScanNum-1 );
           return 1;
-        } else CPCI14 = next_CPCI14;
+        } else ScanNum = next_ScanNum;
       }
     }
   }

@@ -33,7 +33,7 @@ class fitdata {
 	FILE *vfp;
 	mlf_def_t *vmlf;
 	static const int n_input_params;
-	static const int cpci14_col;
+	static const int ScanNum_col;
 	static const int dFN_col;
     fitdata( PTfile *ptf, ICOSfile *IF,
        func_evaluator *f, func_evaluator *baseline, func_abs *abs );

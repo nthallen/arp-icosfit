@@ -57,11 +57,11 @@ void ICOS_main() {
 	   GlobalData.RestartAt );
   }
   while ( fitspecs->PTf->readline() != 0 ) {
-    if ( ( GlobalData.CPCI14Range[0] == 0 ||
-		   fitspecs->PTf->CPCI14 >= GlobalData.CPCI14Range[0] ) &&
-		 ( GlobalData.CPCI14Range[1] == 0 ||
-		   fitspecs->PTf->CPCI14 <= GlobalData.CPCI14Range[1] ) ) {
-	  if ( fitspecs->IFile->read( fitspecs->PTf->CPCI14 ) ) {
+    if ( ( GlobalData.ScanNumRange[0] == 0 ||
+		   fitspecs->PTf->ScanNum >= GlobalData.ScanNumRange[0] ) &&
+		 ( GlobalData.ScanNumRange[1] == 0 ||
+		   fitspecs->PTf->ScanNum <= GlobalData.ScanNumRange[1] ) ) {
+	  if ( fitspecs->IFile->read( fitspecs->PTf->ScanNum ) ) {
 		if ( GlobalData.PTformat == 2 ) fitspecs->PTf->calc_wndata();
 		if ( fitspecs->fit() != 0 ) {
 		  fitspecs->write();

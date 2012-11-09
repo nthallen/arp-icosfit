@@ -27,7 +27,7 @@
 */
 typedef unsigned int icos_hdr_t;
 
-#include <machine/endian.h>
+#include <endian.h>
 #if BYTE_ORDER == BIG_ENDIAN
   #define USE_BIG_ENDIAN
   #include <stdio.h>

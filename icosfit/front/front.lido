@@ -32,8 +32,8 @@ RULE: ConfigCmd ::= 'SignalRegion' '=' IntegerPair COMPUTE
   SetGlobalPair(SignalRegion, IntegerPair.Low, IntegerPair.High );
 END;
 
-RULE: ConfigCmd ::= 'CPCI14Range' '=' IntegerPair COMPUTE
-  SetGlobalPair(CPCI14Range, IntegerPair.Low, IntegerPair.High );
+RULE: ConfigCmd ::= ScanNumRange '=' IntegerPair COMPUTE
+  SetGlobalPair(ScanNumRange, IntegerPair.Low, IntegerPair.High );
 END;
 
 RULE: ConfigCmd ::= 'Restart' 'at' Integer opt_preserve COMPUTE
