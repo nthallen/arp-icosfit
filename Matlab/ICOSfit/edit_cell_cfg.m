@@ -1,22 +1,22 @@
 function varargout = edit_cell_cfg(varargin)
-% EDIT_CELL_CFG M-file for edit_cell_cfg.fig
-%      EDIT_CELL_CFG, by itself, creates a new EDIT_CELL_CFG or raises the existing
+% edit_cell_cfg;
+% edit_cell_cfg('Config','Cell_Config.m');
+%
+% edit_cell_cfg M-file for edit_cell_cfg.fig
+%      edit_cell_cfg, by itself, creates a new edit_cell_cfg or raises the existing
 %      singleton*.
 %
-%      H = EDIT_CELL_CFG returns the handle to a new EDIT_CELL_CFG or the handle to
+%      H = edit_cell_cfg returns the handle to a new edit_cell_cfg or the handle to
 %      the existing singleton*.
 %
-%      EDIT_CELL_CFG('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in EDIT_CELL_CFG.M with the given input arguments.
+%      edit_cell_cfg('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in edit_cell_cfg.M with the given input arguments.
 %
-%      EDIT_CELL_CFG('Property','Value',...) creates a new EDIT_CELL_CFG or raises the
-%      existing singleton*.  Starting from the left, property value pairs are
+%      edit_cell_cfg('Property','Value',...) creates a new edit_cell_cfg or raises the
+%      existing singleton.  Starting from the left, property value pairs are
 %      applied to the GUI before edit_cell_cfg_OpeningFunction gets called.  An
 %      unrecognized property name or invalid value makes property application
 %      stop.  All inputs are passed to edit_cell_cfg_OpeningFcn via varargin.
-%
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
@@ -53,9 +53,18 @@ function edit_cell_cfg_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to edit_cell_cfg (see VARARGIN)
 
 % Choose default command line output for edit_cell_cfg
-if nargin >= 2 && strcmp(varargin{1},'Config')
-  cell_cfg = varargin{2};
-else
+loaded = 0;
+for i=1:2:length(varargin)-1
+  if strcmpi(varargin{i},'Config')
+      cell_cfg = varargin{i+1};
+      loaded = 1;
+  else
+      errordlg(sprintf('Unrecognized property: %s', varargin{i}));
+      close(handles.figure1);
+      return;
+  end
+end
+if ~loaded
   cell_cfg = load_cell_cfg(1);
 end
 set(handles.N_Passes,'String', cell_cfg.N_Passes);
