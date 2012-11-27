@@ -42,3 +42,7 @@
 
 2.8: 11/09/2012
  Removed most references to 'CPCI'
+ 
+2.9: 11/27/2012
+ Added CavityFixedLength and LineMarginMultiplier
+
