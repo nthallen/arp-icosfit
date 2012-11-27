@@ -28,15 +28,14 @@ function varargout = scan_viewer(varargin)
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
 % To Do:
-%   Resize Axes on resize
 %   Make resize more responsive? (addlistener)
 
 % Edit the above text to modify the response to help scan_viewer
 
-% Last Modified by GUIDE v2.5 24-Oct-2012 14:54:27
+% Last Modified by GUIDE v2.5 27-Nov-2012 13:08:40
 
 % Begin initialization code - DO NOT EDIT
-gui_Singleton = 1;
+gui_Singleton = 0;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
                    'gui_OpeningFcn', @scan_viewer_OpeningFcn, ...
