@@ -20,10 +20,10 @@ func_evaluator::func_evaluator( const char *sname, int n ) {
 void func_evaluator::append_func( func_evaluator *newfunc ) {
   // printf( "func_evaluator::append_func(%s, %s)\n", name, newfunc->name );
   if ( this->last == 0 ) {
-	this->first = this->last = newfunc;
+    this->first = this->last = newfunc;
   } else {
-	this->last->next = newfunc;
-	this->last = newfunc;
+    this->last->next = newfunc;
+    this->last = newfunc;
   }
   newfunc->parent = this;
 }
@@ -152,12 +152,12 @@ void func_evaluator::clamp_param_highlow( float *a, int idx ) {
       val = (params[idx].prev + limit)/2;
       set_param( a, idx, val );
     } else {
-	  limit = params[idx].low;
-	  if ( val < limit ) {
-		val = (params[idx].prev + limit)/2;
-		set_param( a, idx, val );
-	  }
-	}
+      limit = params[idx].low;
+      if ( val < limit ) {
+        val = (params[idx].prev + limit)/2;
+        set_param( a, idx, val );
+      }
+    }
     params[idx].prev = val;
   }
 }
@@ -208,8 +208,8 @@ void func_product::evaluate(float x, float *a) {
     float prod;
     if ( child->value == 0. ) {
       prod = 1.;
-	  for ( child2 = first; child2 != 0; child2 = child2->next )
-		if ( child2 != child ) prod *= child2->value;
+      for ( child2 = first; child2 != 0; child2 = child2->next )
+        if ( child2 != child ) prod *= child2->value;
     } else prod = value / child->value;
     for ( j = 0; j < child->n_params; j++ )
       params[i++].dyda = prod * child->params[j].dyda;
@@ -235,7 +235,7 @@ static int get_molwt( int isotopomer ) {
     default:
       nl_error( 3,
         "Uncatalogued isotopomer '%d': Edit funceval.c get_molwt()",
-		 isotopomer );
+         isotopomer );
       return 0; // Never reached
   }
 }
@@ -318,7 +318,7 @@ int func_line::adjust_params( float alamda, float P, float T, float *a ) {
             * Corr_Tref;
     Ks = Spt * GlobalData.CavityLength * DRTPI; 
     nu_P = nu1 + delta * P/760.;
-	rolledback = 0;
+    rolledback = 0;
   }
   float numdens = get_param( a, n_idx );
   // if ( numdens < 0. ) numdens = set_param( a, n_idx, prev_numdens/2. );
@@ -339,8 +339,8 @@ int func_line::adjust_params( float alamda, float P, float T, float *a ) {
         4.30213e-7 * nu * sqrt(T/molwt));
       prev_ged = gamma_ed;
     } else {
-	  gamma_ed = get_param(a, w_idx);
-	}
+      gamma_ed = get_param(a, w_idx);
+    }
   } else {
     const float min_ged = 1e-3;
     gamma_ed = get_param(a, w_idx);
@@ -350,47 +350,47 @@ int func_line::adjust_params( float alamda, float P, float T, float *a ) {
   }
   if ( alamda < 0 && param_fixed( l_idx ) ) {
     // I'm pretty sure this is handled by func_abs::adjust_params
-	// set_param( a, l_idx, 0. );
+    // set_param( a, l_idx, 0. );
   }
   if ( fixed ) {
     if ( alamda == 0 ) {
-	  float strength = gamma_ed > 0 ? Ks * numdens / gamma_ed : 0.;
-	  if ( strength > S_thresh * 4. ) {
-		if ( rolledback < 2 ) {
-		  nl_error( 0, "Floating line %d (strength %g)",
-		              line_number, strength );
-		  line_float();
-		  return 1;
-		} else nl_error( 0, "NOT re-floating line %d",
-				  line_number );
-	  }
+      float strength = gamma_ed > 0 ? Ks * numdens / gamma_ed : 0.;
+      if ( strength > S_thresh * 4. ) {
+        if ( rolledback < 2 ) {
+          nl_error( 0, "Floating line %d (strength %g)",
+                      line_number, strength );
+          line_float();
+          return 1;
+        } else nl_error( 0, "NOT re-floating line %d",
+                  line_number );
+      }
     }
   } else {
     float strength = gamma_ed > 0 ? Ks * numdens / gamma_ed : 0.;
-	if ( strength <= S_thresh ) {
-	  nl_error( 0, "Fixing line %d (strength %g)",
-	                line_number, strength );
-	  line_fix();
-	  if (alamda >= 0 ) rolledback++;
-	  return 1;
-	}
+    if ( strength <= S_thresh ) {
+      nl_error( 0, "Fixing line %d (strength %g)",
+                    line_number, strength );
+      line_fix();
+      if (alamda >= 0 ) rolledback++;
+      return 1;
+    }
   }
   return 0;
 }
 
 float func_line::line_start(float *a) {
-  return (nu_P - 8*get_param(a, w_idx));
+  return (nu_P - GlobalData.LineMarginMultiplier*get_param(a, w_idx));
 }
 float func_line::line_end(float *a) {
-  return (nu_P + 8*get_param(a, w_idx));
+  return (nu_P + GlobalData.LineMarginMultiplier*get_param(a, w_idx));
 }
 
 int func_evaluator::line_check(int include, float& start, float& end,
                 float P, float T, float *a) {
   if ( first != 0 && first->line_check( include, start, end, P, T, a ) )
-	return 1;
+    return 1;
   if ( next != 0 && next->line_check( include, start, end, P, T, a ) )
-	return 1;
+    return 1;
   return 0;
 }
 
@@ -399,11 +399,11 @@ int func_evaluator::skew_samples() {
   int frv;
   if ( first != 0 ) {
     frv = first->skew_samples();
-	if ( frv > rv ) rv = frv;
+    if ( frv > rv ) rv = frv;
   }
   if ( next != 0 ) {
     frv = next->skew_samples();
-	if ( frv > rv ) rv = frv;
+    if ( frv > rv ) rv = frv;
   }
   return rv;
 }
@@ -453,54 +453,54 @@ int func_line::line_check(int include, float& start, float& end,
   float le = line_end(a);
   func_line *next = lnext();
   if ( ! include ) {
-	int rv = -1;
-	if ( ! fixed && ( ls < start || le > end ) ) {
-	  float save_thresh = S_thresh;
-	  line_fix();
-	  S_thresh = Ks * get_param(a, n_idx)*2/get_param(a, w_idx);
-	  adjust_params( -1, P, T, a );
-	  ls = line_start(a);
-	  le = line_end(a);
-	  if ( ls >= start && le <= end ) {
-	    nl_error(0, "Raised threshold on line %d near boundary",
-					  line_number );
-	  } else S_thresh = save_thresh;
-	}
+    int rv = -1;
+    if ( ! fixed && ( ls < start || le > end ) ) {
+      float save_thresh = S_thresh;
+      line_fix();
+      S_thresh = Ks * get_param(a, n_idx)*2/get_param(a, w_idx);
+      adjust_params( -1, P, T, a );
+      ls = line_start(a);
+      le = line_end(a);
+      if ( ls >= start && le <= end ) {
+        nl_error(0, "Raised threshold on line %d near boundary",
+                      line_number );
+      } else S_thresh = save_thresh;
+    }
     if ( le < start || ls > end ) {
-	  float lem = le+margin;
-	  float lsm = ls-margin;
+      float lem = le+margin;
+      float lsm = ls-margin;
       rv = 0;
       if ( ls < start && lem > start ) {
-	    start = lem; rv = 1;
-		if ( GlobalData.Verbosity & 2 )
-		  nl_error( 0, "Exclude: Updated start to %.4f", start );
-	  }
+        start = lem; rv = 1;
+        if ( GlobalData.Verbosity & 2 )
+          nl_error( 0, "Exclude: Updated start to %.4f", start );
+      }
       if ( le > end && lsm < end ) {
-	    end = lsm; rv = 1;
-		if ( GlobalData.Verbosity & 2 )
-		  nl_error( 0, "Exclude: Updated end to %.4f", end );
-	  }
+        end = lsm; rv = 1;
+        if ( GlobalData.Verbosity & 2 )
+          nl_error( 0, "Exclude: Updated end to %.4f", end );
+      }
       if ( ! param_fixed(n_idx) ) {
-		nl_error( 0, "Turning off line %d (%.4f,%.4f)",
-						  line_number, ls, le );
-		fix_param(n_idx);
-		set_param( a, n_idx, 0. );
-		line_fix();
-	  }
-	  if ( rv != 0 ) return rv;
+        nl_error( 0, "Turning off line %d (%.4f,%.4f)",
+                          line_number, ls, le );
+        fix_param(n_idx);
+        set_param( a, n_idx, 0. );
+        line_fix();
+      }
+      if ( rv != 0 ) return rv;
     }
-	if ( next != 0 && next->line_check( include, start, end, P, T, a ) )
-	  return 1;
-	if ( rv < 0 && param_fixed(n_idx) ) {
-	  nl_error( 0, "Turning on line %d (%.4f,%.4f)",
-						  line_number, ls, le );
-	  float_param(n_idx);
-	  // We don't actually line_float() until the fit raises the
-	  // number density high enough.
-	}
+    if ( next != 0 && next->line_check( include, start, end, P, T, a ) )
+      return 1;
+    if ( rv < 0 && param_fixed(n_idx) ) {
+      nl_error( 0, "Turning on line %d (%.4f,%.4f)",
+                          line_number, ls, le );
+      float_param(n_idx);
+      // We don't actually line_float() until the fit raises the
+      // number density high enough.
+    }
   } else {
-	if ( next != 0 && next->line_check( include, start, end, P, T, a ) )
-	  return 1;
+    if ( next != 0 && next->line_check( include, start, end, P, T, a ) )
+      return 1;
     if ( ! param_fixed(n_idx) ) {
       if ( start == 0. || ls-margin < start ) start = ls-margin;
       if ( end == 0. || le+margin > end ) end = le+margin;

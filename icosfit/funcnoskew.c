@@ -21,7 +21,8 @@ func_noskew::func_noskew(func_base *base, func_abs *abs) :
   n_base_params = base->n_params - basep->uses_nu_F0;
   n_abs_params = abs->n_params;
   n_params = n_base_params + n_abs_params;
-  N_Passes = GlobalData.N_Passes;
+  N_Passes = GlobalData.N_Passes +
+    GlobalData.CavityFixedLength/GlobalData.CavityLength;
 }
 
 // Identical to func_skew::init()

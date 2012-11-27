@@ -15,8 +15,10 @@ class GlobalData_t {
 	float MinimumFringeSpacing;
 	float TolerableDrift;
 	float LineMargin;
+  float LineMarginMultiplier;
 	float DSFRLimits[2];
 	float CavityLength;
+  float CavityFixedLength;
 	float Sigma;
 	float TuningRate;
 	float SampleRate;

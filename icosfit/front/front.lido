@@ -58,8 +58,14 @@ END;
 RULE: ConfigCmd ::= 'LineMargin' '=' FloatVal opt_cm COMPUTE
   SetGlobal(LineMargin, FloatVal.FVal );
 END;
+RULE: ConfigCmd ::= 'LineMarginMultiplier' '=' FloatVal COMPUTE
+  SetGlobal(LineMarginMultiplier, FloatVal.FVal );
+END;
 RULE: ConfigCmd ::= 'CavityLength' '=' FloatVal COMPUTE
   SetGlobal(CavityLength, FloatVal.FVal );
+END;
+RULE: ConfigCmd ::= 'CavityFixedLength' '=' FloatVal COMPUTE
+  SetGlobal(CavityFixedLength, FloatVal.FVal );
 END;
 RULE: ConfigCmd ::= 'Sigma' '=' FloatVal COMPUTE
   SetGlobal(Sigma, FloatVal.FVal );

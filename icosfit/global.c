@@ -16,7 +16,9 @@ GlobalData_t::GlobalData_t() {
   MinimumFringeSpacing = 12.;
   TolerableDrift = .01; // cm-1
   CavityLength = 70.; // cm
+  CavityFixedLength = 0.; // cm
   LineMargin = .05; // cm-1
+  LineMarginMultiplier = 8;
   DSFRLimits[0] = .95;
   DSFRLimits[1] = 1.21;
   Sigma = 1000.;

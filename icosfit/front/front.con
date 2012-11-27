@@ -14,7 +14,9 @@ ConfigCmd :
   'DSFRLimits' '=' '[' FloatVal ',' FloatVal ']' /
   'TolerableDrift' '=' FloatVal opt_cm /
   'LineMargin' '=' FloatVal opt_cm /
+  'LineMarginMultiplier' '=' FloatVal /
   'CavityLength' '=' FloatVal /
+  'CavityFixedLength' '=' FloatVal /
   'Sigma' '=' FloatVal /
   'QCLI_Wave' '=' Integer /
   'TuningRate' '=' FloatVal opt_tunerate /
