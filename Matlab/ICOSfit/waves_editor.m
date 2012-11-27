@@ -39,7 +39,7 @@ function varargout = waves_editor(varargin)
 
 % Edit the above text to modify the response to help waves_editor
 
-% Last Modified by GUIDE v2.5 13-Feb-2007 11:35:32
+% Last Modified by GUIDE v2.5 27-Nov-2012 16:05:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -585,6 +585,10 @@ else
   endsample = wv.NetSamples - wv.TzSamples - 1;
   xwv.SignalRegion = startsample:endsample;
 end
+if ~isfield(xwv,'LineMargin')
+    xwv.LineMargin = 0.05;
+    xwv.LineMarginMultiplier = 8;
+end
 % if ~isfield(xwv,'TriggerDelay')
 %   xwv.TriggerDelay = 0;
 % end
@@ -635,6 +639,8 @@ set(handles.TzSamples,'String',num2str(wv.TzSamples));
 set(handles.TriggerDelay,'String',num2str(xwv.TriggerDelay));
 set(handles.SignalStart,'String',num2str(startsample));
 set(handles.SignalEnd,'String',num2str(endsample));
+set(handles.LineMargin,'String',num2str(xwv.LineMargin));
+set(handles.LineMarginMultiplier,'String',num2str(xwv.LineMarginMultiplier));
 if nraw
   D = handles.data.rawdata;
   if handles.data.qclicomp == 0 && xwv.TriggerDelay
@@ -699,6 +705,8 @@ xwv.SignalRegion = startsample:endsample;
 if isfield(xwv, 'RampRegions') && isfield(xwv, 'CurRamp')
   xwv.RampRegions(xwv.CurRamp,:) = [ startsample endsample ];
 end
+xwv.LineMargin = str2num(get(handles.LineMargin,'String'));
+xwv.LineMarginMultiplier = str2num(get(handles.LineMarginMultiplier,'String'));
 handles.data.xwvs{index} = xwv;
 guidata(hObject, handles);
 setup_waveform(hObject, handles);
@@ -769,3 +777,47 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+
+function LineMargin_Callback(hObject, eventdata, handles)
+% hObject    handle to LineMargin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of LineMargin as text
+%        str2double(get(hObject,'String')) returns contents of LineMargin as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function LineMargin_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to LineMargin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function LineMarginMultiplier_Callback(hObject, eventdata, handles)
+% hObject    handle to LineMarginMultiplier (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of LineMarginMultiplier as text
+%        str2double(get(hObject,'String')) returns contents of LineMarginMultiplier as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function LineMarginMultiplier_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to LineMarginMultiplier (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

@@ -22,7 +22,7 @@ function varargout = edit_cell_cfg(varargin)
 
 % Edit the above text to modify the response to help edit_cell_cfg
 
-% Last Modified by GUIDE v2.5 30-Oct-2012 11:54:17
+% Last Modified by GUIDE v2.5 27-Nov-2012 14:03:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -189,6 +189,27 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+function CavityFixedLength_Callback(hObject, eventdata, handles)
+% hObject    handle to CavityFixedLength (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of CavityFixedLength as text
+%        str2double(get(hObject,'String')) returns contents of CavityFixedLength as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function CavityFixedLength_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to CavityFixedLength (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
 % --- Executes on selection change in popupmenu1.
 function popupmenu1_Callback(hObject, eventdata, handles)
 % hObject    handle to popupmenu1 (see GCBO)
@@ -217,10 +238,11 @@ function Save_btn_Callback(hObject, eventdata, handles)
 % hObject    handle to Save_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-cell_cfg.N_Passes = get(handles.N_Passes,'String');
-cell_cfg.CavityLength = get(handles.CavityLength,'String');
 cell_cfg.fsr = get(handles.fsr,'String');
+cell_cfg.CavityLength = get(handles.CavityLength,'String');
 cell_cfg.MirrorLoss = get(handles.MirrorLoss,'String');
+cell_cfg.N_Passes = get(handles.N_Passes,'String');
+cell_cfg.CavityFixedLength = get(handles.CavityFixedLength,'String');
 handles.output = cell_cfg;
 guidata(hObject, handles);
 SaveDirs = get(handles.SaveDir,'String');
@@ -228,10 +250,11 @@ SaveDir = SaveDirs{get(handles.SaveDir,'value')};
 fd = fopen([ SaveDir '/Cell_Config.m'], 'w');
 fprintf(fd, 'function cell_cfg = Cell_Config;\n');
 fprintf(fd, '% ICOSfit_Config defines local configuration\n');
-fprintf(fd, 'cell_cfg.MirrorLoss = %s;\n', cell_cfg.MirrorLoss );
 fprintf(fd, 'cell_cfg.fsr = %s;\n', cell_cfg.fsr );
 fprintf(fd, 'cell_cfg.CavityLength = %s;\n', cell_cfg.CavityLength );
+fprintf(fd, 'cell_cfg.MirrorLoss = %s;\n', cell_cfg.MirrorLoss );
 fprintf(fd, 'cell_cfg.N_Passes = %s;\n', cell_cfg.N_Passes );
+fprintf(fd, 'cell_cfg.CavityFixedLength = %s;\n', cell_cfg.CavityFixedLength );
 fclose(fd);
 uiresume(handles.figure1);
 
@@ -244,3 +267,4 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 
 % Hint: delete(hObject) closes the figure
 uiresume(handles.figure1);
+

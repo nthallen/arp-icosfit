@@ -30,6 +30,7 @@ if nargin == 0 || strcmp(op,'init')
     line_obj = fitline('load');
   end
   CavityLength = cellparams.CavityLength;
+  CavityFixedLength = cellparams.CavityFixedLength;
   N_Passes = cellparams.N_Passes;
   MirrorLoss = cellparams.MirrorLoss;
   run = getrun(1);
@@ -83,9 +84,10 @@ if nargin == 0 || strcmp(op,'init')
   SampleRate = round(wv.RawRate/wv.NAverage);
   % fprintf(1,'Waveform is %s\n',wv.Name);
   
-  [ mfhw, cv_hlf, cv_mfhw, holdoff, x ] = get_waveform_params( wv.Name, ...
+  [ mfhw, cv_hlf, cv_mfhw, holdoff, x, LineMargin, LineMarginMultiplier ] = get_waveform_params( wv.Name, ...
     'mfhw', 1, 'cv_hlf', 10, 'cv_mfhw', 1, 'holdoff', 4e-4, ...
-    'SignalRegion', [] );
+    'SignalRegion', [], ...
+    'LineMargin', 0.05, 'LineMarginMultiplier',8 );
   if isempty(x)
     startsample = round(wv.TzSamples + holdoff*SampleRate);
     endsample = wv.NetSamples - wv.TzSamples - 1;
@@ -226,10 +228,13 @@ if nargin == 0 || strcmp(op,'init')
   ml_obj.ScanNum = ScanNum;
   ml_obj.QCLI_Wave = QCLI_Wave;
   ml_obj.wv = wv;
+  ml_obj.LineMargin = LineMargin;
+  ml_obj.LineMarginMultiplier = LineMarginMultiplier;
   ml_obj.SampleRate = SampleRate;
   ml_obj.MirrorLoss = MirrorLoss;
   ml_obj.EtalonFSR = cellparams.fsr;
   ml_obj.CavityLength = CavityLength;
+  ml_obj.CavityFixedLength = CavityFixedLength;
   ml_obj.N_Passes = N_Passes;
   ml_obj.run = run;
   ml_obj.ICOSfit_cfg = ICOSfit_cfg;
@@ -389,12 +394,15 @@ for i=1:size(lines,1)
   end
   fprintf(fid, ';\n' );
 end
-fprintf( fid, '};\n\n%s\n%s\n', ...
-  '# DSFRLimits = [ .90, 1.26 ];', ...
-  'LineMargin = .02 cm-1;' );
+fprintf( fid, '};\n\n%s\n', ...
+  '# DSFRLimits = [ .90, 1.26 ];');
+
+fprintf( fid, 'LineMargin = %.2f cm-1;\n', ml_obj.LineMargin );
+fprintf( fid, 'LineMarginMultiplier = %d;\n', ml_obj.LineMarginMultiplier );
 fprintf( fid, 'MirrorLoss = %.1f ppm;\n', ml_obj.MirrorLoss * 1e6 );
-fprintf( fid, 'CavityLength = %.2f;\n', ml_obj.CavityLength );
+fprintf( fid, 'CavityLength = %.3f;\n', ml_obj.CavityLength );
 if ml_obj.N_Passes > 0
+  fprintf( fid, 'CavityFixedLength = %.3f;\n', ml_obj.CavityFixedLength ); 
   fprintf( fid, 'N_Passes = %d;\n', ml_obj.N_Passes );
 end
 fprintf( fid, 'EtalonFSR = %.6f cm-1;\n', ml_obj.EtalonFSR );

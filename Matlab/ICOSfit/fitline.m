@@ -52,7 +52,6 @@ if nargin == 0 || load_only
     end
     line_obj.lines = { line_st };
     line_obj.Threshold = 1e-6;
-    line_obj.LineMargin = .02;
     line_obj.PTEFile = 'PTE.txt';
     line_obj.Baseline = 'sbase.cubic';
     line_obj.Regions.name = 'all';
