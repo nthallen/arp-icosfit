@@ -110,6 +110,7 @@ for i=1:2:length(varargin)-1
   end
 end
 handles.data.Index_max = length(handles.data.Scans);
+guidata(hObject, handles);
 if isempty(handles.data.Scans)
     errordlg('No scans specified');
     close(handles.figure);
@@ -118,6 +119,7 @@ else
     set(handles.Slider,'Min',1,'Max',handles.data.Index_max,'Value',1);
     scan_display(handles);
 end
+handles = guidata(hObject);
 handles.SliderListener = ...
     addlistener(handles.Slider,'Value','PostSet', ...
     @(hObj,eventdat)scan_viewer('Slider_Listener',hObject,eventdat));
@@ -246,7 +248,7 @@ P = Set_Speed(hObject, handles.Spd_Step_10, P, [0 10]);
 P = Set_Speed(hObject, handles.Spd_Step_100, P, [0 100]);
 set(handles.Speed, 'UserData', P);
 
-function figure_ResizeFcn(~, ~, handles)
+function figure_ResizeFcn(hObject, ~, handles)
 if isfield(handles,'data') % first invocation comes before open fcn
     FP = get(handles.figure,'Position');
     SP = get(handles.Slider,'Position');
@@ -266,12 +268,30 @@ if isfield(handles,'data') % first invocation comes before open fcn
         FP(3) = FP(3) + delta;
         set(handles.figure,'Position',FP);
     end
-    if isfield(handles,'Axes')
-        Pos = Axes_Positions(handles);
-        for i = 1:length(handles.Axes)
-            set(handles.Axes(i),'Position',Pos(i,:));
+    if ~isfield(handles,'Axes')
+        handles.Axes = [];
+    end
+    if ~isfield(handles.data,'xlim')
+        xl = handles.data.xlim{1};
+    else
+        xl = [];
+    end
+    Pos = Axes_Positions(handles);
+    for j = 1:max(length(handles.Axes),size(Pos,1))
+        if j > length(handles.Axes)
+            handles.Axes(j) = axes('Units','pixels','Position',Pos(j,:));
+            handles.data.xlim{j} = xl;
+            handles.data.ylim{j} = [];
+        elseif j > size(Pos,1)
+            delete(handles.Axes(j));
+        else
+            set(handles.Axes(j),'Position',Pos(j,:));
         end
     end
+    if size(Pos,1) < length(handles.Axes)
+        handles.Axes = handles.Axes(1:size(Pos,1));
+    end
+    guidata(hObject,handles);
     drawnow;
 end
 

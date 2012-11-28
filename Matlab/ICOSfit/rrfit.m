@@ -1,15 +1,7 @@
-function rrfit( base, range, plotcode );
-% rrfit( base, [,scans] [, plotcode] );
+function rrfit( base, range );
+% rrfit( base, [,scans]);
 % Display fitted scan, optionally limited to a range
 % of Scan values.
-%plotcodes:
-%   1: Plots fit and residual
-%   2: Plots fit in transmission (baseline removed) and residual
-%   3: Plots line strength and residual
-%   4,5,6: Same as 1,2,3, but plots versus sample number instead of
-%           wavenumber.
-%   7,8,9: Same as 1,2,3, but also plots the baseline and detrended
-%           baseline on seperate axes.
 if nargin < 1
   disp('Error: Must define base. eg ''ICOSout.R1.3p''')
   return
@@ -25,22 +17,11 @@ else
   rows = rows(isfinite(rows));
   scans = scannum(rows);
 end
-if nargin < 3
-    plotcode = 1;
-end
-plotbase = 0;
-if plotcode >= 7
-    plotbase = 1;
-    plotcode = plotcode - 6;
-end
-if plotcode > 9
-    disp('Error: Invalid plotcode.');
-    return
-end
 
 AppData.base = base;
-AppData.plotcode = plotcode;
-AppData.plotbase = plotbase;
+AppData.Xopt = 0;
+AppData.Yopt = 0;
+AppData.plotbase = 0;
 AppData.scannum = scannum;
 AppData.nu = nu;
 AppData.nu0 = nu0;
@@ -53,21 +34,17 @@ AppData.CavLen = CavLen;
 AppData.Nfit = Nfit;
 AppData.Ged = Ged;
 AppData.v = v;
-
-if plotbase == 0
-Axes = [
+AppData.Axes_A = [
     60    45    60     1    20    15     0     .5
     60    45    60     1     0    45    60     1
     ];
-elseif plotbase == 1
-    Axes = [
+AppData.Axes_B = [
     60    45    60     1    20    15     0     .5
     60    45    60     1     0    45     0     1
     60    45    60     1     0    30     0     .5
     60    45    60     1     0    30    60     .5
     ];
-end
-scan_viewer('Scans', scans, 'Axes', Axes, 'Name', 'rrfit Viewer', ...
+scan_viewer('Scans', scans, 'Axes', AppData.Axes_A, 'Name', 'rrfit Viewer', ...
     'Callback', @rrfitview_callback, 'AppData', AppData);
 
 function rrfitview_callback(handles, sv_axes)
@@ -75,11 +52,26 @@ if nargin < 2
     sv_axes = handles.Axes;
 end
 AppData = handles.data.AppData;
+if ~isfield(AppData,'menus')
+    top_menu = uimenu(handles.figure,'Tag','rrfit','Label','rrfit');
+    cb = @rrfit_menu_callback;
+    AppData.menus.Y = uimenu(top_menu,'Tag','Ymenu','Label','Y');
+    AppData.menus.Y_signal = uimenu(AppData.menus.Y,'Tag','Y_signal','Label','Signal','Checked','on','Callback',cb);
+    AppData.menus.Y_transmission = uimenu(AppData.menus.Y,'Tag','Y_trans','Label','Transmission','Callback',cb);
+    AppData.menus.Y_strength = uimenu(AppData.menus.Y,'Tag','Y_strength','Label','Strength','Callback',cb);
+    AppData.menus.X = uimenu(top_menu,'Tag','Ymenu','Label','X');
+    AppData.menus.X_wavenumber = uimenu(AppData.menus.X,'Tag','X_wavenumber','Label','Wavenumber','Checked','on','Callback',cb);
+    AppData.menus.X_sample = uimenu(AppData.menus.X,'Tag','X_sample','Label','Sample','Callback',cb);
+    AppData.menus.Baselines = uimenu(top_menu,'Tag','Baselines','Label','Baselines','Callback',cb);
+    handles.data.AppData = AppData;
+    guidata(handles.figure,handles);
+end
 scan = handles.data.Scans(handles.data.Index);
 path = mlf_path( AppData.base, scan, '.dat');
 fe = load( path );
 data_ok = (~isempty(fe));
 if data_ok
+    % AppData.plotbase = strcmp(get(AppData.menus.Baselines,'Checked'),'on');
     i=find(AppData.scannum==scan);
     lpos = AppData.nu + AppData.delta*AppData.P_vec(i)/760. - AppData.fitdata(i,AppData.v);
     if AppData.nu0 ~= 0
@@ -89,21 +81,21 @@ if data_ok
     lst = AppData.Scorr.*AppData.CavLen.*AppData.Nfit./(AppData.Ged*sqrt(pi));
     lgl = AppData.fitdata(i,AppData.v+3);
     lwid = (lgd+lgl); % fitdata(i,v+1)+fitdata(i,v+3);
-     if AppData.plotcode <= 3
+     if AppData.Xopt == 0
         nux = fe(:,2);
         if min(nux) < 2
             nux = nux+AppData.nu_F0(i)+AppData.nu0; % This may change
         end
         xdir = 'reverse';
         ttlx = 'Wavenumber (cm-1)';
-    elseif AppData.plotcode > 3
+     else
         nux = fe(:,1);
         xdir = 'normal';
         ttlx = 'Sample Number';
     end
     dataX = nux;
     resX = nux;
-    if AppData.plotcode == 1 || AppData.plotcode == 4
+    if AppData.Yopt == 0
         dataY = fe(:,[3:5]);
         resY = fe(:,3)-fe(:,4);
         reslbl = 'Fit Res';
@@ -116,7 +108,7 @@ if data_ok
         % threw in maxp to see the position of small lines
         maxp = ones(size(lpos))*max(fe(:,5));
         
-    elseif AppData.plotcode == 2 || AppData.plotcode == 5
+    elseif AppData.Yopt == 1
         dataY = [fe(:,3)./fe(:,5)*100, fe(:,4)./fe(:,5)*100];
         resY = (fe(:,3)-fe(:,4))./fe(:,5)*100;
         reslbl = 'Fit Res (%)';
@@ -128,7 +120,7 @@ if data_ok
         meanp = (basep+fitp)/2;
         % threw in maxp to see the position of small lines
         maxp = ones(size(lpos))*100;
-    elseif AppData.plotcode == 3 || AppData.plotcode == 6
+    elseif AppData.Yopt == 2
         dataY = fe(:,6);
         resY = fe(:,3)-fe(:,4);
         reslbl = 'Fit Res';
@@ -151,9 +143,9 @@ if data_ok
     ylabel(sv_axes(1),reslbl);
     title(sv_axes(1),ttltext);
 
-    if AppData.plotcode <= 3
+    if AppData.Xopt == 0
         plot(sv_axes(2), dataX,dataY, X, Y, 'r');
-    elseif AppData.plotcode > 3
+    else
         plot(sv_axes(2), dataX,dataY);
     end
     set(sv_axes(2),'XDir', xdir,'YAxisLocation','right','Xgrid','on','Ygrid','on');
@@ -169,4 +161,64 @@ if data_ok
     else
           xlabel(sv_axes(2),ttlx);
     end
+end
+
+function rrfit_menu_callback(hObject,eventdata)
+handles = guidata(hObject);
+AppData = handles.data.AppData;
+Tag = get(hObject,'Tag');
+switch Tag(1)
+    case 'Y'
+        sig = 'off';
+        trans = 'off';
+        stren = 'off';
+        switch hObject
+            case AppData.menus.Y_signal
+                sig = 'on';
+                handles.data.AppData.Yopt = 0;
+            case AppData.menus.Y_transmission
+                trans = 'on';
+                handles.data.AppData.Yopt = 1;
+            case AppData.menus.Y_strength
+                stren = 'on';
+                handles.data.AppData.Yopt = 2;
+        end
+        set(AppData.menus.Y_signal,'checked',sig);
+        set(AppData.menus.Y_transmission,'checked',trans);
+        set(AppData.menus.Y_strength,'checked',stren);
+        handles.data.ylim{2} = [];
+        guidata(hObject,handles);
+        scan_viewer('scan_display',handles);
+    case 'X'
+        wvno = 'off';
+        samp = 'off';
+        switch hObject
+            case AppData.menus.X_wavenumber
+                wvno = 'on';
+                handles.data.AppData.Xopt = 0;
+            case AppData.menus.X_sample
+                samp = 'on';
+                handles.data.AppData.Xopt = 1;
+        end
+        for i = 1:length(handles.data.xlim)
+            handles.data.xlim{i} = [];
+        end
+        set(AppData.menus.X_wavenumber,'checked',wvno);
+        set(AppData.menus.X_sample,'checked',samp);
+        guidata(hObject,handles);
+        scan_viewer('scan_display',handles);
+    case 'B'
+        if strcmp(get(AppData.menus.Baselines,'checked'),'on')
+            set(AppData.menus.Baselines,'checked','off');
+            handles.data.AppData.plotbase = 0;
+            handles.data.Axes = AppData.Axes_A;
+        else
+            set(AppData.menus.Baselines,'checked','on');
+            handles.data.AppData.plotbase = 1;
+            handles.data.Axes = AppData.Axes_B;
+        end
+        guidata(hObject,handles);
+        scan_viewer('figure_ResizeFcn',hObject,eventdata,handles);
+        handles = guidata(hObject);
+        scan_viewer('scan_display',handles);
 end
