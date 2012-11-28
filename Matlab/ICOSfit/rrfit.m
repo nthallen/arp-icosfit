@@ -70,7 +70,10 @@ end
 scan_viewer('Scans', scans, 'Axes', Axes, 'Name', 'rrfit Viewer', ...
     'Callback', @rrfitview_callback, 'AppData', AppData);
 
-function rrfitview_callback(handles)
+function rrfitview_callback(handles, sv_axes)
+if nargin < 2
+    sv_axes = handles.Axes;
+end
 AppData = handles.data.AppData;
 scan = handles.data.Scans(handles.data.Index);
 path = mlf_path( AppData.base, scan, '.dat');
@@ -143,27 +146,27 @@ if data_ok
     % Y = [ basep meanp; fitp meanp ];
     Y = [ maxp meanp; fitp meanp ];
       
-    plot(handles.Axes(1),resX, resY);
-    set(handles.Axes(1),'XDir',xdir,'xticklabel',[],'Xgrid','on','Ygrid','on');
-    ylabel(handles.Axes(1),reslbl);
-    title(handles.Axes(1),ttltext);
+    plot(sv_axes(1),resX, resY);
+    set(sv_axes(1),'XDir',xdir,'xticklabel',[],'Xgrid','on','Ygrid','on');
+    ylabel(sv_axes(1),reslbl);
+    title(sv_axes(1),ttltext);
 
     if AppData.plotcode <= 3
-        plot(handles.Axes(2), dataX,dataY, X, Y, 'r');
+        plot(sv_axes(2), dataX,dataY, X, Y, 'r');
     elseif AppData.plotcode > 3
-        plot(handles.Axes(2), dataX,dataY);
+        plot(sv_axes(2), dataX,dataY);
     end
-    set(handles.Axes(2),'XDir', xdir,'YAxisLocation','right','Xgrid','on','Ygrid','on');
+    set(sv_axes(2),'XDir', xdir,'YAxisLocation','right','Xgrid','on','Ygrid','on');
     if AppData.plotbase == 1
-          set(handles.Axes(2),'XTickLabel',[]);
-          plot(handles.Axes(3),dataX,fe(:,5),'r'); 
-          set(handles.Axes(3),'XTickLabel',[],'XDir',xdir,'Xgrid','on','Ygrid','on');
-          ylabel(handles.Axes(3),'Baseline');
-          plot(handles.Axes(4),dataX,detrend(fe(:,5)),'r');
-          set(handles.Axes(4),'XDir',xdir,'YAxisLocation','right','Xgrid','on','Ygrid','on');
-          ylabel(handles.Axes(4),'Detrended Baseline'); 
-          xlabel(handles.Axes(4),ttlx);
+          set(sv_axes(2),'XTickLabel',[]);
+          plot(sv_axes(3),dataX,fe(:,5),'r'); 
+          set(sv_axes(3),'XTickLabel',[],'XDir',xdir,'Xgrid','on','Ygrid','on');
+          ylabel(sv_axes(3),'Baseline');
+          plot(sv_axes(4),dataX,detrend(fe(:,5)),'r');
+          set(sv_axes(4),'XDir',xdir,'YAxisLocation','right','Xgrid','on','Ygrid','on');
+          ylabel(sv_axes(4),'Detrended Baseline'); 
+          xlabel(sv_axes(4),ttlx);
     else
-          xlabel(handles.Axes(2),ttlx);
+          xlabel(sv_axes(2),ttlx);
     end
 end

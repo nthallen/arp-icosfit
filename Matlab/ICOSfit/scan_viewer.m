@@ -1,10 +1,8 @@
 function varargout = scan_viewer(varargin)
 % SCAN_VIEWER MATLAB code for scan_viewer.fig
-%      SCAN_VIEWER, by itself, creates a new SCAN_VIEWER or raises the existing
-%      singleton*.
+%      SCAN_VIEWER, by itself, creates a new SCAN_VIEWER
 %
-%      H = SCAN_VIEWER returns the handle to a new SCAN_VIEWER or the handle to
-%      the existing singleton*.
+%      H = SCAN_VIEWER returns the handle to a new SCAN_VIEWER
 %
 %      SCAN_VIEWER('CALLBACK',hObject,eventData,handles,...) calls the local
 %      function named CALLBACK in SCAN_VIEWER.M with the given input arguments.
@@ -21,18 +19,20 @@ function varargout = scan_viewer(varargin)
 %           margin_left min_width margin_right stretch_w ...
 %             margin_top min_height margin_bottom stretch_h
 %        'Name': string to put at top of gui
-%
-%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
-%      instance to run (singleton)".
-%
-% See also: GUIDE, GUIDATA, GUIHANDLES
+%        'Callback': Callback function (cannot be first property!)
+%        'AppData': Data to be stored in handles.data.AppData
+
+% function my_callback(handles, sv_axes)
+% if nargin < 2
+%   sv_axes = handles.Axes;
+% end
 
 % To Do:
 %   Make resize more responsive? (addlistener)
 
 % Edit the above text to modify the response to help scan_viewer
 
-% Last Modified by GUIDE v2.5 27-Nov-2012 13:08:40
+% Last Modified by GUIDE v2.5 28-Nov-2012 13:06:36
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -141,7 +141,6 @@ else
     varargout{1} = handles.output;
 end
 
-% --- Executes when user attempts to close figure.
 function figure_CloseRequestFcn(hObject, ~, ~)
 % hObject    handle to figure (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -151,20 +150,12 @@ function figure_CloseRequestFcn(hObject, ~, ~)
 % set(handles.ViewerGroup,'SelectedObject',handles.Pause);
 delete(hObject);
 
-% --- There is probably a slicker way to do this.
 function Slider_Listener(hObject, eventdata)
 % fprintf(1,'Slider_Listener event\n');
 handles = guidata(hObject);
 Slider_Callback(hObject,eventdata,handles);
 
-% --- Executes on Slider movement.
 function Slider_Callback(~, ~, handles)
-% hObject    handle to Slider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'Value') returns position of Slider
-%        get(hObject,'Min') and get(hObject,'Max') to determine range of Slider
 NewIndex = round(get(handles.Slider,'Value'));
 if handles.data.Index ~= NewIndex
     set(handles.ViewerGroup,'SelectedObject',handles.Pause);
@@ -172,13 +163,7 @@ if handles.data.Index ~= NewIndex
     scan_display(handles);
 end
 
-% --- Executes during object creation, after setting all properties.
 function Slider_CreateFcn(hObject, ~, ~)
-% hObject    handle to Slider (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: Slider controls usually have a light gray background.
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
@@ -240,12 +225,7 @@ end
 % fprintf(1,'Leaving state change\n');
 % guidata(hObject, handles);
 
-% --- Executes during object creation, after setting all properties.
 function CrntScan_CreateFcn(~, ~, ~)
-% hObject    handle to CrntScan (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
 
 function P = Set_Speed(hObject, handle, Pin, Pnew)
 if hObject == handle
@@ -256,11 +236,7 @@ else
     P = Pin;
 end
 
-% --------------------------------------------------------------------
 function Speed_Callback(hObject, ~, handles)
-% hObject    handle to Speed (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 P = get(handles.Speed,'UserData');
 P = Set_Speed(hObject, handles.Spd_1Hz, P, [ 1, 1 ]);
 P = Set_Speed(hObject, handles.Spd_3Hz, P, [ 1/3 1]);
@@ -270,11 +246,7 @@ P = Set_Speed(hObject, handles.Spd_Step_10, P, [0 10]);
 P = Set_Speed(hObject, handles.Spd_Step_100, P, [0 100]);
 set(handles.Speed, 'UserData', P);
 
-% --- Executes when figure is resized.
 function figure_ResizeFcn(~, ~, handles)
-% hObject    handle to figure (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 if isfield(handles,'data') % first invocation comes before open fcn
     FP = get(handles.figure,'Position');
     SP = get(handles.Slider,'Position');
@@ -303,14 +275,18 @@ if isfield(handles,'data') % first invocation comes before open fcn
     drawnow;
 end
 
-% ---- Will increase figure size if necessary
-function Pos = Axes_Positions(handles)
+function Pos = Axes_Positions(handles, fig)
 Axes = handles.data.Axes;
-VGP = get(handles.ViewerGroup,'Position');
-cur_y = VGP(2)+VGP(4);
+if nargin < 2
+    VGP = get(handles.ViewerGroup,'Position');
+    cur_y = VGP(2)+VGP(4);
+    fig = handles.figure;
+else
+    cur_y = 0;
+end
 min_width = sum(sum(Axes(:,1:3)));
 min_height = sum(sum(Axes(:,4:7))) + cur_y;
-FP = get(handles.figure,'Position');
+FP = get(fig,'Position');
 readjust = 0;
 if (FP(3) < min_width)
     FP(3) = min_width;
@@ -323,7 +299,7 @@ if (FP(4) < min_height)
     readjust = 1;
 end
 if readjust
-    set(handles.figure,'Position',FP);
+    set(fig,'Position',FP);
 end
 Pos = zeros(size(Axes,1),4);
 v_stretch_wt = sum(Axes(:,8));
@@ -365,33 +341,43 @@ if handles.data.Index_max >= 1
     drawnow;
 end
 
+function Export_Callback(~, ~, handles)
+if handles.data.Index_max >= 1
+    fig = figure;
+    Pos = Axes_Positions(handles, fig);
+    Axes = zeros(size(Pos,1),1);
+    for j=1:size(Pos,1)
+        Axes(j) = axes('Units','pixels','Position',Pos(j,:));
+    end
+    for j=1:size(Pos,1)
+        set(Axes(j),'Units','normalized');
+    end
+    handles.data.Callback(handles, Axes);
+    for i = 1:length(Axes)
+        if ~isempty(handles.data.xlim{i})
+            set(Axes(i),'xlim',handles.data.xlim{i});
+        end
+        if ~isempty(handles.data.ylim{i})
+            set(Axes(i),'ylim',handles.data.ylim{i});
+        end
+    end
+    addzoom;
+end
 
 % --------------------------------------------------------------------
-function ZoomOn_Callback(hObject, eventdata, handles)
-% hObject    handle to ZoomOn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+function ZoomOn_Callback(~, ~, ~)
 zoom on;
 
 % --------------------------------------------------------------------
-function ZoomOff_Callback(hObject, eventdata, handles)
-% hObject    handle to ZoomOff (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+function ZoomOff_Callback(~, ~, ~)
 zoom off;
 
 % --------------------------------------------------------------------
-function ZoomX_Callback(hObject, eventdata, handles)
-% hObject    handle to ZoomX (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+function ZoomX_Callback(~, ~, ~)
 zoom xon;
 
 % --------------------------------------------------------------------
-function ZoomY_Callback(hObject, eventdata, handles)
-% hObject    handle to ZoomY (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+function ZoomY_Callback(~, ~, ~)
 zoom yon;
 
 function Zoom_PreCallback(hObject, ~)

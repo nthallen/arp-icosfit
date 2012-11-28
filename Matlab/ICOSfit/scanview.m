@@ -17,18 +17,21 @@ Axes = [
 scan_viewer('Scans', scans, 'Axes', Axes, 'Name', 'Scan View', ...
     'Callback', @scanview_callback, 'AppData', AppData);
 
-function scanview_callback(handles)
+function scanview_callback(handles, sv_axes)
+if nargin < 2
+    sv_axes = handles.Axes;
+end
 scan = handles.data.Scans(handles.data.Index);
 path = mlf_path( handles.data.AppData.base, scan, '.dat');
 fe = loadbin( path );
-data_ok = (length(fe)>0);
+data_ok = (~isempty(fe));
 if data_ok
     nsamples = size(fe,1);
-    plot(handles.Axes(1),[1:nsamples],fe(:,1));
-    set(handles.Axes(1),'xticklabel',[]);
-    title(handles.Axes(1),sprintf('Scan %d: %s', scan, getrun ));
+    plot(sv_axes(1),[1:nsamples],fe(:,1));
+    set(sv_axes(1),'xticklabel',[]);
+    title(sv_axes(1),sprintf('Scan %d: %s', scan, getrun ));
 
-    plot(handles.Axes(2), [1:nsamples], fe(:,2));
-    set(handles.Axes(2),'YAxisLocation','right');
-    xlabel(handles.Axes(2),'Samples');
+    plot(sv_axes(2), [1:nsamples], fe(:,2));
+    set(sv_axes(2),'YAxisLocation','right');
+    xlabel(sv_axes(2),'Samples');
 end
