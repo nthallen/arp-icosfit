@@ -22,10 +22,10 @@ function varargout = edit_cell_cfg(varargin)
 
 % Edit the above text to modify the response to help edit_cell_cfg
 
-% Last Modified by GUIDE v2.5 27-Nov-2012 14:03:08
+% Last Modified by GUIDE v2.5 28-Nov-2012 10:01:10
 
 % Begin initialization code - DO NOT EDIT
-gui_Singleton = 1;
+gui_Singleton = 0;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
                    'gui_OpeningFcn', @edit_cell_cfg_OpeningFcn, ...
@@ -267,4 +267,3 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 
 % Hint: delete(hObject) closes the figure
 uiresume(handles.figure1);
-

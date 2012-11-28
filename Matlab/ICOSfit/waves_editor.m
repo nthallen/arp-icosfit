@@ -39,7 +39,7 @@ function varargout = waves_editor(varargin)
 
 % Edit the above text to modify the response to help waves_editor
 
-% Last Modified by GUIDE v2.5 27-Nov-2012 16:05:00
+% Last Modified by GUIDE v2.5 28-Nov-2012 10:39:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -62,7 +62,7 @@ end
 
 
 % --- Executes just before waves_editor is made visible.
-function waves_editor_OpeningFcn(hObject, eventdata, handles, varargin)
+function waves_editor_OpeningFcn(hObject, ~, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -72,7 +72,6 @@ function waves_editor_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for waves_editor
 handles.output = hObject;
 
-% Check for 'data' property
 handles.data.index = 1;
 handles.data.rawdata = [];
 handles.data.qclicomp = 0;
@@ -94,30 +93,7 @@ for i=1:2:length(varargin)-1
   end
 end
 
-% Load waves.m if it exists, and initialize handles and waves_menu
 handles.data.WaveSpecs = load_waves;
-% if exist(ICOSfit,'file') == 2
-%   waves;
-%   handles.data.WaveSpecs = load_waves;
-% else
-%   if handles.data.qclicomp
-%     error('Unable to locate waves.m');
-%   end
-%   handles.data.WaveSpecs = struct( ...
-%     'Name', { 'Basic' }, ...
-%     'RawRate', { 100000 }, ...
-%     'RawSamples', { 1000 }, ...
-%     'NetSamples', { 1000 }, ...
-%     'NAverage', { 1 }, ...
-%     'NCoadd', { 10 }, ...
-%     'FTrigger', { 100 }, ...
-%     'ISICOS', { 1 }, ...
-%     'TzSamples', { 350 }, ...
-%     'dIdt', { 30 }, ...
-%     'I0', { 0.64 } ...
-%     );
-%   handles.data.index = 1;
-% end
 handles.data.xwvs = {};
 if handles.data.qclicomp
   bgcolor = get(handles.uipanel1,'BackgroundColor');
@@ -132,20 +108,24 @@ if handles.data.qclicomp
   set(handles.FTrigger,'enable','off','BackgroundColor',bgcolor);
   set(handles.TzSamples,'enable','off','BackgroundColor',bgcolor);
 end
-
-% Update handles structure
+S{1} = pwd;
+cd ..
+S{2} = pwd;
+cd ..
+S{3} = pwd;
+cd(S{1});
+set(handles.SaveDir, 'String', S, 'value', 1);
 guidata(hObject, handles);
 
 % Call the function that updates all of the parameters on the screen
 setup_waveform(hObject, handles );
-
 
 % UIWAIT makes waves_editor wait for user response (see UIRESUME)
 uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = waves_editor_OutputFcn(hObject, eventdata, handles) 
+function varargout = waves_editor_OutputFcn(~, ~, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -153,12 +133,11 @@ function varargout = waves_editor_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.data.index;
-
 % The figure can be deleted now
 delete(handles.figure1);
 
 % --- Executes when user attempts to close figure1.
-function waves_editor_CloseRequestFcn(hObject, eventdata, handles)
+function waves_editor_CloseRequestFcn(~, ~, handles)
 % hObject    handle to figure1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -170,40 +149,20 @@ else
     delete(handles.figure1);
 end
 
-
-% --- Executes on selection change in waves_menu.
-function waves_menu_Callback(hObject, eventdata, handles)
-% hObject    handle to waves_menu (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = get(hObject,'String') returns waves_menu contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from waves_menu
+function waves_menu_Callback(hObject, ~, handles)
 index = get(hObject,'Value');
 handles.data.index = index;
 guidata(hObject,handles);
 setup_waveform(hObject, handles);
 
-% --- Executes during object creation, after setting all properties.
-function waves_menu_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to waves_menu (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+function waves_menu_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
-
-% --- Executes on button press in New_Wave_Btn.
-function New_Wave_Btn_Callback(hObject, eventdata, handles)
-% hObject    handle to New_Wave_Btn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+function New_Wave_Btn_Callback(hObject, ~, handles)
 newname = inputdlg('New Waveform Name:', 'New Waveform');
-if length(newname) && length(newname{1})
+if ~isempty(newname) && ~isempty(newname{1})
   if any(strcmp(newname{1},{handles.data.WaveSpecs.Name}))
     errordlg(sprintf('A waveform named %s already exists', newname{1}));
   else
@@ -223,195 +182,42 @@ if length(newname) && length(newname{1})
   end
 end
 
-
-function RawRate_Callback(hObject, eventdata, handles)
-% hObject    handle to RawRate (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of RawRate as text
-%        str2double(get(hObject,'String')) returns contents of RawRate as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function RawRate_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to RawRate (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+function RawRate_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
-
-
-function RawSamples_Callback(hObject, eventdata, handles)
-% hObject    handle to RawSamples (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of RawSamples as text
-%        str2double(get(hObject,'String')) returns contents of RawSamples as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function RawSamples_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to RawSamples (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+function RawSamples_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
-
-
-function NAverage_Callback(hObject, eventdata, handles)
-% hObject    handle to NAverage (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of NAverage as text
-%        str2double(get(hObject,'String')) returns contents of NAverage as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function NAverage_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to NAverage (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+function NAverage_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
-
-
-function NCoadd_Callback(hObject, eventdata, handles)
-% hObject    handle to NCoadd (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of NCoadd as text
-%        str2double(get(hObject,'String')) returns contents of NCoadd as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function NCoadd_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to NCoadd (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+function NCoadd_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
-
-
-function FTrigger_Callback(hObject, eventdata, handles)
-% hObject    handle to FTrigger (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of FTrigger as text
-%        str2double(get(hObject,'String')) returns contents of FTrigger as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function FTrigger_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to FTrigger (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+function FTrigger_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
-
-
-function TzSamples_Callback(hObject, eventdata, handles)
-% hObject    handle to TzSamples (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of TzSamples as text
-%        str2double(get(hObject,'String')) returns contents of TzSamples as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function TzSamples_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to TzSamples (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+function TzSamples_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
-
-
-function edit7_Callback(hObject, eventdata, handles)
-% hObject    handle to edit7 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit7 as text
-%        str2double(get(hObject,'String')) returns contents of edit7 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit7_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit7 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+function NetSamples_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
-
-
-function NetSamples_Callback(hObject, eventdata, handles)
-% hObject    handle to NetSamples (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of NetSamples as text
-%        str2double(get(hObject,'String')) returns contents of NetSamples as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function NetSamples_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to NetSamples (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on button press in Save_Btn.
-function Save_Btn_Callback(hObject, eventdata, handles)
-% hObject    handle to Save_Btn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+function Save_Btn_Callback(~, ~, handles)
 WaveSpecs = handles.data.WaveSpecs;
 if ~handles.data.qclicomp
   save waves.mat WaveSpecs;
@@ -420,142 +226,41 @@ if ~handles.data.qclicomp
   fclose(fid);
 end
 % Still need to do the <wave>_etln.mat file
+SaveDirs = get(handles.SaveDir,'String');
+SaveDir = SaveDirs{get(handles.SaveDir,'value')};
 for index=1:length(WaveSpecs)
-  if index <= length(handles.data.xwvs) && length(handles.data.xwvs{index})
-    update_etln_file(WaveSpecs(index).Name, handles.data.xwvs{index});
+  if index <= length(handles.data.xwvs) && ~isempty(handles.data.xwvs{index})
+    update_etln_file(SaveDir, WaveSpecs(index).Name, handles.data.xwvs{index});
   end
 end
 uiresume(handles.figure1);
 
 % --- Executes on button press in Cancel_Btn.
-function Cancel_Btn_Callback(hObject, eventdata, handles)
-% hObject    handle to Cancel_Btn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+function Cancel_Btn_Callback(~, ~, handles)
 uiresume(handles.figure1);
 
-
-function SignalStart_Callback(hObject, eventdata, handles)
-% hObject    handle to SignalStart (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of SignalStart as text
-%        str2double(get(hObject,'String')) returns contents of SignalStart as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function SignalStart_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to SignalStart (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+function SignalStart_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
-
-
-function SignalEnd_Callback(hObject, eventdata, handles)
-% hObject    handle to SignalEnd (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of SignalEnd as text
-%        str2double(get(hObject,'String')) returns contents of SignalEnd as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function SignalEnd_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to SignalEnd (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+function SignalEnd_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
+% Unimplemented Feature
+function Pick_Tz_Callback(~, ~, ~)
 
-% --- Executes on button press in Pick_Tz.
-function Pick_Tz_Callback(hObject, eventdata, handles)
-% hObject    handle to Pick_Tz (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+% Unimplemented Feature
+function Pick_SR_Callback(~, ~, ~)
 
-
-% --- Executes on button press in Pick_SR.
-function Pick_SR_Callback(hObject, eventdata, handles)
-% hObject    handle to Pick_SR (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-function NScans_Callback(hObject, eventdata, handles)
-% hObject    handle to NScans (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of NScans as text
-%        str2double(get(hObject,'String')) returns contents of NScans as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function NScans_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to NScans (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+function NScans_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
-
-
-function edit12_Callback(hObject, eventdata, handles)
-% hObject    handle to edit12 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit12 as text
-%        str2double(get(hObject,'String')) returns contents of edit12 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit12_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit12 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function InputSamples_Callback(hObject, eventdata, handles)
-% hObject    handle to InputSamples (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of InputSamples as text
-%        str2double(get(hObject,'String')) returns contents of InputSamples as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function InputSamples_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to InputSamples (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+function InputSamples_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
@@ -564,23 +269,16 @@ function setup_waveform(hObject, handles )
 index = handles.data.index;
 set(handles.waves_menu,'String',{handles.data.WaveSpecs.Name},'value',index);
 wv = handles.data.WaveSpecs(index);
-if index <= length(handles.data.xwvs) && length(handles.data.xwvs{index})
+if index <= length(handles.data.xwvs) && ~isempty(handles.data.xwvs{index})
   xwv = handles.data.xwvs{handles.data.index};
 else
   xwv = get_waveform_params( wv.Name, 'TriggerDelay', 0, ...
     'holdoff', 4e-4, 'CurRamp', 1 );
-  %   fname = findinpath( [ wv.Name '_etln.mat' ], { '.', '..', '../..' } );
-  %   if length(fname)
-  %     xwv = load(fname);
-  %   else
-  %     xwv = struct('TriggerDelay',0);
-  %   end
 end
 if isfield(xwv,'SignalRegion')
   startsample = min(xwv.SignalRegion);
   endsample = max(xwv.SignalRegion);
 else
-  % xwv.holdoff = 4e-4;
   startsample = round(wv.TzSamples + xwv.holdoff*round(wv.RawRate/wv.NAverage));
   endsample = wv.NetSamples - wv.TzSamples - 1;
   xwv.SignalRegion = startsample:endsample;
@@ -589,10 +287,6 @@ if ~isfield(xwv,'LineMargin')
     xwv.LineMargin = 0.05;
     xwv.LineMarginMultiplier = 8;
 end
-% if ~isfield(xwv,'TriggerDelay')
-%   xwv.TriggerDelay = 0;
-% end
-% if isfield(xwv,'RampRegions' ) && isfield(xwv, 'CurRamp' )
 if isfield(xwv,'RampRegions' )
   n_ramps = size(xwv.RampRegions,1);
   if xwv.CurRamp < 1 || xwv.CurRamp > n_ramps
@@ -651,41 +345,23 @@ if nraw
   else
     E = D;
   end
+  % Need to use axes because fill() uses gca
   axes(handles.axes1);
-  plot(E);
-  yl = ylim;
+  plot(handles.axes1,E);
+  yl = ylim(handles.axes1);
   tz = wv.TzSamples;
   ys = [yl(1) yl(2) yl(2) yl(1)];
   h = fill([1 1 tz tz],ys,[.8 .8 1]);
   % set(h,'LineStyle','none');
-  hold on;
+  hold(handles.axes1,'on');
   h = fill([startsample startsample endsample endsample],ys,[.8 1 .8]);
   % set(h,'LineStyle','none');
-  plot(E);
-  hold off;
+  plot(handles.axes1,E);
+  hold(handles.axes1,'off');
   %set(handles.axes1,'layer','top');
 end
 
-% --- Executes during object creation, after setting all properties.
-function edit13_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit13 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-
-% --- Executes on button press in Apply_Btn.
-function Apply_Btn_Callback(hObject, eventdata, handles)
-% hObject    handle to Apply_Btn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+function Apply_Btn_Callback(hObject, ~, handles)
 index = str2num(get(handles.index,'String'))+1;
 wv = handles.data.WaveSpecs(index);
 wv.RawRate = str2num(get(handles.RawRate,'String'));
@@ -711,22 +387,10 @@ handles.data.xwvs{index} = xwv;
 guidata(hObject, handles);
 setup_waveform(hObject, handles);
 
-function update_etln_file( waveform, xwv )
-save([waveform '_etln.mat'], '-struct', 'xwv' );
+function update_etln_file( savedir, waveform, xwv )
+save([savedir filesep waveform '_etln.mat'], '-struct', 'xwv' );
 
-function Holdoff_CreateFcn(hObject, eventdata, handles)
-return;
-
-function Holdoff_Callback(hObject, eventdata, handles)
-return;
-
-
-
-% --- Executes on button press in AddRamp.
-function AddRamp_Callback(hObject, eventdata, handles)
-% hObject    handle to AddRamp (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+function AddRamp_Callback(hObject, ~, handles)
 index = str2num(get(handles.index,'String'))+1;
 xwv = handles.data.xwvs{index};
 if ~isfield(xwv, 'RampRegions')
@@ -740,14 +404,7 @@ handles.data.xwvs{index} = xwv;
 guidata(hObject, handles);
 setup_waveform( hObject, handles );
 
-% --- Executes on selection change in CurRamp.
-function CurRamp_Callback(hObject, eventdata, handles)
-% hObject    handle to CurRamp (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = get(hObject,'String') returns CurRamp contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from CurRamp
+function CurRamp_Callback(hObject, ~, handles)
 index = str2num(get(handles.index,'String'))+1;
 xwv = handles.data.xwvs{index};
 n_ramps = size(xwv.RampRegions,1);
@@ -763,61 +420,22 @@ else
   setup_waveform( hObject, handles );
 end
 
-
-% --- Executes during object creation, after setting all properties.
-function CurRamp_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to CurRamp (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+function CurRamp_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
-
-
-function LineMargin_Callback(hObject, eventdata, handles)
-% hObject    handle to LineMargin (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of LineMargin as text
-%        str2double(get(hObject,'String')) returns contents of LineMargin as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function LineMargin_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to LineMargin (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+function LineMargin_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
 
+function LineMarginMultiplier_CreateFcn(hObject, ~, ~)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 
-
-function LineMarginMultiplier_Callback(hObject, eventdata, handles)
-% hObject    handle to LineMarginMultiplier (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of LineMarginMultiplier as text
-%        str2double(get(hObject,'String')) returns contents of LineMarginMultiplier as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function LineMarginMultiplier_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to LineMarginMultiplier (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+function SaveDir_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
