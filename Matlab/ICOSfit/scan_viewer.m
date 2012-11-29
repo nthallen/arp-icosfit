@@ -17,7 +17,8 @@ function varargout = scan_viewer(varargin)
 %        'Scans': list of scan numbers, nominally increasing.
 %        'Axes': array of axes parameters, one row per axis
 %           margin_left min_width margin_right stretch_w ...
-%             margin_top min_height margin_bottom stretch_h
+%             margin_top min_height margin_bottom stretch_h ...
+%             x_group
 %        'Name': string to put at top of gui
 %        'Callback': Callback function (cannot be first property!)
 %        'AppData': Data to be stored in handles.data.AppData
@@ -82,7 +83,7 @@ for i=1:2:length(varargin)-1
       set(handles.figure,'Name',varargin{i+1});
   elseif strcmpi(varargin{i},'Axes')
       handles.data.Axes = varargin{i+1};
-      if size(handles.data.Axes,2) ~= 8
+      if size(handles.data.Axes,2) ~= 9
           errordlg('Axes property has wrong dimensions');
           close(handles.figure);
           return;
@@ -412,7 +413,6 @@ set(handles.ViewerGroup,'SelectedObject',handles.data.SavedPreZoomState);
 motion = get(handles.Zoom,'Motion');
 axes_idx = find(handles.Axes == eventdata.Axes);
 xlim = [];
-ylim = [];
 if strcmpi(motion,'horizontal')
     xlim = get(eventdata.Axes,'xlim');
     handles.data.xlim{axes_idx} = xlim;
@@ -428,8 +428,9 @@ else
     errordlg(sprintf('Unexpected motion: "%s"', motion));
 end
 if ~isempty(xlim)
+    x_group = handles.data.Axes(axes_idx,9);
     for i = 1:length(handles.Axes)
-        if i ~= axes_idx
+        if i ~= axes_idx && handles.data.Axes(i,9) == x_group
             set(handles.Axes(i),'xlim',xlim);
             handles.data.xlim{i} = xlim;
         end

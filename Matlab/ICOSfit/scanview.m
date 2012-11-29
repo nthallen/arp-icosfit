@@ -11,8 +11,8 @@ end
 AppData.base = find_scans_dir(base);
 
 Axes = [
-    60    45    60     1    20    30     0     1
-    60    45    60     1     0    30    60     1
+    60    45    60     1    20    30     0     1    0
+    60    45    60     1     0    30    60     1    0
     ];
 scan_viewer('Scans', scans, 'Axes', Axes, 'Name', 'Scan View', ...
     'Callback', @scanview_callback, 'AppData', AppData);

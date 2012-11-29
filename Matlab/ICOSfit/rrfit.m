@@ -35,14 +35,14 @@ AppData.Nfit = Nfit;
 AppData.Ged = Ged;
 AppData.v = v;
 AppData.Axes_A = [
-    60    45    60     1    20    15     0     .5
-    60    45    60     1     0    45    60     1
+    60    45    60     1    20    15     0     .5   0
+    60    45    60     1     0    45    60     1    0
     ];
 AppData.Axes_B = [
-    60    45    60     1    20    15     0     .5
-    60    45    60     1     0    45     0     1
-    60    45    60     1     0    30     0     .5
-    60    45    60     1     0    30    60     .5
+    60    45    60     1    20    15     0     .5    0
+    60    45    60     1     0    45     0     1     0
+    60    45    60     1     0    30     0     .5    0
+    60    45    60     1     0    30    60     .5    0
     ];
 scan_viewer('Scans', scans, 'Axes', AppData.Axes_A, 'Name', 'rrfit Viewer', ...
     'Callback', @rrfitview_callback, 'AppData', AppData);
