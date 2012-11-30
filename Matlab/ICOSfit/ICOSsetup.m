@@ -13,16 +13,16 @@
 % Gvcalc          by_molecule     n_cols
 %%%%%
 % v identifies the columns of fitdata corresponding to each line
-if ~exist( 'base', 'var') | length(base) == 0
+if ~exist( 'base', 'var') || isempty(base)
   base = 'ICOSout';
 end
 
 ICOS_debug = 0;
 
 save_base = base;
-if exist( [ base '/ICOSsum.dat' ] )
+if exist( [ base '/ICOSsum.dat' ], 'file' )
   fitdata = load( [ base '/ICOSsum.dat' ] );
-elseif exist( [ base '/ICOSsum.out' ] )
+elseif exist( [ base '/ICOSsum.out' ], 'file' )
   fitdata = load( [ base '/ICOSsum.out' ] );
   ICOS_debug = 1;
   base = [ base '/../../..' ];
@@ -109,7 +109,7 @@ end
 base = save_base;
 clear save_base;
 
-v = ([1:n_lines]-1)*(n_line_params+n_abs_line_params) + ...
+v = ((1:n_lines)-1)*(n_line_params+n_abs_line_params) + ...
   n_input_params + n_base_params + n_abs_params + n_abs_line_params + 1;
 row = ones(1,length(v));
 col = ones( size(fitdata,1), 1 );
@@ -129,10 +129,10 @@ En = lines(:,6)'; % Lower state energy in cm-1
 Gair = lines(:,5)'; % air-broadend halfwidth at Tref, Pref
 nu = lines(:,3)';
 delta = lines(:,8)';
-nu_P = col*nu + col*delta.*P/760.; % pressure-corrected line positions
+nu_P = col*nu + (col*delta).*(1 - P/760.); % pressure-corrected line positions
 iso = (lines(:,1)*10 + lines(:,2))';
 nu_text = {};
-if exist('by_molecule','var') & by_molecule > 0
+if exist('by_molecule','var') && by_molecule > 0
   names = isovals(iso,'name');
   for i=1:n_lines
     nu_text{i} = sprintf('%d: %.4f %s',i, nu(i),names{i});
@@ -154,7 +154,7 @@ StimEmis = (1-exp(-Cfact*(col*nu)./T))./(1-exp(-Cfact*(col*nu)/T0));
 % StimEmis = 1;
 Qfact = (T0./T).^1.5;
 Scorr = (col*S0) .* Qfact .* Boltzfact .* StimEmis; % correct line strength
-if length(iso) == 0
+if isempty(iso)
   molwts = zeros(size(iso));
 else
   molwts = isovals(iso,'weight')';

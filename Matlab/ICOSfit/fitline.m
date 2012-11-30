@@ -569,7 +569,7 @@ if nargin < 4
   cursuff = lo.Suffix;
 end
 val = find(strcmp(files,cursuff));
-if length(val) == 0
+if isempty(val)
   errordlg('cursuff not found. Using no suffix');
   cursuff = '';
   lo.Suffix = cursuff;
