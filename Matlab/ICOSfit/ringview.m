@@ -3,6 +3,7 @@ function ringview( scannum, wavenum )
 % Reviews ringdown data.
 PT = load('PT');
 Waves = load_waves;
+cell_cfg=load_cell_cfg;
 v = find(diff(PT.ScanNum))+1; % index of new ScanNum values
 if nargin < 1
   scannum = [];
@@ -54,6 +55,7 @@ AppData.scannum = scannum;
 AppData.n_currents = Waves(wavenum+1).RawSamples;
 AppData.RawRate = Waves(wavenum+1).RawRate;
 AppData.common_n = 0;
+AppData.CavityLength=cell_cfg.CavityLength;
 % if n_currents > 1
 %   figno = figure;
 % else
@@ -65,7 +67,7 @@ AppData.idx = idx;
 AppData.wavenum = wavenum;
 AppData.Axes = [
     60    45    60     1    20    15    35     .5   0
-    60    45    60     1     0    45    50     1    0
+    60    45    60     1     0    45    50     1    1
     ];
 
 scan_viewer('Scans', scannum, 'Axes', AppData.Axes, 'Name', 'Ringdown Viewer', ...
@@ -103,8 +105,8 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
           xdata=1/AppData.Waves.RawRate*AppData.Waves.NAverage*[1:length(fe(:,1))];
           xdata=xdata-xdata(100);
             dt =  mean(diff(xdata));
-            n = 1;
-            skip = 105; %number of points to skip
+            n = 5;
+            skip = 110; %number of points to skip
             %fitv = [(skip+1):length(fe(:,1))]';
             fitv = [(skip+1):1000]';  %points to include in fit
         if isnan(AppData.taus(1).Tau(iscan))
@@ -141,11 +143,11 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
         xlabel(sv_axes(1),'Scan Number')
         ylabel(sv_axes(1),'Tau (\musec)')
         title(sv_axes(1),getrun)
-        text(mean(xlim(sv_axes(1))),mean([max(ylim(sv_axes(1))),nanmean(AppData.taus(1).Tau*1e6)]), ...
-            sprintf('Tau_{auto} = %.2f \\musec',nanmean(AppData.taus(1).Tau)*1e6), ...
+        text(mean(xlim(sv_axes(1))),mean([max(ylim(sv_axes(1))),nanmedian(AppData.taus(1).Tau*1e6)]), ...
+            sprintf('Tau_{auto} = %.2f \\musec (R = %.1f ppm)',nanmedian(AppData.taus(1).Tau)*1e6,AppData.CavityLength/nanmedian(AppData.taus(1).Tau)/3e10*1e6), ...
             'Parent',sv_axes(1),'Color','b');
-        text(mean(xlim(sv_axes(1))),mean([min(ylim(sv_axes(1))),nanmean(AppData.taus(2).Tau*1e6)]), ...
-            sprintf('Tau_{auto} = %.2f \\musec',nanmean(AppData.taus(2).Tau)*1e6), ...
+        text(mean(xlim(sv_axes(1))),mean([min(ylim(sv_axes(1))),nanmedian(AppData.taus(2).Tau*1e6)]), ...
+            sprintf('Tau_{nonlin} = %.2f \\musec (R = %.1f ppm)',nanmedian(AppData.taus(2).Tau)*1e6,AppData.CavityLength/nanmedian(AppData.taus(2).Tau)/3e10*1e6), ...
             'Parent',sv_axes(1),'Color','g');
         
         
