@@ -16,7 +16,6 @@ else
   scannum = scannum(scannum > 0 & scannum >= min(PT.ScanNum) & ...
     scannum <= max(PT.ScanNum));
 end
-base = '';
 % Now locate each specified scannum as an index into v, the
 % unique PT.ScanNum entry indexes
 idx = v(ceil(interp1( PT.ScanNum(v), [1:length(v)], scannum )));
@@ -52,16 +51,7 @@ AppData.base = find_scans_dir('');
 AppData.binary = 1;
 if size(scannum,1) > 1; scannum = scannum'; end
 AppData.scannum = scannum;
-AppData.n_currents = Waves(wavenum+1).RawSamples;
-AppData.RawRate = Waves(wavenum+1).RawRate;
-AppData.common_n = 0;
 AppData.CavityLength=cell_cfg.CavityLength;
-% if n_currents > 1
-%   figno = figure;
-% else
-%   figno = 0;
-% end
-  
 AppData.QCLI_Wave = PT.QCLI_Wave;
 AppData.idx = idx;
 AppData.wavenum = wavenum;
@@ -78,6 +68,20 @@ if nargin < 2
     sv_axes = handles.Axes;
 end
 AppData = handles.data.AppData;
+if ~isfield(AppData,'menus')
+    top_menu = uimenu(handles.figure,'Tag','ringview','Label','ringview');
+    cb = @ringview_menu_callback;
+    AppData.menus.Fit = uimenu(top_menu,'Tag','fitmenu','Label','Fit Menu');
+    AppData.menus.Fit_nonlin = uimenu(AppData.menus.Fit,'Tag','nonlin','Label','Non-linear lsq','Callback',cb);
+    AppData.menus.Fit_auto = uimenu(AppData.menus.Fit,'Tag','auto','Label','Autocorrelation','Callback',cb);
+    AppData.menus.Fit_both = uimenu(AppData.menus.Fit,'Tag','both','Label','Both','Checked','on','Callback',cb);
+    AppData.menus.Tau = uimenu(top_menu,'Tag','taumenu','Label','Tau Display');
+    AppData.menus.Tau_current = uimenu(AppData.menus.Tau,'Tag','Tau_current','Label','Current','Callback',cb);
+    AppData.menus.Tau_sample = uimenu(AppData.menus.Tau,'Tag','Tau_sample','Label','Sample','Checked','on','Callback',cb);
+    AppData.menus.Select = uimenu(top_menu,'Tag','Select','Label','Select Baseline','Callback',cb);
+    handles.data.AppData = AppData;
+    guidata(handles.figure,handles);
+end
 scan = handles.data.Scans(handles.data.Index); %scan number
 iscan = find(AppData.scannum == scan); %index for scan into scannum and idx
 if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
@@ -93,22 +97,20 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
       end
     end
     if data_ok
-      nsamples = size(fe,1);
-      if nsamples ~= AppData.n_currents
-        error('nsample ~= n_currents');
-      end
       v = find(~isnan(fe(:,1)));
       if ~isempty(v)
-        if AppData.common_n == 0
-          AppData.common_n = fe(v(1),1);
-        end
-          xdata=1/AppData.Waves.RawRate*AppData.Waves.NAverage*[1:length(fe(:,1))];
-          xdata=xdata-xdata(100);
+            xdata=1/AppData.Waves.RawRate*AppData.Waves.NAverage*[1:length(fe(:,1))];
             dt =  mean(diff(xdata));
             n = 5;
-            skip = 110; %number of points to skip
-            %fitv = [(skip+1):length(fe(:,1))]';
-            fitv = [(skip+1):1000]';  %points to include in fit
+            delay = 3.3e-6; %Delay in seconds of the VtoI/electronics
+            skip = ceil(AppData.Waves.TzSamples + delay*AppData.Waves.RawRate); %number of points to skip
+            xdata=xdata-xdata(skip);  
+            if size(fe,1) > skip+1000
+                fitv = [skip:1000]';  %points to include in fit
+            else
+                fitv = [skip:length(fe(:,1))]';
+            end
+            
         if isnan(AppData.taus(1).Tau(iscan))
             %Do linear auto-correlation fit:
             V = fitlin(fe(fitv,1), n);
@@ -138,17 +140,18 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
             handles.data.AppData = AppData;
             guidata(handles.figure,handles)
         end
+        
         plot(sv_axes(1),AppData.scannum,AppData.taus(1).Tau*1e6,'.b',AppData.scannum,AppData.taus(2).Tau*1e6,'.g')
         %set(sv_axes(1),'YAxisLocation','right')
         xlabel(sv_axes(1),'Scan Number')
         ylabel(sv_axes(1),'Tau (\musec)')
         title(sv_axes(1),getrun)
-        text(mean(xlim(sv_axes(1))),mean([max(ylim(sv_axes(1))),nanmedian(AppData.taus(1).Tau*1e6)]), ...
-            sprintf('Tau_{auto} = %.2f \\musec (R = %.1f ppm)',nanmedian(AppData.taus(1).Tau)*1e6,AppData.CavityLength/nanmedian(AppData.taus(1).Tau)/3e10*1e6), ...
-            'Parent',sv_axes(1),'Color','b');
-        text(mean(xlim(sv_axes(1))),mean([min(ylim(sv_axes(1))),nanmedian(AppData.taus(2).Tau*1e6)]), ...
-            sprintf('Tau_{nonlin} = %.2f \\musec (R = %.1f ppm)',nanmedian(AppData.taus(2).Tau)*1e6,AppData.CavityLength/nanmedian(AppData.taus(2).Tau)/3e10*1e6), ...
-            'Parent',sv_axes(1),'Color','g');
+        text(0.02,0.98, ...
+            sprintf('Tau_{auto} = %.2f \\musec (R = %.1f ppm)',nanmedian(AppData.taus(1).Tau)*1e6,AppData.CavityLength/nanmedian(AppData.taus(1).Tau)/2.998e10*1e6), ...
+            'Parent',sv_axes(1),'Color','b','Units','Normalized','VerticalAlignment','top');
+        text(0.98,0.98, ...
+            sprintf('Tau_{nonlin} = %.2f \\musec (R = %.1f ppm)',nanmedian(AppData.taus(2).Tau)*1e6,AppData.CavityLength/nanmedian(AppData.taus(2).Tau)/2.998e10*1e6), ...
+            'Parent',sv_axes(1),'Color','g','Units','Normalized','VerticalAlignment','top','HorizontalAlignment','right');
         
         
         plot(sv_axes(2),xdata*1e6,fe(:,1),'k', ...
@@ -157,18 +160,76 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
             xdata(fitv)*1e6,AppData.taus(2).Fit(:,iscan),'g');
         xlabel(sv_axes(2),'\musec');
         ylabel(sv_axes(2),'Power');
-        text(mean(xlim(sv_axes(2))),max(ylim(sv_axes(2)))-4e3, ...
+        text(0.5,0.95, ...
             sprintf('Ringdown Scan: %d\n\nTau_{auto} = %.2f \\musec (std = %.2f)\nTau_{nonlin} = %.2f \\musec (std = %.2f)', ...
             AppData.scannum(iscan), ...
             AppData.taus(1).Tau(iscan)*1e6,AppData.taus(1).Std(iscan), ...
             AppData.taus(2).Tau(iscan)*1e6,AppData.taus(2).Std(iscan) ), ...
-            'Parent',sv_axes(2));
+            'Parent',sv_axes(2),'Units','Normalized','VerticalAlignment','top','HorizontalAlignment','left');
       end
     end
     
   end
 
-
+function ringview_menu_callback(hObject,eventdata)
+handles = guidata(hObject);
+AppData = handles.data.AppData;
+Tag = get(hObject,'Tag');
+switch Tag(1)
+    case 'Y'
+        sig = 'off';
+        trans = 'off';
+        stren = 'off';
+        switch hObject
+            case AppData.menus.Y_signal
+                sig = 'on';
+                handles.data.AppData.Yopt = 0;
+            case AppData.menus.Y_transmission
+                trans = 'on';
+                handles.data.AppData.Yopt = 1;
+            case AppData.menus.Y_strength
+                stren = 'on';
+                handles.data.AppData.Yopt = 2;
+        end
+        set(AppData.menus.Y_signal,'checked',sig);
+        set(AppData.menus.Y_transmission,'checked',trans);
+        set(AppData.menus.Y_strength,'checked',stren);
+        handles.data.ylim{2} = [];
+        guidata(hObject,handles);
+        scan_viewer('scan_display',handles);
+    case 'X'
+        wvno = 'off';
+        samp = 'off';
+        switch hObject
+            case AppData.menus.X_wavenumber
+                wvno = 'on';
+                handles.data.AppData.Xopt = 0;
+            case AppData.menus.X_sample
+                samp = 'on';
+                handles.data.AppData.Xopt = 1;
+        end
+        for i = 1:length(handles.data.xlim)
+            handles.data.xlim{i} = [];
+        end
+        set(AppData.menus.X_wavenumber,'checked',wvno);
+        set(AppData.menus.X_sample,'checked',samp);
+        guidata(hObject,handles);
+        scan_viewer('scan_display',handles);
+    case 'B'
+        if strcmp(get(AppData.menus.Baselines,'checked'),'on')
+            set(AppData.menus.Baselines,'checked','off');
+            handles.data.AppData.plotbase = 0;
+            handles.data.Axes = AppData.Axes_A;
+        else
+            set(AppData.menus.Baselines,'checked','on');
+            handles.data.AppData.plotbase = 1;
+            handles.data.Axes = AppData.Axes_B;
+        end
+        guidata(hObject,handles);
+        scan_viewer('figure_ResizeFcn',hObject,eventdata,handles);
+        handles = guidata(hObject);
+        scan_viewer('scan_display',handles);
+end
 % if any(nbinned > 0)
 %   ringbins = ringbins./nbinned;
 %   taubin = (1e6/RawRate) * common_n ./ log(ringbins);
