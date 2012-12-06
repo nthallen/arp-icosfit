@@ -1,4 +1,4 @@
-function rrfit( base, range );
+function rrfit( base, range )
 % rrfit( base, [,scans]);
 % Display fitted scan, optionally limited to a range
 % of Scan values.
@@ -13,7 +13,7 @@ else
   if size(range,2) > 1
     range = range';
   end
-  rows = unique(interp1( scannum, [1:length(scannum)]', range, 'nearest' ));
+  rows = unique(interp1( scannum, (1:length(scannum))', range, 'nearest' ));
   rows = rows(isfinite(rows));
   scans = scannum(rows);
 end
@@ -79,7 +79,7 @@ if data_ok
       lpos = lpos + AppData.nu_F0(i);
     end
     lgd = AppData.fitdata(i,AppData.v+1);
-    lst = AppData.Scorr.*AppData.CavLen.*AppData.Nfit./(AppData.Ged*sqrt(pi));
+    % lst = AppData.Scorr.*AppData.CavLen.*AppData.Nfit./(AppData.Ged*sqrt(pi));
     lgl = AppData.fitdata(i,AppData.v+3);
     lwid = (lgd+lgl); % fitdata(i,v+1)+fitdata(i,v+3);
      if AppData.Xopt == 0
@@ -97,7 +97,7 @@ if data_ok
     dataX = nux;
     resX = nux;
     if AppData.Yopt == 0
-        dataY = fe(:,[3:5]);
+        dataY = fe(:,3:5);
         resY = fe(:,3)-fe(:,4);
         reslbl = 'Fit Res';
         sdev = sqrt(mean((resY).^2));
