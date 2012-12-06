@@ -2,7 +2,7 @@ function ringview( scannum, wavenum )
 % ringview( [ scannum [, wavenum ]]] );
 % Reviews ringdown data.
 PT = load('PT');
-Waves = load_waves;
+[Waves,WaveRange] = waves_used;
 cell_cfg=load_cell_cfg;
 v = find(diff(PT.ScanNum))+1; % index of new ScanNum values
 if nargin < 1
@@ -23,9 +23,12 @@ idx = v(ceil(interp1( PT.ScanNum(v), [1:length(v)], scannum )));
 % PT.ScanNum(idx) should be equal to scannum except where skipping
 % occurs, and then it should be greater than scannum.
 wavenums = unique(PT.QCLI_Wave(idx));
-roris = ~[ Waves(wavenums+1).ISICOS ];
+wavenumi = struct2cell(WaveRange);
+wavenumi = cell2mat(squeeze(wavenumi(1,:,:)));
+
+roris = ~[ Waves(wavenums==wavenumi).ISICOS ];
 if nargin >= 2
-  roris = roris & (wavenums == wavenum);
+  roris = roris & (wavenums == wavenum)';
 else
 % now find(roris) has the ringdown entries
 % scannum(find(roris)) are the ones we want
@@ -38,6 +41,9 @@ else
     error('No ringdown waveforms found');
   end
 end
+
+AppData.WaveRange = WaveRange(wavenum==wavenumi).ranges;
+
 iring=find(PT.QCLI_Wave(idx)==wavenum);
 scannum=scannum(iring);
 taus = struct('Name',{'auto','nonlin'}, ...
@@ -46,7 +52,7 @@ taus = struct('Name',{'auto','nonlin'}, ...
     'Fit',{[],[]});
 AppData.taus = taus;
 idx=idx(iring);
-AppData.Waves = Waves(wavenum+1);
+AppData.Waves = Waves(wavenum==wavenumi);
 AppData.base = find_scans_dir('');
 AppData.binary = 1;
 if size(scannum,1) > 1; scannum = scannum'; end
@@ -55,6 +61,8 @@ AppData.CavityLength=cell_cfg.CavityLength;
 AppData.QCLI_Wave = PT.QCLI_Wave;
 AppData.idx = idx;
 AppData.wavenum = wavenum;
+AppData.FitDisplay = 2;
+AppData.TauDisplay = 1;
 AppData.Axes = [
     60    45    60     1    20    15    35     .5   0
     60    45    60     1     0    45    50     1    1
@@ -72,11 +80,13 @@ if ~isfield(AppData,'menus')
     top_menu = uimenu(handles.figure,'Tag','ringview','Label','ringview');
     cb = @ringview_menu_callback;
     AppData.menus.Fit = uimenu(top_menu,'Tag','fitmenu','Label','Fit Menu');
-    AppData.menus.Fit_nonlin = uimenu(AppData.menus.Fit,'Tag','nonlin','Label','Non-linear lsq','Callback',cb);
-    AppData.menus.Fit_auto = uimenu(AppData.menus.Fit,'Tag','auto','Label','Autocorrelation','Callback',cb);
-    AppData.menus.Fit_both = uimenu(AppData.menus.Fit,'Tag','both','Label','Both','Checked','on','Callback',cb);
+    AppData.menus.Fit_nonlin = uimenu(AppData.menus.Fit,'Tag','Fit_nonlin','Label','Non-linear lsq','Callback',cb);
+    AppData.menus.Fit_auto = uimenu(AppData.menus.Fit,'Tag','Fit_auto','Label','Autocorrelation','Callback',cb);
+    AppData.menus.Fit_both = uimenu(AppData.menus.Fit,'Tag','Fit_both','Label','Both','Checked','on','Callback',cb);
     AppData.menus.Tau = uimenu(top_menu,'Tag','taumenu','Label','Tau Display');
+    if AppData.Waves.NetSamples > 1
     AppData.menus.Tau_current = uimenu(AppData.menus.Tau,'Tag','Tau_current','Label','Current','Callback',cb);
+    end
     AppData.menus.Tau_sample = uimenu(AppData.menus.Tau,'Tag','Tau_sample','Label','Sample','Checked','on','Callback',cb);
     AppData.menus.Select = uimenu(top_menu,'Tag','Select','Label','Select Baseline','Callback',cb);
     handles.data.AppData = AppData;
@@ -101,8 +111,8 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
       if ~isempty(v)
             xdata=1/AppData.Waves.RawRate*AppData.Waves.NAverage*[1:length(fe(:,1))];
             dt =  mean(diff(xdata));
-            n = 5;
-            delay = 3.3e-6; %Delay in seconds of the VtoI/electronics
+            n = 2;
+            delay = 4e-6; %Delay in seconds of the VtoI/electronics
             skip = ceil(AppData.Waves.TzSamples + delay*AppData.Waves.RawRate); %number of points to skip
             xdata=xdata-xdata(skip);  
             if size(fe,1) > skip+1000
@@ -141,30 +151,56 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
             guidata(handles.figure,handles)
         end
         
-        plot(sv_axes(1),AppData.scannum,AppData.taus(1).Tau*1e6,'.b',AppData.scannum,AppData.taus(2).Tau*1e6,'.g')
-        %set(sv_axes(1),'YAxisLocation','right')
-        xlabel(sv_axes(1),'Scan Number')
+        if AppData.TauDisplay == 1
+            xlab = 'Scan Number';
+            xtau = AppData.scannum;
+        elseif AppData.TauDisplay == 0
+            xlab = 'Current Number';
+            xtau = mod(AppData.scannum-AppData.WaveRange(1),AppData.Waves.NetSamples);
+        end     
+        
+        cla(sv_axes(1))
+        xlabel(sv_axes(1),xlab)
         ylabel(sv_axes(1),'Tau (\musec)')
         title(sv_axes(1),getrun)
-        text(0.02,0.98, ...
-            sprintf('Tau_{auto} = %.2f \\musec (R = %.1f ppm)',nanmedian(AppData.taus(1).Tau)*1e6,AppData.CavityLength/nanmedian(AppData.taus(1).Tau)/2.998e10*1e6), ...
-            'Parent',sv_axes(1),'Color','b','Units','Normalized','VerticalAlignment','top');
-        text(0.98,0.98, ...
-            sprintf('Tau_{nonlin} = %.2f \\musec (R = %.1f ppm)',nanmedian(AppData.taus(2).Tau)*1e6,AppData.CavityLength/nanmedian(AppData.taus(2).Tau)/2.998e10*1e6), ...
-            'Parent',sv_axes(1),'Color','g','Units','Normalized','VerticalAlignment','top','HorizontalAlignment','right');
-        
+        if AppData.FitDisplay == 1 || AppData.FitDisplay == 2
+            line(xtau,AppData.taus(1).Tau*1e6,'Parent',sv_axes(1),'Color','b','LineStyle','none','Marker','.')
+            text(0.02,0.98, ...
+                sprintf('Tau_{auto} = %.2f \\musec (R = %.1f ppm)',nanmedian(AppData.taus(1).Tau)*1e6,AppData.CavityLength/nanmedian(AppData.taus(1).Tau)/2.998e10*1e6), ...
+                'Parent',sv_axes(1),'Color','b','Units','Normalized','VerticalAlignment','top');
+        end
+        if AppData.FitDisplay == 0 || AppData.FitDisplay == 2
+            line(xtau,AppData.taus(2).Tau*1e6,'Parent',sv_axes(1),'Color','g','LineStyle','none','Marker','.')
+            text(0.98,0.98, ...
+                sprintf('Tau_{nonlin} = %.2f \\musec (R = %.1f ppm)',nanmedian(AppData.taus(2).Tau)*1e6,AppData.CavityLength/nanmedian(AppData.taus(2).Tau)/2.998e10*1e6), ...
+                'Parent',sv_axes(1),'Color','g','Units','Normalized','VerticalAlignment','top','HorizontalAlignment','right');
+        end
         
         plot(sv_axes(2),xdata*1e6,fe(:,1),'k', ...
-            [0,0],ylim(sv_axes(2)),':k',xlim(sv_axes(2)),[mean(fe(end-200:end,1)),mean(fe(end-200:end,1))],':k', ...
-            xdata(fitv)*1e6,AppData.taus(1).Fit(:,iscan),'b',...
-            xdata(fitv)*1e6,AppData.taus(2).Fit(:,iscan),'g');
+            [0,0],ylim(sv_axes(2)),':k',xlim(sv_axes(2)),[mean(fe(end-200:end,1)),mean(fe(end-200:end,1))],':k');
+        if AppData.FitDisplay == 1 || AppData.FitDisplay == 2
+            line(xdata(fitv)*1e6,AppData.taus(1).Fit(:,iscan),'Parent',sv_axes(2),'Color','b')
+        end
+        if AppData.FitDisplay == 0 || AppData.FitDisplay == 2
+            line(xdata(fitv)*1e6,AppData.taus(2).Fit(:,iscan),'Parent',sv_axes(2),'Color','g')
+        end
         xlabel(sv_axes(2),'\musec');
         ylabel(sv_axes(2),'Power');
-        text(0.5,0.95, ...
-            sprintf('Ringdown Scan: %d\n\nTau_{auto} = %.2f \\musec (std = %.2f)\nTau_{nonlin} = %.2f \\musec (std = %.2f)', ...
+        if AppData.FitDisplay == 2
+            tautext = sprintf('Ringdown Scan: %d\n\nTau_{auto} = %.2f \\musec (std = %.2f)\nTau_{nonlin} = %.2f \\musec (std = %.2f)', ...
             AppData.scannum(iscan), ...
             AppData.taus(1).Tau(iscan)*1e6,AppData.taus(1).Std(iscan), ...
-            AppData.taus(2).Tau(iscan)*1e6,AppData.taus(2).Std(iscan) ), ...
+            AppData.taus(2).Tau(iscan)*1e6,AppData.taus(2).Std(iscan) );
+        elseif AppData.FitDisplay == 0
+            tautext = sprintf('Ringdown Scan: %d\n\nTau_{nonlin} = %.2f \\musec (std = %.2f)', ...
+            AppData.scannum(iscan), ...
+            AppData.taus(2).Tau(iscan)*1e6,AppData.taus(2).Std(iscan) );
+        elseif AppData.FitDisplay == 1
+            tautext = sprintf('Ringdown Scan: %d\n\nTau_{auto} = %.2f \\musec (std = %.2f)', ...
+            AppData.scannum(iscan), ...
+            AppData.taus(1).Tau(iscan)*1e6,AppData.taus(1).Std(iscan) );
+        end
+        text(0.5,0.95, tautext, ...
             'Parent',sv_axes(2),'Units','Normalized','VerticalAlignment','top','HorizontalAlignment','left');
       end
     end
@@ -176,46 +212,47 @@ handles = guidata(hObject);
 AppData = handles.data.AppData;
 Tag = get(hObject,'Tag');
 switch Tag(1)
-    case 'Y'
-        sig = 'off';
-        trans = 'off';
-        stren = 'off';
+    case 'F'
+        nonlin = 'off';
+        auto = 'off';
+        both = 'off';
         switch hObject
-            case AppData.menus.Y_signal
-                sig = 'on';
-                handles.data.AppData.Yopt = 0;
-            case AppData.menus.Y_transmission
-                trans = 'on';
-                handles.data.AppData.Yopt = 1;
-            case AppData.menus.Y_strength
-                stren = 'on';
-                handles.data.AppData.Yopt = 2;
+            case AppData.menus.Fit_nonlin
+                nonlin = 'on';
+                AppData.FitDisplay = 0;
+            case AppData.menus.Fit_auto
+                auto = 'on';
+                AppData.FitDisplay = 1;
+            case AppData.menus.Fit_both
+                both = 'on';
+                AppData.FitDisplay = 2;
         end
-        set(AppData.menus.Y_signal,'checked',sig);
-        set(AppData.menus.Y_transmission,'checked',trans);
-        set(AppData.menus.Y_strength,'checked',stren);
-        handles.data.ylim{2} = [];
+        set(AppData.menus.Fit_nonlin,'Checked',nonlin);
+        set(AppData.menus.Fit_auto,'Checked',auto);
+        set(AppData.menus.Fit_both,'Checked',both);
+        handles.data.AppData = AppData;
         guidata(hObject,handles);
         scan_viewer('scan_display',handles);
-    case 'X'
-        wvno = 'off';
-        samp = 'off';
+    case 'T'
+        current = 'off';
+        sample = 'off';
         switch hObject
-            case AppData.menus.X_wavenumber
-                wvno = 'on';
-                handles.data.AppData.Xopt = 0;
-            case AppData.menus.X_sample
-                samp = 'on';
-                handles.data.AppData.Xopt = 1;
+            case AppData.menus.Tau_current
+                current = 'on';
+                AppData.TauDisplay = 0;
+            case AppData.menus.Tau_sample
+                sample = 'on';
+                AppData.TauDisplay = 1;
         end
         for i = 1:length(handles.data.xlim)
             handles.data.xlim{i} = [];
         end
-        set(AppData.menus.X_wavenumber,'checked',wvno);
-        set(AppData.menus.X_sample,'checked',samp);
+        set(AppData.menus.Tau_current,'checked',current);
+        set(AppData.menus.Tau_sample,'checked',sample);
+        handles.data.AppData = AppData;
         guidata(hObject,handles);
         scan_viewer('scan_display',handles);
-    case 'B'
+    case 'S'
         if strcmp(get(AppData.menus.Baselines,'checked'),'on')
             set(AppData.menus.Baselines,'checked','off');
             handles.data.AppData.plotbase = 0;

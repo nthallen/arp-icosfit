@@ -24,5 +24,5 @@ end
 if errok
   WaveSpecs = [];
 else
-  error([ 'Unable to locate waves.m' ]);
+  error([ 'Unable to locate waves file' ]);
 end
