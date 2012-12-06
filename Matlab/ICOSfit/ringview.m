@@ -49,7 +49,8 @@ scannum=scannum(iring);
 taus = struct('Name',{'auto','nonlin'}, ...
     'Tau',{zeros(size(scannum))*NaN,zeros(size(scannum))*NaN}, ...
     'Std',{zeros(size(scannum))*NaN,zeros(size(scannum))*NaN}, ...
-    'Fit',{[],[]});
+    'Fit',{[],[]}, ...
+    'MeanTau',{[],[]});
 AppData.taus = taus;
 idx=idx(iring);
 AppData.Waves = Waves(wavenum==wavenumi);
@@ -63,6 +64,8 @@ AppData.idx = idx;
 AppData.wavenum = wavenum;
 AppData.FitDisplay = 2;
 AppData.TauDisplay = 1;
+AppData.tauwindow.x = [];
+AppData.tauwindow.y = [];
 AppData.Axes = [
     60    45    60     1    20    15    35     .5   0
     60    45    60     1     0    45    50     1    1
@@ -88,7 +91,9 @@ if ~isfield(AppData,'menus')
     AppData.menus.Tau_current = uimenu(AppData.menus.Tau,'Tag','Tau_current','Label','Current','Callback',cb);
     end
     AppData.menus.Tau_sample = uimenu(AppData.menus.Tau,'Tag','Tau_sample','Label','Sample','Checked','on','Callback',cb);
-    AppData.menus.Select = uimenu(top_menu,'Tag','Select','Label','Select Baseline','Callback',cb);
+    AppData.menus.Select = uimenu(top_menu,'Tag','Select','Label','Select Base Tau Region','Callback',cb);
+    AppData.menus.Export = uimenu(top_menu,'Tag','Export','Label','Export Tau Struct','Callback',cb);
+    AppData.menus.Write = uimenu(top_menu,'Tag','Write','Label','Write to Cell_Config','Callback',cb);
     handles.data.AppData = AppData;
     guidata(handles.figure,handles);
 end
@@ -109,6 +114,7 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
     if data_ok
       v = find(~isnan(fe(:,1)));
       if ~isempty(v)
+          %Setup x vector in microsec, correlation shift, and delay.
             xdata=1/AppData.Waves.RawRate*AppData.Waves.NAverage*[1:length(fe(:,1))];
             dt =  mean(diff(xdata));
             n = 2;
@@ -120,7 +126,7 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
             else
                 fitv = [skip:length(fe(:,1))]';
             end
-            
+        %Fit data if not already fit    
         if isnan(AppData.taus(1).Tau(iscan))
             %Do linear auto-correlation fit:
             V = fitlin(fe(fitv,1), n);
@@ -150,7 +156,7 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
             handles.data.AppData = AppData;
             guidata(handles.figure,handles)
         end
-        
+        %Set x units for tau display 
         if AppData.TauDisplay == 1
             xlab = 'Scan Number';
             xtau = AppData.scannum;
@@ -158,7 +164,7 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
             xlab = 'Current Number';
             xtau = mod(AppData.scannum-AppData.WaveRange(1),AppData.Waves.NetSamples);
         end     
-        
+        %Plot fitted taus
         cla(sv_axes(1))
         xlabel(sv_axes(1),xlab)
         ylabel(sv_axes(1),'Tau (\musec)')
@@ -175,7 +181,32 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
                 sprintf('Tau_{nonlin} = %.2f \\musec (R = %.1f ppm)',nanmedian(AppData.taus(2).Tau)*1e6,AppData.CavityLength/nanmedian(AppData.taus(2).Tau)/2.998e10*1e6), ...
                 'Parent',sv_axes(1),'Color','g','Units','Normalized','VerticalAlignment','top','HorizontalAlignment','right');
         end
-        
+        %Calculate mean tau in select box region
+        if ~isempty(AppData.tauwindow.x)
+           line(AppData.tauwindow.x,AppData.tauwindow.y,'Color','k','LineWidth',2,'Parent',sv_axes(1)) 
+           x = AppData.tauwindow.x;
+           y = AppData.tauwindow.y;
+           itauauto = xtau>=min(x) & xtau<=max(x) & AppData.taus(1).Tau>=min(y)*1e-6 & AppData.taus(1).Tau<=max(y)*1e-6;
+           itaunonlin = xtau>=min(x) & xtau<=max(x) & AppData.taus(2).Tau>=min(y)*1e-6 & AppData.taus(2).Tau<=max(y)*1e-6;
+           AppData.taus(1).MeanTau = nanmean(AppData.taus(1).Tau(itauauto));
+           AppData.taus(2).MeanTau = nanmean(AppData.taus(2).Tau(itaunonlin));
+           handles.data.AppData = AppData;
+           guidata(handles.figure,handles);
+        end
+        %Display mean tau
+        if ~isempty(AppData.taus(1).MeanTau)
+            if AppData.FitDisplay == 1 || AppData.FitDisplay == 2
+                text(0.02,0.85, ...
+                    sprintf('Tau_{auto} = %.2f \\musec (R = %.1f ppm)',AppData.taus(1).MeanTau*1e6,AppData.CavityLength/AppData.taus(1).MeanTau/2.998e10*1e6), ...
+                    'Parent',sv_axes(1),'Units','Normalized','VerticalAlignment','top');
+            end
+            if AppData.FitDisplay == 0 || AppData.FitDisplay == 2
+                text(0.98,0.85, ...
+                    sprintf('Tau_{nonlin} = %.2f \\musec (R = %.1f ppm)',AppData.taus(2).MeanTau*1e6,AppData.CavityLength/AppData.taus(2).MeanTau/2.998e10*1e6), ...
+                    'Parent',sv_axes(1),'Units','Normalized','VerticalAlignment','top','HorizontalAlignment','right');
+            end 
+        end
+        %Plot induvidual fits
         plot(sv_axes(2),xdata*1e6,fe(:,1),'k', ...
             [0,0],ylim(sv_axes(2)),':k',xlim(sv_axes(2)),[mean(fe(end-200:end,1)),mean(fe(end-200:end,1))],':k');
         if AppData.FitDisplay == 1 || AppData.FitDisplay == 2
@@ -186,26 +217,24 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
         end
         xlabel(sv_axes(2),'\musec');
         ylabel(sv_axes(2),'Power');
-        if AppData.FitDisplay == 2
-            tautext = sprintf('Ringdown Scan: %d\n\nTau_{auto} = %.2f \\musec (std = %.2f)\nTau_{nonlin} = %.2f \\musec (std = %.2f)', ...
-            AppData.scannum(iscan), ...
-            AppData.taus(1).Tau(iscan)*1e6,AppData.taus(1).Std(iscan), ...
-            AppData.taus(2).Tau(iscan)*1e6,AppData.taus(2).Std(iscan) );
-        elseif AppData.FitDisplay == 0
-            tautext = sprintf('Ringdown Scan: %d\n\nTau_{nonlin} = %.2f \\musec (std = %.2f)', ...
-            AppData.scannum(iscan), ...
-            AppData.taus(2).Tau(iscan)*1e6,AppData.taus(2).Std(iscan) );
-        elseif AppData.FitDisplay == 1
-            tautext = sprintf('Ringdown Scan: %d\n\nTau_{auto} = %.2f \\musec (std = %.2f)', ...
-            AppData.scannum(iscan), ...
-            AppData.taus(1).Tau(iscan)*1e6,AppData.taus(1).Std(iscan) );
-        end
+        tautext = sprintf('Ringdown Scan: %d', AppData.scannum(iscan));
         text(0.5,0.95, tautext, ...
-            'Parent',sv_axes(2),'Units','Normalized','VerticalAlignment','top','HorizontalAlignment','left');
-      end
-    end
-    
-  end
+            'Parent',sv_axes(2),'Units','Normalized','VerticalAlignment','top','HorizontalAlignment','left');      
+        if AppData.FitDisplay == 0 || AppData.FitDisplay == 2
+            tautext = sprintf('Tau_{nonlin} = %.2f \\musec (std = %.2f)', ...
+            AppData.taus(2).Tau(iscan)*1e6,AppData.taus(2).Std(iscan) );
+            text(0.5,0.8, tautext, ...
+                'Parent',sv_axes(2),'Color','g','Units','Normalized','VerticalAlignment','top','HorizontalAlignment','left');      
+        end
+        if AppData.FitDisplay == 1 || AppData.FitDisplay == 2
+            tautext = sprintf('Tau_{auto} = %.2f \\musec (std = %.2f)', ...
+            AppData.taus(1).Tau(iscan)*1e6,AppData.taus(1).Std(iscan) );
+            text(0.5,0.7, tautext, ...
+                'Parent',sv_axes(2),'Color','b','Units','Normalized','VerticalAlignment','top','HorizontalAlignment','left');
+        end
+     end
+   end  
+end
 
 function ringview_menu_callback(hObject,eventdata)
 handles = guidata(hObject);
@@ -236,6 +265,8 @@ switch Tag(1)
     case 'T'
         current = 'off';
         sample = 'off';
+        AppData.tauwindow.x = [];
+        AppData.tauwindow.y = [];
         switch hObject
             case AppData.menus.Tau_current
                 current = 'on';
@@ -253,60 +284,34 @@ switch Tag(1)
         guidata(hObject,handles);
         scan_viewer('scan_display',handles);
     case 'S'
-        if strcmp(get(AppData.menus.Baselines,'checked'),'on')
-            set(AppData.menus.Baselines,'checked','off');
-            handles.data.AppData.plotbase = 0;
-            handles.data.Axes = AppData.Axes_A;
-        else
-            set(AppData.menus.Baselines,'checked','on');
-            handles.data.AppData.plotbase = 1;
-            handles.data.Axes = AppData.Axes_B;
-        end
+        k = waitforbuttonpress;
+        point1 = get(gca,'CurrentPoint');    % button down detected
+        finalRect = rbbox;                   % return figure units
+        point2 = get(gca,'CurrentPoint');    % button up detected
+        point1 = point1(1,1:2);              % extract x and y
+        point2 = point2(1,1:2);
+        p1 = min(point1,point2);             % calculate locations
+        offset = abs(point1-point2);         % and dimensions
+        AppData.tauwindow.x = [p1(1) p1(1)+offset(1) p1(1)+offset(1) p1(1) p1(1)];
+        AppData.tauwindow.y = [p1(2) p1(2) p1(2)+offset(2) p1(2)+offset(2) p1(2)];
+        handles.data.AppData = AppData;
         guidata(hObject,handles);
-        scan_viewer('figure_ResizeFcn',hObject,eventdata,handles);
         handles = guidata(hObject);
         scan_viewer('scan_display',handles);
+    case 'E'
+        assignin('base','tau',AppData.taus);
+    case 'W'
+        cell_cfg = load_cell_cfg;
+        fd = fopen([ 'Cell_Config.m'], 'w');
+        fprintf(fd, 'function cell_cfg = Cell_Config;\n');
+        fprintf(fd, 'cell_cfg.fsr = %.6f;\n', cell_cfg.fsr );
+        fprintf(fd, 'cell_cfg.CavityLength = %.2f;\n', cell_cfg.CavityLength );
+        if AppData.FitDisplay == 0
+            fprintf(fd, 'cell_cfg.MirrorLoss = %.2f;\n', AppData.CavityLength/AppData.taus(2).MeanTau/2.998e10*1e6 );
+        elseif AppData.FitDisplay == 1 || AppData.FitDisplay == 2
+           fprintf(fd, 'cell_cfg.MirrorLoss = %.2f;\n', AppData.CavityLength/AppData.taus(1).MeanTau/2.998e10*1e6 );
+        end 
+        fprintf(fd, 'cell_cfg.N_Passes = %i;\n', cell_cfg.N_Passes );
+        fprintf(fd, 'cell_cfg.CavityFixedLength = %.2f;\n', cell_cfg.CavityFixedLength );
+        fclose(fd);
 end
-% if any(nbinned > 0)
-%   ringbins = ringbins./nbinned;
-%   taubin = (1e6/RawRate) * common_n ./ log(ringbins);
-%   if n_currents > 1
-%     if figno > 0
-%       figure(figno);
-%     else
-%       figure;
-%     end
-%     x = [1:length(taubin)];
-%     plot( x, taubin );
-%     title(sprintf('Binned Ringdown Tau: %s', getrun));
-%     xlabel('Offset');
-%     ylabel('Tau \mu secs');
-%     cell_cfg=load_cell_cfg;
-%     CavityLength = cell_cfg.CavityLength;
-%     fprintf(1,'Select Range to average\n');
-%     k = waitforbuttonpress;
-%     point1 = get(gca,'CurrentPoint');
-%     finalRect = rbbox;
-%     point2 = get(gca,'CurrentPoint');
-%     point1 = point1(1,1:2);              % extract x and y
-%     point2 = point2(1,1:2);
-%     p1 = min(point1,point2);             % calculate locations
-%     offset = abs(point1-point2);         % and dimensions
-%     v = find(x >= p1(1) & x <= p1(1)+offset(1));
-%     if length(v) > 0
-%       taumean = mean(taubin(v));
-%       hold on;
-%       plot( [p1(1) p1(1)+offset(1)], [taumean taumean], 'r');
-%       hold off;
-%       fprintf(1, 'Mean tau is %.2f usecs\n', taumean );
-%       c = 2.99792458e10; % cm/s
-%       MirrorLoss = CavityLength/(c * taumean * 1e-6);
-%       fprintf(1, 'MirrorLoss is %.1f ppm\n', MirrorLoss * 1e6 );
-%       save MirrorLoss.mat MirrorLoss
-%     end
-%   end
-% end
-% 
-% if nargout >= 1
-%   Taur = taubin;
-% end
