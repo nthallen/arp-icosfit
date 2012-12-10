@@ -43,15 +43,8 @@ else
 end
 
 AppData.WaveRange = WaveRange(wavenum==wavenumi).ranges;
-
 iring=find(PT.QCLI_Wave(idx)==wavenum);
 scannum=scannum(iring);
-taus = struct('Name',{'auto','nonlin'}, ...
-    'Tau',{zeros(size(scannum))*NaN,zeros(size(scannum))*NaN}, ...
-    'Std',{zeros(size(scannum))*NaN,zeros(size(scannum))*NaN}, ...
-    'Fit',{[],[]}, ...
-    'MeanTau',{[],[]});
-AppData.taus = taus;
 idx=idx(iring);
 AppData.Waves = Waves(wavenum==wavenumi);
 AppData.base = find_scans_dir('');
@@ -60,12 +53,37 @@ if size(scannum,1) > 1; scannum = scannum'; end
 AppData.scannum = scannum;
 AppData.CavityLength=cell_cfg.CavityLength;
 AppData.QCLI_Wave = PT.QCLI_Wave;
+path = mlf_path( AppData.base, AppData.WaveRange(1), '.dat');
+[fe, hdr] = loadbin(path);
+AppData.StartSerNum = hdr.SerialNum;
 AppData.idx = idx;
 AppData.wavenum = wavenum;
+%Setup x vector in microsec, correlation shift, and delay.
+xdata=1/AppData.Waves.RawRate*AppData.Waves.NAverage*[1:length(fe(:,1))];
+AppData.dt =  mean(diff(xdata));
+AppData.n = 2; %Correlation shift
+AppData.delay = 3.5e-6; %Delay in seconds of the VtoI/electronics
+AppData.skip = ceil(AppData.Waves.TzSamples + AppData.delay*AppData.Waves.RawRate); %number of points to skip
+AppData.xdata=xdata-xdata(AppData.skip);  
+if size(fe,1) > AppData.skip+1000
+    AppData.fitv = [AppData.skip:1000]';  %points to include in fit
+else
+    AppData.fitv = [AppData.skip:length(fe(:,1))]';
+end
 AppData.FitDisplay = 2;
 AppData.TauDisplay = 1;
 AppData.tauwindow.x = [];
 AppData.tauwindow.y = [];
+AppData.taus = struct('Name',{'auto','nonlin'}, ...
+    'Tau',{zeros(size(scannum))*NaN,zeros(size(scannum))*NaN}, ...
+    'Std',{zeros(size(scannum))*NaN,zeros(size(scannum))*NaN}, ...
+    'Fit',{[],[]}, ...
+    'MeanTau',{[],[]}, ...
+    'ScanNum',{scannum,scannum}, ...
+    'SerialNum',{zeros(size(scannum))*NaN}, ...
+    'CurrentOffset',{zeros(size(scannum))*NaN}, ...
+    'Etalon',{zeros(size(scannum))*NaN}, ...
+    'Status',{zeros(size(scannum))*NaN} );
 AppData.Axes = [
     60    45    60     1    20    15    35     .5   0
     60    45    60     1     0    45    50     1    1
@@ -91,8 +109,8 @@ if ~isfield(AppData,'menus')
     AppData.menus.Tau_current = uimenu(AppData.menus.Tau,'Tag','Tau_current','Label','Current','Callback',cb);
     end
     AppData.menus.Tau_sample = uimenu(AppData.menus.Tau,'Tag','Tau_sample','Label','Sample','Checked','on','Callback',cb);
-    AppData.menus.Select = uimenu(top_menu,'Tag','Select','Label','Select Base Tau Region','Callback',cb);
     AppData.menus.Export = uimenu(top_menu,'Tag','Export','Label','Export Tau Struct','Callback',cb);
+    AppData.menus.Select = uimenu(top_menu,'Tag','Select','Label','Select Base Tau Region','Callback',cb);
     AppData.menus.Write = uimenu(top_menu,'Tag','Write','Label','Write to Cell_Config','Callback',cb);
     handles.data.AppData = AppData;
     guidata(handles.figure,handles);
@@ -103,7 +121,7 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
     path = mlf_path( AppData.base, scan, '.dat');
     data_ok = 0;
     if AppData.binary
-      fe = loadbin( path );
+      [fe,hdr] = loadbin( path );
       data_ok = 1;
     else
       if exist(path,'file')
@@ -114,28 +132,21 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
     if data_ok
       v = find(~isnan(fe(:,1)));
       if ~isempty(v)
-          %Setup x vector in microsec, correlation shift, and delay.
-            xdata=1/AppData.Waves.RawRate*AppData.Waves.NAverage*[1:length(fe(:,1))];
-            dt =  mean(diff(xdata));
-            n = 2;
-            delay = 4e-6; %Delay in seconds of the VtoI/electronics
-            skip = ceil(AppData.Waves.TzSamples + delay*AppData.Waves.RawRate); %number of points to skip
-            xdata=xdata-xdata(skip);  
-            if size(fe,1) > skip+1000
-                fitv = [skip:1000]';  %points to include in fit
-            else
-                fitv = [skip:length(fe(:,1))]';
-            end
+          
         %Fit data if not already fit    
         if isnan(AppData.taus(1).Tau(iscan))
+            AppData.taus(1).CurrentOffset(iscan) = mod(hdr.SerialNum-AppData.StartSerNum,AppData.Waves.NetSamples);
+            AppData.taus(1).SerialNum(iscan) = hdr.SerialNum;
+            AppData.taus(1).Etalon(iscan) = fe(50,2) - min(fe(:,2));
+            AppData.taus(1).Status = hdr.Status;
             %Do linear auto-correlation fit:
-            V = fitlin(fe(fitv,1), n);
+            V = fitlin(fe(AppData.fitv,1), AppData.n);
             b = V(2);
             a = V(5);
-            tau = n*dt/log(b);
+            tau = AppData.n*AppData.dt/log(b);
             z = a/(1-b);
-            trialx = exp(-xdata(fitv)/tau);
-            k = sum((fe(fitv,1)'-z).*trialx)./sum(trialx.*trialx);
+            trialx = exp(-AppData.xdata(AppData.fitv)/tau);
+            k = sum((fe(AppData.fitv,1)'-z).*trialx)./sum(trialx.*trialx);
             fit = z+k*trialx;
             std1 = sqrt(V(4));
             AppData.taus(1).Tau(iscan) = tau;
@@ -144,12 +155,12 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
             
             % Now do a non-linear logarithmic fit
             V = [ k tau z ];
-            V = fminsearch('logchi', V, [], xdata(fitv)', fe(fitv,1) );
+            V = fminsearch('logchi', V, [], AppData.xdata(AppData.fitv)', fe(AppData.fitv,1) );
             k2 = V(1);
             tau2 = V(2);
             z2 = V(3);
-            fit2 = k2*exp(-xdata(fitv)/tau2) + z2;
-            std2 = std(fe(fitv,1)'-fit2);
+            fit2 = k2*exp(-AppData.xdata(AppData.fitv)/tau2) + z2;
+            std2 = std(fe(AppData.fitv,1)'-fit2);
             AppData.taus(2).Tau(iscan) = tau2;
             AppData.taus(2).Std(iscan) = std2;
             AppData.taus(2).Fit(:,iscan) = fit2;
@@ -159,10 +170,10 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
         %Set x units for tau display 
         if AppData.TauDisplay == 1
             xlab = 'Scan Number';
-            xtau = AppData.scannum;
+            xtau = AppData.taus.ScanNum;
         elseif AppData.TauDisplay == 0
             xlab = 'Current Number';
-            xtau = mod(AppData.scannum-AppData.WaveRange(1),AppData.Waves.NetSamples);
+            xtau = AppData.taus.CurrentOffset;
         end     
         %Plot fitted taus
         cla(sv_axes(1))
@@ -207,13 +218,13 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
             end 
         end
         %Plot induvidual fits
-        plot(sv_axes(2),xdata*1e6,fe(:,1),'k', ...
+        plot(sv_axes(2),AppData.xdata*1e6,fe(:,1),'k', ...
             [0,0],ylim(sv_axes(2)),':k',xlim(sv_axes(2)),[mean(fe(end-200:end,1)),mean(fe(end-200:end,1))],':k');
         if AppData.FitDisplay == 1 || AppData.FitDisplay == 2
-            line(xdata(fitv)*1e6,AppData.taus(1).Fit(:,iscan),'Parent',sv_axes(2),'Color','b')
+            line(AppData.xdata(AppData.fitv)*1e6,AppData.taus(1).Fit(:,iscan),'Parent',sv_axes(2),'Color','b')
         end
         if AppData.FitDisplay == 0 || AppData.FitDisplay == 2
-            line(xdata(fitv)*1e6,AppData.taus(2).Fit(:,iscan),'Parent',sv_axes(2),'Color','g')
+            line(AppData.xdata(AppData.fitv)*1e6,AppData.taus(2).Fit(:,iscan),'Parent',sv_axes(2),'Color','g')
         end
         xlabel(sv_axes(2),'\musec');
         ylabel(sv_axes(2),'Power');
