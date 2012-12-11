@@ -33,7 +33,7 @@ function varargout = scan_viewer(varargin)
 
 % Edit the above text to modify the response to help scan_viewer
 
-% Last Modified by GUIDE v2.5 28-Nov-2012 13:06:36
+% Last Modified by GUIDE v2.5 11-Dec-2012 14:15:23
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 0;
@@ -58,7 +58,7 @@ end
 % --- Executes just before scan_viewer is made visible.
 function scan_viewer_OpeningFcn(hObject, ~, handles, varargin)
 % This function has no output args, see OutputFcn.
-% hObject    handle to figure
+% hObject    handle to scan_viewer
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to scan_viewer (see VARARGIN)
@@ -71,26 +71,27 @@ set(handles.ViewerGroup, 'SelectionChangeFcn', ...
     @ViewerGroup_SelectionChangeFcn);
 handles.data.Scans = [];
 handles.data.Index = 1;
-FP = get(handles.figure, 'Position');
+FP = get(handles.scan_viewer, 'Position');
 SP = get(handles.Slider, 'Position');
 set(handles.Slider,'UserData', FP(3)-SP(1)-SP(3));
 SP = get(handles.CrntScan,'Position');
 set(handles.CrntScan,'UserData', FP(3)-SP(1)-SP(3));
+set(handles.scan_viewer,'UserData',pwd);
 for i=1:2:length(varargin)-1
   if strcmpi(varargin{i},'Scans')
       handles.data.Scans = varargin{i+1};
   elseif strcmpi(varargin{i},'Name')
-      set(handles.figure,'Name',varargin{i+1});
+      set(handles.scan_viewer,'Name',varargin{i+1});
   elseif strcmpi(varargin{i},'Axes')
       handles.data.Axes = varargin{i+1};
       if size(handles.data.Axes,2) ~= 9
           errordlg('Axes property has wrong dimensions');
-          close(handles.figure);
+          close(handles.scan_viewer);
           return;
       end
       Pos = Axes_Positions(handles);
       handles.Axes = zeros(size(Pos,1),1);
-      figure(handles.figure);
+      figure(handles.scan_viewer);
       for j=1:size(Pos,1)
           handles.Axes(j) = axes('Units','pixels','Position',Pos(j,:));
           handles.data.xlim{j} = [];
@@ -106,7 +107,7 @@ for i=1:2:length(varargin)-1
       handles.data.Callback = varargin{i+1};
   else
       errordlg(sprintf('Unrecognized property: %s', varargin{i}));
-      close(handles.figure);
+      close(handles.scan_viewer);
       return;
   end
 end
@@ -114,7 +115,7 @@ handles.data.Index_max = length(handles.data.Scans);
 guidata(hObject, handles);
 if isempty(handles.data.Scans)
     errordlg('No scans specified');
-    close(handles.figure);
+    close(handles.scan_viewer);
     return;
 else
     set(handles.Slider,'Min',1,'Max',handles.data.Index_max,'Value',1);
@@ -127,13 +128,13 @@ handles.SliderListener = ...
 guidata(hObject, handles);
 
 % UIWAIT makes scan_viewer wait for user response (see UIRESUME)
-% uiwait(handles.figure);
+% uiwait(handles.scan_viewer);
 
 
 % --- Outputs from this function are returned to the command line.
 function varargout = scan_viewer_OutputFcn(~, ~, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
-% hObject    handle to figure
+% hObject    handle to scan_viewer
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -144,12 +145,12 @@ else
     varargout{1} = handles.output;
 end
 
-function figure_CloseRequestFcn(hObject, ~, ~)
-% hObject    handle to figure (see GCBO)
+function scan_viewer_CloseRequestFcn(hObject, ~, ~)
+% hObject    handle to scan_viewer (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: delete(hObject) closes the figure
+% Hint: delete(hObject) closes the scan_viewer
 % set(handles.ViewerGroup,'SelectedObject',handles.Pause);
 delete(hObject);
 
@@ -249,9 +250,9 @@ P = Set_Speed(hObject, handles.Spd_Step_10, P, [0 10]);
 P = Set_Speed(hObject, handles.Spd_Step_100, P, [0 100]);
 set(handles.Speed, 'UserData', P);
 
-function figure_ResizeFcn(hObject, ~, handles)
+function scan_viewer_ResizeFcn(hObject, ~, handles)
 if isfield(handles,'data') % first invocation comes before open fcn
-    FP = get(handles.figure,'Position');
+    FP = get(handles.scan_viewer,'Position');
     SP = get(handles.Slider,'Position');
     Srm = get(handles.Slider,'UserData');
     SP(3) = FP(3)-Srm-SP(1);
@@ -267,7 +268,7 @@ if isfield(handles,'data') % first invocation comes before open fcn
     set(handles.CrntScan,'Position',SP);
     if delta > 0
         FP(3) = FP(3) + delta;
-        set(handles.figure,'Position',FP);
+        set(handles.scan_viewer,'Position',FP);
     end
     if ~isfield(handles,'Axes')
         handles.Axes = [];
@@ -301,7 +302,7 @@ Axes = handles.data.Axes;
 if nargin < 2
     VGP = get(handles.ViewerGroup,'Position');
     cur_y = VGP(2)+VGP(4);
-    fig = handles.figure;
+    fig = handles.scan_viewer;
 else
     cur_y = 0;
 end
@@ -343,13 +344,13 @@ end
 function scan_display(handles)
 % Update CrntScan, slider
 if handles.data.Index_max >= 1
-    guidata(handles.figure,handles);
+    guidata(handles.scan_viewer,handles);
     set(handles.CrntScan,'String',num2str(handles.data.Scans(handles.data.Index)));
     set(handles.Slider,'Value',handles.data.Index);
     if isfield(handles.data, 'Callback')
         handles.data.Callback(handles);
-        % figure(handles.figure);
-        zoom(handles.figure, 'reset');
+        % scan_viewer(handles.scan_viewer);
+        zoom(handles.scan_viewer, 'reset');
         for i = 1:length(handles.Axes)
             if ~isempty(handles.data.xlim{i})
                 set(handles.Axes(i),'xlim',handles.data.xlim{i});

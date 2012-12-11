@@ -98,7 +98,7 @@ if nargin < 2
 end
 AppData = handles.data.AppData;
 if ~isfield(AppData,'menus')
-    top_menu = uimenu(handles.figure,'Tag','ringview','Label','ringview');
+    top_menu = uimenu(handles.scan_viewer,'Tag','ringview','Label','ringview');
     cb = @ringview_menu_callback;
     AppData.menus.Fit = uimenu(top_menu,'Tag','fitmenu','Label','Fit Menu');
     AppData.menus.Fit_nonlin = uimenu(AppData.menus.Fit,'Tag','Fit_nonlin','Label','Non-linear lsq','Callback',cb);
@@ -113,7 +113,7 @@ if ~isfield(AppData,'menus')
     AppData.menus.Select = uimenu(top_menu,'Tag','Select','Label','Select Base Tau Region','Callback',cb);
     AppData.menus.Write = uimenu(top_menu,'Tag','Write','Label','Write to Cell_Config','Callback',cb);
     handles.data.AppData = AppData;
-    guidata(handles.figure,handles);
+    guidata(handles.scan_viewer,handles);
 end
 scan = handles.data.Scans(handles.data.Index); %scan number
 iscan = find(AppData.scannum == scan); %index for scan into scannum and idx
@@ -165,7 +165,7 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
             AppData.taus(2).Std(iscan) = std2;
             AppData.taus(2).Fit(:,iscan) = fit2;
             handles.data.AppData = AppData;
-            guidata(handles.figure,handles)
+            guidata(handles.scan_viewer,handles)
         end
         %Set x units for tau display 
         if AppData.TauDisplay == 1
@@ -206,7 +206,7 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
            AppData.taus(1).MeanTau = nanmean(AppData.taus(1).Tau(itauauto));
            AppData.taus(2).MeanTau = nanmean(AppData.taus(2).Tau(itaunonlin));
            handles.data.AppData = AppData;
-           guidata(handles.figure,handles);
+           guidata(handles.scan_viewer,handles);
         end
         %Display mean tau
         if ~isempty(AppData.taus(1).MeanTau)
