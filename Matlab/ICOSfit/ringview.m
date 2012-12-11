@@ -77,7 +77,7 @@ AppData.tauwindow.y = [];
 AppData.taus = struct('Name',{'auto','nonlin'}, ...
     'Tau',{zeros(size(scannum))*NaN,zeros(size(scannum))*NaN}, ...
     'Std',{zeros(size(scannum))*NaN,zeros(size(scannum))*NaN}, ...
-    'Fit',{[],[]}, ...
+    'Fit',{zeros(length(AppData.fitv),length(scannum))*NaN,zeros(length(AppData.fitv),length(scannum))*NaN}, ...
     'MeanTau',{[],[]}, ...
     'ScanNum',{scannum,scannum}, ...
     'SerialNum',{zeros(size(scannum))*NaN}, ...
@@ -134,7 +134,7 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
       if ~isempty(v)
           
         %Fit data if not already fit    
-        if isnan(AppData.taus(1).Tau(iscan))
+        if isnan(AppData.taus(1).Tau(iscan)) && hdr.SerialNum ~= AppData.StartSerNum
             AppData.taus(1).CurrentOffset(iscan) = mod(hdr.SerialNum-AppData.StartSerNum,AppData.Waves.NetSamples);
             AppData.taus(1).SerialNum(iscan) = hdr.SerialNum;
             AppData.taus(1).Etalon(iscan) = fe(50,2) - min(fe(:,2));
@@ -192,6 +192,10 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
                 sprintf('Tau_{nonlin} = %.2f \\musec (R = %.1f ppm)',nanmedian(AppData.taus(2).Tau)*1e6,AppData.CavityLength/nanmedian(AppData.taus(2).Tau)/2.998e10*1e6), ...
                 'Parent',sv_axes(1),'Color','g','Units','Normalized','VerticalAlignment','top','HorizontalAlignment','right');
         end
+        if isempty(handles.data.xlim{1})
+            xlim(sv_axes(1),'auto')
+        end
+
         %Calculate mean tau in select box region
         if ~isempty(AppData.tauwindow.x)
            line(AppData.tauwindow.x,AppData.tauwindow.y,'Color','k','LineWidth',2,'Parent',sv_axes(1)) 
@@ -217,7 +221,7 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
                     'Parent',sv_axes(1),'Units','Normalized','VerticalAlignment','top','HorizontalAlignment','right');
             end 
         end
-        %Plot induvidual fits
+        %Plot individual fits
         plot(sv_axes(2),AppData.xdata*1e6,fe(:,1),'k', ...
             [0,0],ylim(sv_axes(2)),':k',xlim(sv_axes(2)),[mean(fe(end-200:end,1)),mean(fe(end-200:end,1))],':k');
         if AppData.FitDisplay == 1 || AppData.FitDisplay == 2
