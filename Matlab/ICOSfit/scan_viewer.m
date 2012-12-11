@@ -348,7 +348,7 @@ if handles.data.Index_max >= 1
     set(handles.Slider,'Value',handles.data.Index);
     if isfield(handles.data, 'Callback')
         handles.data.Callback(handles);
-        figure(handles.figure);
+        % figure(handles.figure);
         zoom(handles.figure, 'reset');
         for i = 1:length(handles.Axes)
             if ~isempty(handles.data.xlim{i})
