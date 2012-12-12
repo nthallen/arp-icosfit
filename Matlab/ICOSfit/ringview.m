@@ -177,6 +177,7 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
         end     
         %Plot fitted taus
         cla(sv_axes(1))
+        newplot(sv_axes(1))
         xlabel(sv_axes(1),xlab)
         ylabel(sv_axes(1),'Tau (\musec)')
         title(sv_axes(1),getrun)
@@ -282,6 +283,7 @@ switch Tag(1)
         sample = 'off';
         AppData.tauwindow.x = [];
         AppData.tauwindow.y = [];
+        handles.data.xlim{1} = [];
         switch hObject
             case AppData.menus.Tau_current
                 current = 'on';
@@ -289,9 +291,6 @@ switch Tag(1)
             case AppData.menus.Tau_sample
                 sample = 'on';
                 AppData.TauDisplay = 1;
-        end
-        for i = 1:length(handles.data.xlim)
-            handles.data.xlim{i} = [];
         end
         set(AppData.menus.Tau_current,'checked',current);
         set(AppData.menus.Tau_sample,'checked',sample);
