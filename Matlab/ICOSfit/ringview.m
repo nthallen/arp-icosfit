@@ -136,9 +136,17 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
         %Fit data if not already fit    
         if isnan(AppData.taus(1).Tau(iscan)) && hdr.SerialNum ~= AppData.StartSerNum
             AppData.taus(1).CurrentOffset(iscan) = mod(hdr.SerialNum-AppData.StartSerNum,AppData.Waves.NetSamples);
+            AppData.taus(2).CurrentOffset(iscan) = mod(hdr.SerialNum-AppData.StartSerNum,AppData.Waves.NetSamples);
+
             AppData.taus(1).SerialNum(iscan) = hdr.SerialNum;
+            AppData.taus(2).SerialNum(iscan) = hdr.SerialNum;
+
             AppData.taus(1).Etalon(iscan) = fe(50,2) - min(fe(:,2));
+            AppData.taus(2).Etalon(iscan) = fe(50,2) - min(fe(:,2));
+
             AppData.taus(1).Status = hdr.Status;
+            AppData.taus(2).Status = hdr.Status;
+
             %Do linear auto-correlation fit:
             V = fitlin(fe(AppData.fitv,1), AppData.n);
             b = V(2);
@@ -176,7 +184,6 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
             xtau = AppData.taus.CurrentOffset;
         end     
         %Plot fitted taus
-        cla(sv_axes(1))
         newplot(sv_axes(1))
         xlabel(sv_axes(1),xlab)
         ylabel(sv_axes(1),'Tau (\musec)')
@@ -196,7 +203,10 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
         if isempty(handles.data.xlim{1})
             xlim(sv_axes(1),'auto')
         end
-
+        yl=ylim(sv_axes(1));
+        if yl(1) < 0; yl(1) = 0; end
+        if yl(2) > 50; yl(2) = 50; end
+        ylim(sv_axes(1),yl);
         %Calculate mean tau in select box region
         if ~isempty(AppData.tauwindow.x)
            line(AppData.tauwindow.x,AppData.tauwindow.y,'Color','k','LineWidth',2,'Parent',sv_axes(1)) 
@@ -223,8 +233,10 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
             end 
         end
         %Plot individual fits
-        plot(sv_axes(2),AppData.xdata*1e6,fe(:,1),'k', ...
-            [0,0],ylim(sv_axes(2)),':k',xlim(sv_axes(2)),[mean(fe(end-200:end,1)),mean(fe(end-200:end,1))],':k');
+        newplot(sv_axes(2));
+        plot(sv_axes(2),AppData.xdata*1e6,fe(:,1),'k');
+        line([0,0],ylim(sv_axes(2)),'Color','k','LineStyle',':','Parent',sv_axes(2));
+        line(xlim(sv_axes(2)),[mean(fe(end-200:end,1)),mean(fe(end-200:end,1))],'Color','k','LineStyle',':','Parent',sv_axes(2));
         if AppData.FitDisplay == 1 || AppData.FitDisplay == 2
             line(AppData.xdata(AppData.fitv)*1e6,AppData.taus(1).Fit(:,iscan),'Parent',sv_axes(2),'Color','b')
         end
