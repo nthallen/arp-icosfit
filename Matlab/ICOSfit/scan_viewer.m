@@ -414,19 +414,23 @@ set(handles.ViewerGroup,'SelectedObject',handles.data.SavedPreZoomState);
 motion = get(handles.Zoom,'Motion');
 axes_idx = find(handles.Axes == eventdata.Axes);
 xlim = [];
-if strcmpi(motion,'horizontal')
-    xlim = get(eventdata.Axes,'xlim');
-    handles.data.xlim{axes_idx} = xlim;
-elseif strcmpi(motion,'vertical')
-    ylim = get(eventdata.Axes,'ylim');
-    handles.data.ylim{axes_idx} = ylim;
-elseif strcmpi(motion,'both')
-    xlim = get(eventdata.Axes,'xlim');
-    ylim = get(eventdata.Axes,'ylim');
-    handles.data.xlim{axes_idx} = xlim;
-    handles.data.ylim{axes_idx} = ylim;
-else
-    errordlg(sprintf('Unexpected motion: "%s"', motion));
+if strcmpi(motion,'horizontal') || strcmpi(motion,'both')
+    zmode = get(eventdata.Axes,'xlimmode');
+    if strcmp(zmode,'manual')
+        xlim = get(eventdata.Axes,'xlim');
+        handles.data.xlim{axes_idx} = xlim;
+    elseif strcmp(zmode,'auto')
+        handles.data.xlim{axes_idx} = [];
+    end
+end
+if strcmpi(motion,'vertical') || strcmpi(motion,'both')
+    zmode = get(eventdata.Axes,'ylimmode');
+    if strcmp(zmode,'manual')
+        ylim = get(eventdata.Axes,'ylim');
+        handles.data.ylim{axes_idx} = ylim;
+    elseif strcmp(zmode,'auto')
+        handles.data.ylim{axes_idx} = [];
+    end
 end
 if ~isempty(xlim)
     x_group = handles.data.Axes(axes_idx,9);
