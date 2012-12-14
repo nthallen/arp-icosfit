@@ -29,7 +29,8 @@ if data_ok
     nsamples = size(fe,1);
     plot(sv_axes(1),[1:nsamples],fe(:,1));
     set(sv_axes(1),'xticklabel',[]);
-    title(sv_axes(1),sprintf('Scan %d: %s', scan, getrun ));
+    title(sv_axes(1),sprintf('Scan %d: %s', scan, ...
+        getrun(0,handles.scan_viewer)));
 
     plot(sv_axes(2), [1:nsamples], fe(:,2));
     set(sv_axes(2),'YAxisLocation','right');

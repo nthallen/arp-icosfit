@@ -187,7 +187,7 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
         newplot(sv_axes(1))
         xlabel(sv_axes(1),xlab)
         ylabel(sv_axes(1),'Tau (\musec)')
-        title(sv_axes(1),getrun)
+        title(sv_axes(1),getrun(0,handles.scan_viewer))
         if AppData.FitDisplay == 1 || AppData.FitDisplay == 2
             line(xtau,AppData.taus(1).Tau*1e6,'Parent',sv_axes(1),'Color','b','LineStyle','none','Marker','.')
             text(0.02,0.98, ...
