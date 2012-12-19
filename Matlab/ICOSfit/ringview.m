@@ -1,6 +1,9 @@
-function ringview( scannum, wavenum )
-% ringview( [ scannum [, wavenum ]]] );
+function ringview( scannum, wavenum, basepath)
+% ringview( [ scannum [, wavenum[, basepath]]]] );
 % Reviews ringdown data.
+if nargin < 3
+    basepath = '';
+end
 PT = load('PT');
 [Waves,WaveRange] = waves_used;
 cell_cfg=load_cell_cfg;
@@ -27,7 +30,7 @@ wavenumi = struct2cell(WaveRange);
 wavenumi = cell2mat(squeeze(wavenumi(1,:,:)));
 
 roris = ~[ Waves(wavenums==wavenumi).ISICOS ];
-if nargin >= 2
+if nargin >= 2 && ~isempty(wavenum)
   roris = roris & (wavenums == wavenum)';
 else
 % now find(roris) has the ringdown entries
@@ -47,7 +50,7 @@ iring=find(PT.QCLI_Wave(idx)==wavenum);
 scannum=scannum(iring);
 idx=idx(iring);
 AppData.Waves = Waves(wavenum==wavenumi);
-AppData.base = find_scans_dir('');
+AppData.base = find_scans_dir(basepath);
 AppData.binary = 1;
 if size(scannum,1) > 1; scannum = scannum'; end
 AppData.scannum = scannum;
@@ -205,6 +208,7 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
         end
         yl=ylim(sv_axes(1));
         if yl(1) < 0; yl(1) = 0; end
+        if yl(2) <= yl(1); yl(2) = yl(1) + 1; end
         if yl(2) > 50; yl(2) = 50; end
         ylim(sv_axes(1),yl);
         %Calculate mean tau in select box region
