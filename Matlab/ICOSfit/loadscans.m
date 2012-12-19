@@ -1,5 +1,6 @@
 function [ base, etln, bkgd ] = loadscans(basepath, scannum, x, zero)
 % [ icos, etln, bkgd ] = loadscans(basepath, scannum[, x[, zero]]);
+% [icos, etln, bkgd] = loadscans(scannum);
 % Extracts a number of ICOS scans from the raw files.
 % base has length(x) rows and length(scannum) columns
 % x defaults to the entire scan;
@@ -15,6 +16,10 @@ if nargin < 4
 elseif zero ~= 0
   zero = 1;
 end
+if nargin == 1 && isnumeric(basepath)
+    scannum = basepath;
+    basepath = [];
+end
 basepath = find_scans_dir(basepath);
 
 nscans = length(scannum);
@@ -22,12 +27,12 @@ wv = waves_used(scannum);
 if length(wv) > 1
   error('More than one waveform used');
 end
-x0 = [5:wv.TzSamples];
+x0 = 5:wv.TzSamples;
 if isempty(x0)
   x0 = 1;
   zero = 0;
 end
-if length(x)
+if ~isempty(x)
   base = zeros(length(x), nscans);
   if nargout > 1
     etln = zeros(length(x), nscans );
@@ -39,7 +44,7 @@ for i=1:nscans
     error(['File not found: ' path]);
   end
   fe = loadbin(path);
-  if length(x) == 0
+  if isempty(x)
     x = 1:size(fe,1);
     base = zeros(length(x),nscans);
     if nargout > 1
