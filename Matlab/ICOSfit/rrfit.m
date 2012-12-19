@@ -53,7 +53,7 @@ if nargin < 2
 end
 AppData = handles.data.AppData;
 if ~isfield(AppData,'menus')
-    top_menu = uimenu(handles.figure,'Tag','rrfit','Label','rrfit');
+    top_menu = uimenu(handles.scan_viewer,'Tag','rrfit','Label','rrfit');
     cb = @rrfit_menu_callback;
     AppData.menus.Y = uimenu(top_menu,'Tag','Ymenu','Label','Y');
     AppData.menus.Y_signal = uimenu(AppData.menus.Y,'Tag','Y_signal','Label','Signal','Checked','on','Callback',cb);
@@ -64,7 +64,7 @@ if ~isfield(AppData,'menus')
     AppData.menus.X_sample = uimenu(AppData.menus.X,'Tag','X_sample','Label','Sample','Callback',cb);
     AppData.menus.Baselines = uimenu(top_menu,'Tag','Baselines','Label','Baselines','Callback',cb);
     handles.data.AppData = AppData;
-    guidata(handles.figure,handles);
+    guidata(handles.scan_viewer,handles);
 end
 scan = handles.data.Scans(handles.data.Index);
 path = mlf_path( AppData.base, scan, '.dat');
