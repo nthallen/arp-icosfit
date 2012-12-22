@@ -422,6 +422,17 @@ if strcmpi(motion,'horizontal') || strcmpi(motion,'both')
     elseif strcmp(zmode,'auto')
         handles.data.xlim{axes_idx} = [];
     end
+    x_group = handles.data.Axes(axes_idx,9);
+    for i = 1:length(handles.Axes)
+        if i ~= axes_idx && handles.data.Axes(i,9) == x_group
+            if isempty(xlim)
+                set(handles.Axes(i),'xlimmode','auto');
+            else
+                set(handles.Axes(i),'xlim',xlim);
+            end
+            handles.data.xlim{i} = xlim;
+        end
+    end
 end
 if strcmpi(motion,'vertical') || strcmpi(motion,'both')
     zmode = get(eventdata.Axes,'ylimmode');
@@ -430,15 +441,6 @@ if strcmpi(motion,'vertical') || strcmpi(motion,'both')
         handles.data.ylim{axes_idx} = ylim;
     elseif strcmp(zmode,'auto')
         handles.data.ylim{axes_idx} = [];
-    end
-end
-if ~isempty(xlim)
-    x_group = handles.data.Axes(axes_idx,9);
-    for i = 1:length(handles.Axes)
-        if i ~= axes_idx && handles.data.Axes(i,9) == x_group
-            set(handles.Axes(i),'xlim',xlim);
-            handles.data.xlim{i} = xlim;
-        end
     end
 end
 handles.data.SavedPreZoomState = handles.Pause;
