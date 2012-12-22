@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <assert.h>
+#include "clp.h"
 #include "mlf.h"
 #include "global.h"
 
@@ -19,6 +20,10 @@ int verbose = 8;
    verbose & 64 => output fringe positions in fit_fringes()
 */
 void ICOS_init() {
+  if (ShowVersion) {
+    printf("icosfit version %s, %s\n", ICOSFIT_VERSION, ICOSFIT_VERSION_DATE);
+    exit(0);
+  }
   #if HAVE_LIBMALLOC_G
 	mallopt(MALLOC_CKACCESS, 1);
 	mallopt(MALLOC_FILLAREA, 1);

@@ -6,6 +6,9 @@
 #include "funceval.h"
 #include "ptread.h"
 
+#define ICOSFIT_VERSION "2.11"
+#define ICOSFIT_VERSION_DATE "12/21/2012"
+
 class fitdata {
   public:
 	int BaseStart;

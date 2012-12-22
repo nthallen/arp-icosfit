@@ -177,6 +177,18 @@ int ICOSfile::read( unsigned long int fileno ) {
       fclose(fp);
       return 0;
     }
+    // Support for new SSP file format
+    if (header[0] == 0x10006 && header[1] > 255) {
+      unsigned long data[4];
+      if (fread(data, sizeof(unsigned long), 4, fp) != 4) {
+        nl_error( 2, "%s: Error reading SSP header: %s", mlf->fpath,
+          strerror(errno) );
+        fclose(fp);
+        return 0;
+      }
+      header[0] = header[1]>>16;
+      header[1] &= 0xFF;
+    }
     if ( header[0] <= 0 || header[1] <= 0 || header[1] > 3 ) {
       nl_error( 2, "%s: Invalid header ( %ld, %ld )", mlf->fpath,
         header[0], header[1] );

@@ -49,3 +49,6 @@
 2.10: 11/30/2012
  Corrected the pressure shift calculation.
 
+2.11: 12/21/2012
+ Added support for SSP format files
+
