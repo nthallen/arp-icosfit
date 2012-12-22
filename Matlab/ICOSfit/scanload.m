@@ -21,11 +21,5 @@ end
 if binary == 0
   fe = load(iifile);
 else
-  fid = fopen(iifile, 'r');
-  if fid < 0
-    error([ 'Unable to locate file "' ifile '"' ]);
-  end
-  [ dim, count ] = fread(fid,2,'uint32');
-  fe = fread(fid,dim','float32');
-  fclose(fid);
+  fe = loadbin(iifile);
 end
