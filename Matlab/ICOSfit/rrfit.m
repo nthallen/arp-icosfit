@@ -219,7 +219,7 @@ switch Tag(1)
             handles.data.Axes = AppData.Axes_B;
         end
         guidata(hObject,handles);
-        scan_viewer('figure_ResizeFcn',hObject,eventdata,handles);
+        scan_viewer('scan_viewer_ResizeFcn',hObject,eventdata,handles);
         handles = guidata(hObject);
         scan_viewer('scan_display',handles);
 end
