@@ -1,3 +1,50 @@
+2.12: 12/23/2012
+ Added Left and Right LineMargin options
+
+2.11: 12/21/2012
+ Added support for SSP format files
+
+2.10: 11/30/2012
+ Corrected the pressure shift calculation.
+ 
+2.9: 11/27/2012
+ Added CavityFixedLength and LineMarginMultiplier
+
+2.8: 11/09/2012
+ Removed most references to 'CPCI'
+
+2.7.2: 10/28/2012
+ Moved to arp-icosfit project
+ Added several isotopologues of CO2 needed for the Harvard
+ Carbon Isotopes Instrument.
+ 
+2.7.1: 9/11/2011
+ Fixed minor printf format problems revealed by -Wall
+ Added CFLAGS to generated Makefile to ensure use of -O2
+
+2.7: 6/15/2011
+ Resolved "const char" issues
+
+2.6:
+ Added additional values to get_molwt() for Isotopes of
+ CO2, N2O and CH4.
+
+2.5:
+ Support for BaselineFile = PATH + Input; for HHH
+
+2.4:
+ ptread.c Support for empty zero region
+
+2.3a:
+ funceval.c: get_molwt() Added molecular weights for CO2 and NO2
+
+2.3:
+ Added funcnoskew.c for Herriott cell absorption,
+  triggered by definition of N_Passes > 0
+ Added support for running on big-endian
+  architectures
+ Added annotated parameter dump on failure
+
 2.2 incorporates support for the baseline perturbation input file.
   2.2a fixes a problem with the icos_getrun script under cygwin
   2.2b Added retrieval of quickcpci tgz to icos_get*
@@ -7,48 +54,3 @@
        to ICOSconfig.m
   2.2f Add --RestartAt commandline option
   2.2g Changed baseline file format for non-polynomial fits
-
-2.3:
- Added funcnoskew.c for Herriott cell absorption,
-  triggered by definition of N_Passes > 0
- Added support for running on big-endian
-  architectures
- Added annotated parameter dump on failure
-
-2.3a:
- funceval.c: get_molwt() Added molecular weights for CO2 and NO2
-
-2.4:
- ptread.c Support for empty zero region
-
-2.5:
- Support for BaselineFile = PATH + Input; for HHH
-
-2.6:
- Added additional values to get_molwt() for Isotopes of
- CO2, N2O and CH4.
-
-2.7: 6/15/2011
- Resolved "const char" issues
- 
-2.7.1: 9/11/2011
- Fixed minor printf format problems revealed by -Wall
- Added CFLAGS to generated Makefile to ensure use of -O2
-
-2.7.2: 10/28/2012
- Moved to arp-icosfit project
- Added several isotopologues of CO2 needed for the Harvard
- Carbon Isotopes Instrument.
-
-2.8: 11/09/2012
- Removed most references to 'CPCI'
- 
-2.9: 11/27/2012
- Added CavityFixedLength and LineMarginMultiplier
-
-2.10: 11/30/2012
- Corrected the pressure shift calculation.
-
-2.11: 12/21/2012
- Added support for SSP format files
-
