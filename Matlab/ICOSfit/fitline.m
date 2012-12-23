@@ -443,7 +443,7 @@ elseif strcmp(varargin{1},'addsuffix')
     new_suffix = [ '.' new_suffix ];
   end
   
-  % Require suffix to be all letters
+  % Require suffix to be all letters and/or numbers
   if any(~(isletter(new_suffix(2:end))|isdigit(new_suffix(2:end))))
     errordlg('Invalid suffix');
     return;
@@ -727,7 +727,7 @@ lo = get(f,'UserData');
 for i = 1:length(line_obj.lines{1})
   lo.lines{1}(i).th = line_obj.lines{1}(i).th;
 end
-for fldnam = { 'Threshold', 'LineMargin', 'PTEFile', 'Baseline', 'Suffix', ...
+for fldnam = { 'Threshold', 'PTEFile', 'Baseline', 'Suffix', ...
     'CurRegion' }
   lo.(fldnam{1}) = line_obj.(fldnam{1});
 end
