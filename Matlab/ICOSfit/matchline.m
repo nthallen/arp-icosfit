@@ -98,16 +98,18 @@ if nargin == 0 || strcmp(op,'init')
   end
 
   % mfhw = 5;
-  Ndens = [ 1 0 0 0 0 0 ];
+  % Ndens = [ 1 0 0 0 0 0 ]; % Need a hook here for relative number density
+  Ndens = [ 1 0 0 1e-4 0 1e-4 ]; % Need a hook here for relative number density
   % run = getrun(1);
   
   try
-    fe = scanload( scan_start );
+    % fe = scanload( scan_start );
+    % f = fe(x,1);
+    f = loadscans([], scan_start, x);
   catch
     errordlg(lasterr);
     return
   end
-  f = fe(x,1);
   
   % resample to wavenumber scale
   % x -    sample numbers
@@ -153,8 +155,8 @@ if nargin == 0 || strcmp(op,'init')
   N = ceil((max(linewvno+3*Gvcalc)-min(linewvno-3*Gvcalc))/resolution);
   rswvno = (-1:N+1)*resolution + min(linewvno-3*Gvcalc);
   % resample (wvno,absorb) and extend to match linex.
-  nptsabs = floor((max(wvno)-min(wvno))/resolution);
-  rsabswvno = -(nptsabs:-1:0)*resolution;
+  %nptsabs = floor((max(wvno)-min(wvno))/resolution);
+  %rsabswvno = -(nptsabs:-1:0)*resolution;
   
   hlf = max(ceil( 1.8 * Gvcalc / resolution ));
   mfhw = min(ceil( .05 * Gvcalc / resolution ));
