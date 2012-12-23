@@ -379,10 +379,10 @@ int func_line::adjust_params( float alamda, float P, float T, float *a ) {
 }
 
 float func_line::line_start(float *a) {
-  return (nu_P - GlobalData.LineMarginMultiplier*get_param(a, w_idx));
+  return (nu_P - GlobalData.RightLineMarginMultiplier*get_param(a, w_idx));
 }
 float func_line::line_end(float *a) {
-  return (nu_P + GlobalData.LineMarginMultiplier*get_param(a, w_idx));
+  return (nu_P + GlobalData.LeftLineMarginMultiplier*get_param(a, w_idx));
 }
 
 int func_evaluator::line_check(int include, float& start, float& end,
@@ -448,7 +448,6 @@ void func_evaluator::print_indent( FILE *fp, int indent ) {
 // are still 'on'.
 int func_line::line_check(int include, float& start, float& end,
                     float P, float T, float *a ) {
-  float margin = GlobalData.LineMargin; // cm-1
   float ls = line_start(a);
   float le = line_end(a);
   func_line *next = lnext();
@@ -467,8 +466,8 @@ int func_line::line_check(int include, float& start, float& end,
       } else S_thresh = save_thresh;
     }
     if ( le < start || ls > end ) {
-      float lem = le+margin;
-      float lsm = ls-margin;
+      float lem = le+GlobalData.LeftLineMargin;
+      float lsm = ls-GlobalData.RightLineMargin;
       rv = 0;
       if ( ls < start && lem > start ) {
         start = lem; rv = 1;
@@ -502,8 +501,10 @@ int func_line::line_check(int include, float& start, float& end,
     if ( next != 0 && next->line_check( include, start, end, P, T, a ) )
       return 1;
     if ( ! param_fixed(n_idx) ) {
-      if ( start == 0. || ls-margin < start ) start = ls-margin;
-      if ( end == 0. || le+margin > end ) end = le+margin;
+      if ( start == 0. || ls-GlobalData.RightLineMargin < start )
+        start = ls-GlobalData.RightLineMargin;
+      if ( end == 0. || le+GlobalData.LeftLineMargin > end )
+        end = le+GlobalData.LeftLineMargin;
     }
   }
   return 0;

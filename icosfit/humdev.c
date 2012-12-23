@@ -69,10 +69,10 @@ void voigt::dump_params(float *a, int indent) {
 }
 
 float voigt::line_start(float*a) {
-  return (nu_P - GlobalData.LineMarginMultiplier*line_width(a));
+  return (nu_P - GlobalData.RightLineMarginMultiplier*line_width(a));
 }
 float voigt::line_end(float *a) {
-  return (nu_P + GlobalData.LineMarginMultiplier*line_width(a));
+  return (nu_P + GlobalData.LeftLineMarginMultiplier*line_width(a));
 }
 
 void voigt::evaluate( float xx, float *a ) {

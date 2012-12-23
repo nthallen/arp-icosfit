@@ -3,20 +3,23 @@ ConfigLine : ConfigCmd ';' .
 ConfigCmd :
   Linedef /
   'BackgroundRegion' '=' IntegerPair /
-  'SignalRegion' '=' IntegerPair /
-   '=' IntegerPair /
+  ScanNumRange '=' IntegerPair /
   'Restart' 'at' Integer opt_preserve /
   'nu0' '=' Integer /
   'FitFunction' '=' Ident /
   'MirrorLoss' '=' FloatVal opt_ppm /
-  'EtalonFSR' '=' FloatVal opt_cm /
+  'EtalonFSR' '=' FloatVal opt_wn /
   'MinimumFringeSpacing' '=' FloatVal /
   'DSFRLimits' '=' '[' FloatVal ',' FloatVal ']' /
-  'TolerableDrift' '=' FloatVal opt_cm /
-  'LineMargin' '=' FloatVal opt_cm /
+  'TolerableDrift' '=' FloatVal opt_wn /
+  'LineMargin' '=' FloatVal opt_wn /
+  'LeftLineMargin' '=' FloatVal opt_wn /
+  'RightLineMargin' '=' FloatVal opt_wn /
   'LineMarginMultiplier' '=' FloatVal /
-  'CavityLength' '=' FloatVal /
-  'CavityFixedLength' '=' FloatVal /
+  'LeftLineMarginMultiplier' '=' FloatVal /
+  'RightLineMarginMultiplier' '=' FloatVal /
+  'CavityLength' '=' FloatVal opt_cm /
+  'CavityFixedLength' '=' FloatVal opt_cm /
   'Sigma' '=' FloatVal /
   'QCLI_Wave' '=' Integer /
   'TuningRate' '=' FloatVal opt_tunerate /
@@ -40,7 +43,8 @@ Path : PathStr / Ident .
 IntegerPair : '[' Integer ',' Integer ']' .
 opt_BaselineInput : / '+' 'Input' .
 opt_ppm : / '%' / 'ppm' .
-opt_cm : / 'cm-1' .
+opt_wn : / 'cm-1' .
+opt_cm : / 'cm' .
 opt_preserve : / 'PreserveOutput' .
 opt_tunerate : / 'cm-1' '/' 'sample' .
 Frequency : / 'Hz' / 'kHz' / 'MHz' .

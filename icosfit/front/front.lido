@@ -46,25 +46,39 @@ END;
 RULE: ConfigCmd ::= 'DSFRLimits' '=' '[' FloatVal ',' FloatVal ']' COMPUTE
   SetGlobalPair( DSFRLimits, FloatVal[1].FVal, FloatVal[2].FVal );
 END;
-RULE: ConfigCmd ::= 'EtalonFSR' '=' FloatVal opt_cm COMPUTE
+RULE: ConfigCmd ::= 'EtalonFSR' '=' FloatVal opt_wn COMPUTE
   SetGlobal(EtalonFSR, FloatVal.FVal );
 END;
 RULE: ConfigCmd ::= 'MinimumFringeSpacing' '=' FloatVal COMPUTE
   SetGlobal(MinimumFringeSpacing, FloatVal.FVal );
 END;
-RULE: ConfigCmd ::= 'TolerableDrift' '=' FloatVal opt_cm COMPUTE
+RULE: ConfigCmd ::= 'TolerableDrift' '=' FloatVal opt_wn COMPUTE
   SetGlobal(TolerableDrift, FloatVal.FVal );
 END;
-RULE: ConfigCmd ::= 'LineMargin' '=' FloatVal opt_cm COMPUTE
-  SetGlobal(LineMargin, FloatVal.FVal );
+RULE: ConfigCmd ::= 'LineMargin' '=' FloatVal opt_wn COMPUTE
+  SetGlobal(LeftLineMargin, FloatVal.FVal);
+  SetGlobal(RightLineMargin, FloatVal.FVal);
 END;
 RULE: ConfigCmd ::= 'LineMarginMultiplier' '=' FloatVal COMPUTE
-  SetGlobal(LineMarginMultiplier, FloatVal.FVal );
+  SetGlobal(LeftLineMarginMultiplier, FloatVal.FVal);
+  SetGlobal(RightLineMarginMultiplier, FloatVal.FVal);
 END;
-RULE: ConfigCmd ::= 'CavityLength' '=' FloatVal COMPUTE
+RULE: ConfigCmd ::= 'LeftLineMargin' '=' FloatVal opt_wn COMPUTE
+  SetGlobal(LeftLineMargin, FloatVal.FVal);
+END;
+RULE: ConfigCmd ::= 'LeftLineMarginMultiplier' '=' FloatVal COMPUTE
+  SetGlobal(LeftLineMarginMultiplier, FloatVal.FVal);
+END;
+RULE: ConfigCmd ::= 'RightLineMargin' '=' FloatVal opt_wn COMPUTE
+  SetGlobal(RightLineMargin, FloatVal.FVal);
+END;
+RULE: ConfigCmd ::= 'RightLineMarginMultiplier' '=' FloatVal COMPUTE
+  SetGlobal(RightLineMarginMultiplier, FloatVal.FVal);
+END;
+RULE: ConfigCmd ::= 'CavityLength' '=' FloatVal opt_cm COMPUTE
   SetGlobal(CavityLength, FloatVal.FVal );
 END;
-RULE: ConfigCmd ::= 'CavityFixedLength' '=' FloatVal COMPUTE
+RULE: ConfigCmd ::= 'CavityFixedLength' '=' FloatVal opt_cm COMPUTE
   SetGlobal(CavityFixedLength, FloatVal.FVal );
 END;
 RULE: ConfigCmd ::= 'Sigma' '=' FloatVal COMPUTE

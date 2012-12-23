@@ -14,8 +14,10 @@ class GlobalData_t {
 	float EtalonFSR;
 	float MinimumFringeSpacing;
 	float TolerableDrift;
-	float LineMargin;
-  float LineMarginMultiplier;
+  float LeftLineMargin;
+  float LeftLineMarginMultiplier;
+  float RightLineMargin;
+  float RightLineMarginMultiplier;
 	float DSFRLimits[2];
 	float CavityLength;
   float CavityFixedLength;
