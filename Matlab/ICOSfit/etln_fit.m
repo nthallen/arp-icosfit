@@ -115,6 +115,7 @@ handles.data.indexes = 1:length(handles.data.scans);
 handles.data.peakx = [];
 handles.data.Xdflt = X;
 handles.data.Xlast = [];
+handles.data.Ylast = [];
 handles.data.X = X;
 handles.data.Y = [];
 handles.data.samples = range_dflt;
@@ -132,7 +133,7 @@ handles.data.rxs = (1:length(range_dflt))'*1e-3;
 handles.data.Op = optimset('lsqcurvefit');
 handles.data.Op = ...
   optimset(handles.data.Op,'Jacobian', 'on','TolFun',.1, ...
-  'MaxFunEvals',100,'Display','off','Algorithm','levenberg-marquardt');
+  'MaxFunEvals',100,'Display','off','Algorithm',{'levenberg-marquardt',1});
 
 if handles.data.X(6) == 0
     set(handles.dblexp,'Value',0);
@@ -361,6 +362,7 @@ while 1
   if handles.data.index > 0 && handles.data.figerr >= 0 && ...
       handles.data.figerr < handles.data.threshold
     handles.data.Xlast = handles.data.X;
+    handles.data.Ylast = handles.data.Y;
     i = handles.data.index;
     if handles.data.saveall
       fprintf( handles.data.ofd, ...
@@ -530,6 +532,7 @@ while 1
           set(zh,'Enable','on');
           return;
         else
+          handles.data.Y(1:7) = handles.data.X;
           handles.data.level = 3;
         end
       end
@@ -617,8 +620,9 @@ while 1
         interact = dopause == 1;
         return;
       elseif handles.data.fitpass == 1 && isempty(handles.data.peakx) && ...
-          ~any(isnan(handles.data.Y(1:7)))
-        handles.data.X = handles.data.Y(1:7);
+          ~isempty(handles.data.Ylast) && ...
+          ~any(isnan(handles.data.Ylast(1:7)))
+        handles.data.X = handles.data.Ylast(1:7);
         handles.data.fitpass = 2;
       elseif handles.data.fitpass <= 2 && ~isempty(handles.data.Xlast);
         handles.data.X = handles.data.Xlast;
