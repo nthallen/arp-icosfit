@@ -21,7 +21,7 @@ for i=1:length(dirs)
   if exist(fname, 'file')
     cur = cd;
     cd( dirs{i} );
-    cell_cfg = Cell_Config;
+    cell_cfg = eval('Cell_Config;');
     cd( cur );
     loaded = 1;
     break;
