@@ -9,10 +9,6 @@ function varargout = get_waveform_params( waveform, varargin )
 
 % Parameters currently in use include:
 % matchline:
-%   'hlf', 24
-%   'mfhw', 1
-%   'cv_hlf', 10
-%   'cv_mfhw', 1
 %   'holdoff', 4e-4
 %   'SignalRegion', [round(wv.TzSamples + holdoff*SampleRate): ...
 %                          wv.NetSamples - wv.TzSamples - 1]
@@ -21,7 +17,6 @@ function varargout = get_waveform_params( waveform, varargin )
 %   'X', [10.2817    48.3    0   -2.6921  .1645924   -3.7796   .0689779 ]
 %   'SignalRegion', [wv.TzSamples+100:wv.NetSamples-wv.TzSamples-20]
 %   'threshold', .07
-%  (etln_fit7 used to use 'range' instead of 'SignalRegion')
 %
 % sensitivity:
 %   'holdoff', 4e-4
@@ -44,7 +39,7 @@ else
   structout = 0;
 end
 fname = findinpath( [ waveform '_etln.mat' ], { '.', '..', '../..' } );
-if length(fname)
+if ~isempty(fname)
   fprintf(1, 'Reading waveform configuration from %s\n', fname );
   vals = load(fname);
 else
