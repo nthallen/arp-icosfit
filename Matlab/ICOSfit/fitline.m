@@ -17,7 +17,7 @@ function lo_out = fitline( varargin )
 
 filename = 'fitline.mat';
 load_only = 0;
-update_regions = 0;
+updt_regions = 0;
 if nargin > 0
   if strcmp(varargin{1},'load')
       load_only = 1;
@@ -26,7 +26,7 @@ if nargin > 0
       end
   elseif strcmp(varargin{1},'update_regions')
       load_only = 1;
-      update_regions = 1;
+      updt_regions = 1;
   end
 end
 if nargin == 0 || load_only
@@ -57,11 +57,16 @@ if nargin == 0 || load_only
     if ~exist( 'lines', 'var' )
       error('Unable to locate fitline.dat');
     end
+    hitran = cell(size(lines,1),1);
     for i=1:size(lines,1)
-      line_st(i) = struct('hitran', {lines(i,:)}, ...
-        'en', 1, 'fd', 1, 'fl', 1, 'ml', 1, 'fp', 0, 'te', 0, 'th', 0 );
+      hitran{i} = lines(i,:);
     end
-    line_obj.lines = line_st; % was { line_st };
+    line_obj.lines = struct('hitran', hitran, ...
+        'en', 1, 'fd', 1, 'fl', 1, 'ml', 1, 'fp', 0, 'te', 0, 'th', 0 );
+%      line_st(i) = struct('hitran', {lines(i,:)}, ...
+%        'en', 1, 'fd', 1, 'fl', 1, 'ml', 1, 'fp', 0, 'te', 0, 'th', 0 );
+%    end
+%    line_obj.lines = line_st; % was { line_st };
     line_obj.Threshold = 1e-6;
     line_obj.PTEFile = 'PTE.txt';
     line_obj.Baseline = 'sbase.cubic';
@@ -77,7 +82,7 @@ if nargin == 0 || load_only
     line_obj = rmfield(line_obj,'Filename');
   end
   line_obj.reg_fig = 0;
-  if update_regions
+  if updt_regions
       line_obj = update_regions(line_obj, varargin{2:end});
   end
   if load_only
@@ -146,11 +151,11 @@ if nargin == 0 || load_only
   pos = get(b,'extent');
   pos(3) = pos(3)+10;
   set(b,'position',[lpos height pos([3 4]) ]);
-  lpos = lpos + pos(3) + 10;
+  % lpos = lpos + pos(3) + 10;
 
   height = maxheight-40;
   br_x = te_x + 130;
-  width = 0;
+  % width = 0;
   width = max([uitext(f,'Suffix:',br_x, height,'fontweight','bold')
      uitext(f,'PTEFile:',br_x, height-30,'fontweight','bold')
      uitext(f,'BaselineFile:', br_x, height-60,'fontweight','bold')
@@ -168,7 +173,7 @@ if nargin == 0 || load_only
     'Callback','fitline(''addsuffix'')', 'position', [br_xx height-160 150 20]);
   uicontrol(f,'style','pushbutton','string','Matchline', ...
     'Callback','fitline(''matchline'')', 'position', [br_xx height-190 150 20]);
-  height = height - 220;
+  % height = height - 220;
   pos = get(f,'position');
   pos(3) = br_xx + 170;
   pos(4) = maxheight + 10;
@@ -291,8 +296,8 @@ elseif strcmp(varargin{1},'editregions')
       ylabel('fringes');
       xlabel('Scan Number');
       for i=1:3
-        axes(ro.ax(i));
-        ylim(ylim);
+        % axes(ro.ax(i));
+        ylim(ro.ax(i), ylim(ro.ax(i)));
         set(ro.ax(i),'ButtonDownFcn','fitline(''reg_click'')');
       end
       ro.scan = [];
@@ -445,7 +450,7 @@ elseif strcmp(varargin{1},'reg_exit')
   end
   return
 elseif strcmp(varargin{1},'addsuffix')
-  [h,rf] = gcbo;
+  [~,rf] = gcbo;
   new_suffix = inputdlg('New Suffix:', 'New Suffix', 1 );
   new_suffix = new_suffix{1};
 
@@ -528,13 +533,13 @@ else
 end
 str = sprintf('%g',thresh);
 th = findobj(f,'tag','th','UserData',i);
-if length(th)
+if ~isempty(th)
   set(th,'string','str');
 else
   thlbl = findobj(f,'tag','thlbl');
   lblpos = get(thlbl,'position');
   pos = get(te,'position');
-  th = uicontrol(f,'style','edit','string',str,'tag','th','UserData',i, ...
+  uicontrol(f,'style','edit','string',str,'tag','th','UserData',i, ...
     'position',[ lblpos(1)+20 pos(2) 70 20 ]);
 end
 return;
@@ -543,7 +548,7 @@ function rm_th(te)
 f = get(te,'parent');
 i = get(te,'UserData');
 h = findobj(f,'tag','th','UserData',i);
-if length(h)
+if ~isempty(h)
   delete(h);
 end
 return;
@@ -558,14 +563,14 @@ if nargin >= 7 && inc_subdirs
   end
   files = [ files; sdfiles ];
 end
-files = files(find(~[files.isdir]));
-if length(files) == 0
+files = files(~[files.isdir]);
+if isempty(files)
   files = { lo.(lofld) };
 else
   files = { files.name };
 end
 val = find(strcmp(files,lo.(lofld)));
-if length(val) == 0
+if isempty(val)
   lo.(lofld) = files{1};
   val = 1;
 end
@@ -580,7 +585,8 @@ files = { files.name };
 for i=1:length(files)
   files{i} = files{i}(8:end-4);
 end
-files = { '', files{:} };
+%files = { '', files{:} };
+files = [ {''} files ];
 if nargin < 4
   cursuff = lo.Suffix;
 end
@@ -616,7 +622,7 @@ val = find(strcmp(strs,str));
 set(h,'value',val);
 return
 
-function width = uitext(f,str,x,y,varargin);
+function width = uitext(f,str,x,y,varargin)
 % Displays the specified string at the specified position, adjusting
 % for it's width
 h = uicontrol(f,'style','text','string',str,varargin{:});
@@ -630,20 +636,20 @@ function ro_out = reg_update_cursor(rf, ro)
 % based on ro.Regions.CurRegion
 % Given current setting of ro.scan, delete existing
 % cursor lines and draw new ones.
-if length(ro.scan) == 0
+if isempty(ro.scan)
   ro.scan = ro.Regions(ro.CurRegion).scan;
-  if length(ro.scan) == 0
+  if isempty(ro.scan)
     ro.scan = [ min(ro.data.scan) max(ro.data.scan) ];
   end
 end
-idx = min(find(ro.data.scan>=ro.scan(1)));
-if length(idx) == 0
+idx = find(ro.data.scan>=ro.scan(1), 1 );
+if isempty(idx)
   errordlg('Somehow ran out of scans on the left');
   return
 end
 ro.scan(1) = ro.data.scan(idx);
-idx = max(find(ro.data.scan<=ro.scan(2)));
-if length(idx) == 0
+idx = find(ro.data.scan<=ro.scan(2), 1, 'last' );
+if isempty(idx)
   errordlg('Somehow ran out of scans on the right');
   return
 end
@@ -657,12 +663,13 @@ for h=ro.lines(:)
     delete(h);
   end
 end
+ro.lines = zeros(3,2);
 for i=1:3
-  axes(ro.ax(i));
-  hold on;
-  yl = ylim;
-  ro.lines(i,1) = plot(ro.scan(1)*[1 1],ylim,'k--');
-  ro.lines(i,2) = plot(ro.scan(2)*[1 1],ylim,'k--');
+  % axes(ro.ax(i));
+  hold(ro.ax(i), 'on');
+  yl = ylim(ro.ax(i));
+  ro.lines(i,1) = plot(ro.ax(i), ro.scan(1)*[1 1],yl,'k--');
+  ro.lines(i,2) = plot(ro.ax(i), ro.scan(2)*[1 1],yl,'k--');
 end
 set(rf,'UserData',ro);
 ro_out = ro;
@@ -783,6 +790,16 @@ for h = hte'
 end
 return;
 
-function update_regions(line_obj, varargin)
+function line_obj = update_regions(line_obj, varargin)
 % add_regions( name, scan[, ...])
+for i=1:2:length(varargin)-1
+    n = find(strcmp({line_obj.Regions.name}, varargin{i}));
+    if isempty(n)
+        line_obj.Regions(end+1) = ...
+            struct('name', varargin{i}, 'scan', varargin{i+1});
+    else
+        line_obj.Regions(n).scan = varargin{i+1};
+    end
+end
+save fitline.mat line_obj
 return;
