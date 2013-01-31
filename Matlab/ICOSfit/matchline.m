@@ -77,15 +77,15 @@ if nargin == 0 || strcmp(op,'init')
     return
   end
   if ~wv.ISICOS
-    wv
+    disp(wv);
     errordlg('Specified scan is not an ICOS scan');
     return;
   end
   SampleRate = round(wv.RawRate/wv.NAverage);
   % fprintf(1,'Waveform is %s\n',wv.Name);
   
-  [ mfhw, cv_hlf, cv_mfhw, holdoff, x, LineMargin, LineMarginMultiplier ] = get_waveform_params( wv.Name, ...
-    'mfhw', 1, 'cv_hlf', 10, 'cv_mfhw', 1, 'holdoff', 4e-4, ...
+  [ holdoff, x, LineMargin, LineMarginMultiplier ] = get_waveform_params( wv.Name, ...
+    'holdoff', 4e-4, ...
     'SignalRegion', [], ...
     'LineMargin', 0.05, 'LineMarginMultiplier',8 );
   if isempty(x)
@@ -106,8 +106,8 @@ if nargin == 0 || strcmp(op,'init')
     % fe = scanload( scan_start );
     % f = fe(x,1);
     f = loadscans([], scan_start, x);
-  catch
-    errordlg(lasterr);
+  catch err
+    errordlg(err);
     return
   end
   
@@ -202,7 +202,7 @@ if nargin == 0 || strcmp(op,'init')
     cv_mfhw = 1;
     cvpk = peakfind( -cv', cv_hlf, cv_mfhw, .05 );
     pkht = cv(cvpk(:,2));
-    [ spkht, I ] = sort(-pkht);
+    [ ~, I ] = sort(-pkht);
     spk = cvpk(I,2);
     if size(spk,1)>1
       spk = spk';
@@ -285,7 +285,6 @@ else
     return
   end
 end
-return;
 end
 
 function draw_lines(ml_obj)
