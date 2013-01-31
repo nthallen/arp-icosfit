@@ -88,10 +88,10 @@ for i=1:length(suffix)
         k=1;
         letter=char('a'-1);
         while (strcmp(foundline,'F'))
-            if [lo.lines{1}(k).hitran(1)*10+lo.lines{1}(k).hitran(2)]==iso;
+            if [lo.lines(k).hitran(1)*10+lo.lines(k).hitran(2)]==iso;
                 letter=char(letter+1);
             end
-            if lo.lines{1}(k).hitran(3)==lines(j,3)
+            if lo.lines(k).hitran(3)==lines(j,3)
                 foundline='T';
             end
             k=k+1;

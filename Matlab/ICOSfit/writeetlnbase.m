@@ -27,7 +27,7 @@ function [ nu_out, Vout ] = writeetlnbase( name, p_coeffs, c_nu, ...
 % I will use the fitline lines to determine a
 % suitably large range for nu in the fit.
 lo = fitline('load');
-lines = lo.lines{1};
+lines = lo.lines; % depends on fitline update
 nuc = zeros(length(lines));
 for i=1:length(lines)
   nuc(i) = lines(i).hitran(1,3);

@@ -1,5 +1,7 @@
 function lo_out = fitline( varargin )
 % fitline; start up the gui
+% line_obj = fitline('load'); 
+% fitline('update_regions', name, scan[, ...]);
 % fitline(args) various callback functions
 
 % Update to support suffixes
@@ -14,13 +16,18 @@ function lo_out = fitline( varargin )
 %  modifiable parameters
 
 filename = 'fitline.mat';
-if nargin > 0 && strcmp(varargin{1},'load')
-  load_only = 1;
-  if nargin > 1
-    filename = varargin{2};
+load_only = 0;
+update_regions = 0;
+if nargin > 0
+  if strcmp(varargin{1},'load')
+      load_only = 1;
+      if nargin > 1
+        filename = varargin{2};
+      end
+  elseif strcmp(varargin{1},'update_regions')
+      load_only = 1;
+      update_regions = 1;
   end
-else
-  load_only = 0;
 end
 if nargin == 0 || load_only
   % initialize the GUI
@@ -35,7 +42,11 @@ if nargin == 0 || load_only
       break;
     end
   end
-  if ~exist( 'line_obj', 'var' )
+  if exist( 'line_obj', 'var' )
+    if iscell(line_obj.lines)
+      line_obj.lines = line_obj.lines{1};
+    end
+  else
     fl = { 'fitline.dat', '../fitline.dat' };
     for i=1:length(fl)
       if exist( fl{i}, 'file' )
@@ -50,7 +61,7 @@ if nargin == 0 || load_only
       line_st(i) = struct('hitran', {lines(i,:)}, ...
         'en', 1, 'fd', 1, 'fl', 1, 'ml', 1, 'fp', 0, 'te', 0, 'th', 0 );
     end
-    line_obj.lines = { line_st };
+    line_obj.lines = line_st; % was { line_st };
     line_obj.Threshold = 1e-6;
     line_obj.PTEFile = 'PTE.txt';
     line_obj.Baseline = 'sbase.cubic';
@@ -66,11 +77,16 @@ if nargin == 0 || load_only
     line_obj = rmfield(line_obj,'Filename');
   end
   line_obj.reg_fig = 0;
-  if load_only
-    lo_out = line_obj;
-    return;
+  if update_regions
+      line_obj = update_regions(line_obj, varargin{2:end});
   end
-  lines = line_obj.lines{1};
+  if load_only
+      if nargout > 0
+        lo_out = line_obj;
+      end
+      return;
+  end
+  lines = line_obj.lines;
   f = figure('visible','off');
   set(f,'UserData',line_obj,'tag','fitline');
   set(f, 'Name', [ 'fitline' line_obj.Suffix ], 'Numbertitle', 'off');
@@ -503,7 +519,7 @@ return
 function add_th(te,use_default)
 f = get(te,'parent');
 line_obj = get(f,'UserData');
-lines = line_obj.lines{1};
+lines = line_obj.lines;
 i = get(te,'UserData');
 if use_default
   thresh = line_obj.Threshold;
@@ -686,7 +702,7 @@ for j = 1:length(fields)
   tag = fields{j};
   h = findobj(f,'tag',tag);
   for i = 1:length(h)
-    line_obj.lines{1}(get(h(i),'UserData')).(tag) = get(h(i),'value');
+    line_obj.lines(get(h(i),'UserData')).(tag) = get(h(i),'value');
   end
 end
 h = findobj(f,'tag','region');
@@ -700,7 +716,7 @@ for i = 1:length(h)
     line_obj = [];
     return;
   end
-  line_obj.lines{1}(ln).th = val;
+  line_obj.lines(ln).th = val;
 end
 line_obj.PTEFile = get_popup_val(f,'pte');
 line_obj.Baseline = get_popup_val(f,'base');
@@ -713,7 +729,7 @@ for j = 1:length(fields)
   tag = fields{j};
   h = findobj(f,'tag',tag);
   for i = 1:length(h)
-    set(h(i),'value', line_obj.lines{1}(get(h(i),'UserData')).(tag));
+    set(h(i),'value', line_obj.lines(get(h(i),'UserData')).(tag));
     if strcmp(tag,'te')
       rm_th(h(i));
     end
@@ -724,8 +740,8 @@ set_popup_val(f,'pte',line_obj.PTEFile);
 set_popup_val(f,'base',line_obj.Baseline);
 update_line_obj(f);
 lo = get(f,'UserData');
-for i = 1:length(line_obj.lines{1})
-  lo.lines{1}(i).th = line_obj.lines{1}(i).th;
+for i = 1:length(line_obj.lines)
+  lo.lines(i).th = line_obj.lines(i).th;
 end
 for fldnam = { 'Threshold', 'PTEFile', 'Baseline', 'Suffix', ...
     'CurRegion' }
@@ -765,4 +781,8 @@ for h = hte'
     rm_th(h);
   end
 end
-return
+return;
+
+function update_regions(line_obj, varargin)
+% add_regions( name, scan[, ...])
+return;

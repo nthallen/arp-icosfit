@@ -131,9 +131,9 @@ if nargin == 0 || strcmp(op,'init')
 
   T = PTE(i,3); % Kelvin
   P = PTE(i,2); % Torr
-  lines = reshape([ line_obj.lines{1}.hitran ],9,[])';
-  % lines = lines(find([ line_obj.lines{1}.ml ]),:);
-  lines = lines( [line_obj.lines{1}.ml] ~= 0, : );
+  lines = reshape([ line_obj.lines.hitran ],9,[])';
+  % lines = lines(find([ line_obj.lines.ml ]),:);
+  lines = lines( [line_obj.lines.ml] ~= 0, : );
 
   % Line width calculations copied from ICOSsetup.m
   iso = lines(:,1)*10 + lines(:,2);
@@ -303,9 +303,9 @@ pk = ml_obj.spk(ml_obj.cur_pk);
 % interpolating:
 linesample = floor(interp1(ml_obj.wvno+ml_obj.cvx(pk),ml_obj.x,ml_obj.linewvno)+.5);
 linebase = interp1(ml_obj.x,ml_obj.base,linesample);
-ln_idx = find([ml_obj.line_obj.lines{1}.ml]);
+ln_idx = find([ml_obj.line_obj.lines.ml]);
 for i=1:length(linesample);
-  if ml_obj.Ndens(ml_obj.line_obj.lines{1}(ln_idx(i)).hitran(1)) > 0
+  if ml_obj.Ndens(ml_obj.line_obj.lines(ln_idx(i)).hitran(1)) > 0
     plot([linesample(i) linesample(i)], ...
       [min(ml_obj.f-Xy) linebase(i)-polyval(XV,linesample(i))], 'r'); 
   end
@@ -366,7 +366,7 @@ fprintf( fid, '# Fix Doppler;\n' );
 fprintf( fid, '# Fix Lorentz;\n' );
 fprintf( fid, 'nu0 = %d;\n', floor(min(ml_obj.linewvno)));
 fprintf( fid, 'Lines = {\n' );
-ldefs = ml_obj.line_obj.lines{1};
+ldefs = ml_obj.line_obj.lines;
 lines = reshape([ ldefs.hitran ],9,[])';
 ml = [ ldefs.ml ];
 lsidx = cumsum(ml);
