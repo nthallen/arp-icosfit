@@ -16,7 +16,7 @@ for j = 1:length(dirs);
     % with forward slashes.
     savedir = pwd;
     cd(dirs{j});
-     eval(['run ' path]);
+    eval(['run ' path]);
     cd(savedir);
     return;
   end
