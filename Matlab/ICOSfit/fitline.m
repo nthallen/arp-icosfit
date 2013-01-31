@@ -1,4 +1,4 @@
-function lo_out = fitline( varargin );
+function lo_out = fitline( varargin )
 % fitline; start up the gui
 % fitline(args) various callback functions
 
@@ -178,10 +178,10 @@ elseif strcmp(varargin{1},'te')
 elseif strcmp(varargin{1},'save')
   f = get(gcbo,'parent');
   line_obj = update_line_obj(f);
-  if length(line_obj)
+  if ~isempty(line_obj)
     save fitline.mat line_obj
     suff = line_obj.Suffix;
-    if length(suff)
+    if ~isempty(suff)
       fname = [ 'fitline' suff '.mat' ];
       save( fname, 'line_obj' );
     end
@@ -191,7 +191,7 @@ elseif strcmp(varargin{1},'matchline')
   fitline('save');
   f = get(gcbo,'parent');
   line_obj = update_line_obj(f);
-  if length(line_obj)
+  if ~isempty(line_obj)
     matchline('init',line_obj);
   end
   return
@@ -199,7 +199,7 @@ elseif strcmp(varargin{1},'editregions')
   f = get(gcbo,'parent');
   line_obj = update_line_obj(f);
   % Create a new figure (or make the current regions figure active)
-  if length(line_obj)
+  if ~isempty(line_obj)
     if line_obj.reg_fig && ishandle(line_obj.reg_fig)
       set(line_obj.reg_fig,'visible','on');
       figure(line_obj.reg_fig);
@@ -310,7 +310,7 @@ elseif strcmp(varargin{1},'reg_click')
     cp = get(ax,'CurrentPoint');
     newx = cp(1,1);
     dist = abs(ro.scan-newx);
-    which = min(find(dist == min(dist)));
+    which = find(dist == min(dist), 1 );
     ro.scan(which) = newx;
     ro.modified = 1;
     h = findobj(rf,'Label','Save');
@@ -398,7 +398,7 @@ elseif strcmp(varargin{1},'reg_create')
     ro = get(rf,'UserData');
   end
   name = inputdlg('Name:','Region Create',[1 20]);
-  if length(name) > 0 && length(name{1}) > 0
+  if ~isempty(name) && ~isempty(name{1})
     % now check for uniqueness
     if any(strcmp({ro.Regions.name}, name{1}))
       errordlg(['Region name "' name{1} '" already in use']);
@@ -434,7 +434,7 @@ elseif strcmp(varargin{1},'addsuffix')
   new_suffix = new_suffix{1};
 
   % ignore empty string
-  if length(new_suffix) == 0
+  if isempty(new_suffix)
     return;
   end
 
@@ -475,7 +475,7 @@ elseif strcmp(varargin{1},'suffixcallback')
   suff = get(h,'string');
   suff = suff{get(h,'value')};
   lo.Suffix = suff;
-  if length(suff)
+  if ~isempty(suff)
     load([ 'fitline' suff '.mat']);
     update_from_line_obj(rf,line_obj);
   else
@@ -491,7 +491,7 @@ elseif strcmp(varargin{1},'region')
   end
   lo_out = lo.Regions(rno).scan;
   PTE = load(lo.PTEFile);
-  if length(lo_out) == 0
+  if isempty(lo_out)
     lo_out = [min(PTE(:,1)) max(PTE(:,1))];
   end
   lo_out = PTE(PTE(:,1)>=lo_out(1) & PTE(:,1)<=lo_out(2),1);
