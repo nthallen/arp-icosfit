@@ -603,11 +603,13 @@ while 1
       cla(handles.axes3);
       colors = [ 1 1 1;
         0 1 0;
+        .5 1 0;
         1 1 0;
         1 .5 0;
         1 0 0 ];
       C = zeros(1, length(handles.data.passes), 3);
-      C(1,:,:) = colors(handles.data.passes+1,:);
+      % C(1,:,:) = colors(handles.data.passes+1,:);
+      C(1,:,:) = interp1([0; 1; 4.5], [1 1 1; 0 1 0; 1 0 0], handles.data.passes);
       image(C,'Parent',handles.axes3);
       %plot(handles.data.indexes,handles.data.passes);
       set(handles.axes3,'XTickLabel',[],'YTickLabel',[],'Visible','on',...
@@ -615,19 +617,34 @@ while 1
       dopause = get(handles.Pause, 'Value');
       % dopause values are: 1: stop always, 2: stop on failure, 3: skip on
       % failure
-      if handles.data.figerr >=0 && handles.data.figerr < handles.data.threshold
+      if handles.data.figerr >=0 && ...
+              handles.data.figerr < handles.data.threshold && ...
+              handles.data.Y(12) > 0
         set(handles.next_btn,'String','Next');
         interact = dopause == 1;
         return;
-      elseif handles.data.fitpass == 1 && isempty(handles.data.peakx) && ...
+      elseif handles.data.Y(12) < 0 && ...
+           handles.data.figerr >=0 && ...
+           handles.data.figerr < handles.data.threshold && ...
+           handles.data.fitpass == floor(handles.data.fitpass)
+        handles.data.Y(12) = -handles.data.Y(12);
+        handles.data.Y(8:11) = handles.data.Y(8:11)/(1 - handles.data.Y(12));
+        handles.data.Y(1) = handles.data.Y(1) + .5;
+        handles.data.fitpass = handles.data.fitpass + .5;
+      elseif handles.data.figerr >= 0 && ...
+              handles.data.Y(12) < 0 && ...
+              handles.data.fitpass == floor(handles.data.fitpass)
+        handles.data.Y(12) = -handles.data.Y(12);
+        handles.data.fitpass = handles.data.fitpass + .5;
+      elseif handles.data.fitpass < 2 && isempty(handles.data.peakx) && ...
           ~isempty(handles.data.Ylast) && ...
           ~any(isnan(handles.data.Ylast(1:7)))
         handles.data.X = handles.data.Ylast(1:7);
         handles.data.fitpass = 2;
-      elseif handles.data.fitpass <= 2 && ~isempty(handles.data.Xlast);
+      elseif handles.data.fitpass < 3 && ~isempty(handles.data.Xlast);
         handles.data.X = handles.data.Xlast;
         handles.data.fitpass = 3;
-      elseif handles.data.fitpass <= 3
+      elseif handles.data.fitpass < 4
         handles.data.X = handles.data.Xdflt;
         handles.data.fitpass = 4;
       else
@@ -639,7 +656,9 @@ while 1
         end
         return;
       end
-      handles.data.level = 1;
+      if handles.data.fitpass ~= floor(handles.data.fitpass)
+          handles.data.level = 1;
+      end
       guidata(hObject,handles);
       update_X_to_fig(handles);
   end
