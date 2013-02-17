@@ -2,6 +2,7 @@ function lo_out = fitline( varargin )
 % fitline; start up the gui
 % line_obj = fitline('load'); 
 % fitline('update_regions', name, scan[, ...]);
+% fitline('show_regions');
 % fitline(args) various callback functions
 
 % Update to support suffixes
@@ -18,6 +19,7 @@ function lo_out = fitline( varargin )
 filename = 'fitline.mat';
 load_only = 0;
 updt_regions = 0;
+show_regions = 0;
 if nargin > 0
   if strcmp(varargin{1},'load')
       load_only = 1;
@@ -27,6 +29,9 @@ if nargin > 0
   elseif strcmp(varargin{1},'update_regions')
       load_only = 1;
       updt_regions = 1;
+  elseif strcmp(varargin{1},'show_regions')
+      load_only = 1;
+      show_regions = 1;
   end
 end
 if nargin == 0 || load_only
@@ -84,6 +89,15 @@ if nargin == 0 || load_only
   line_obj.reg_fig = 0;
   if updt_regions
       line_obj = update_regions(line_obj, varargin{2:end});
+  elseif show_regions
+      for i = 1:length(line_obj.Regions)
+          R = line_obj.Regions(i);
+          if isempty(R.scan)
+              fprintf(1,'%6s: [ ]\n', R.name);
+          else
+              fprintf(1,'%6s: [ %5d %5d ]\n', R.name, R.scan(1), R.scan(2));
+          end
+      end
   end
   if load_only
       if nargout > 0
