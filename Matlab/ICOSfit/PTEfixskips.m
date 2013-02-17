@@ -8,6 +8,7 @@ fr = PTE(:,5)+PTE(:,8)+PTE(:,10);
 dfr = cumsum([ 0; round(diff(fr))]);
 nfr = fr - dfr;
 PTE(:,5) = PTE(:,5)-dfr;
-plot(PTE(:,1),fr,PTE(:,1),nfr);
+figure;
+plot(PTE(:,1),fr,'.-',PTE(:,1),nfr,'.-');
 legend('before', 'after');
 save(ofile, 'PTE', '-ASCII');
