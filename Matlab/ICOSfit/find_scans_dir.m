@@ -1,4 +1,4 @@
-function base = find_scans_dir( base_in, ICOSfit );
+function base = find_scans_dir( base_in, ICOSfit )
 % base = find_scan_dir(base_in [, ICOSfit]);
 % Finds the appropriate base directory for log files
 % If the ICOSfit argument is provided and is non-zero, the
@@ -7,11 +7,11 @@ function base = find_scans_dir( base_in, ICOSfit );
 if nargin < 1
   base_in = '';
 end
-if length(base_in)
+if ~isempty(base_in)
   if exist(base_in,'dir')
     base = base_in;
   else
-    error(sprintf('Input base "%s" is not a directory', base_in));
+    error('Input base "%s" is not a directory', base_in);
   end
 else
     ICOSfit_cfg = load_ICOSfit_cfg;
