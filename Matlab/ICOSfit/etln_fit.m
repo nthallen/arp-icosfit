@@ -65,6 +65,7 @@ function etln_fit_OpeningFcn(hObject, ~, handles, varargin)
 handles.output = hObject;
 handles.data.ofile = 'PTE.txt';
 handles.data.saveall = 0;
+SR = [];
 for i=1:2:length(varargin)-1
   if strcmpi(varargin{i},'SCANNUM')
     handles.data.scans = varargin{i+1};
@@ -72,6 +73,8 @@ for i=1:2:length(varargin)-1
     handles.data.ofile = varargin{i+1};
   elseif strcmpi(varargin{i},'SAVEALL')
     handles.data.saveall = varargin{i+1};
+  elseif strcmpi(varargin{i},'SignalRegion')
+    SR = varargin{i+1};
   end
 end
 wv = waves_used(handles.data.scans);
@@ -108,6 +111,9 @@ end
   'X', [10.2817    48.3    0   -2.6921  .1645924   -3.7796   .0689779 ], ...
   'SignalRegion', wv.TzSamples+100:wv.NetSamples-wv.TzSamples-20, ...
   'threshold', .07  );
+if ~isempty(SR)
+    range_dflt = SR;
+end
 handles.data.prefilterwidth = prefilterwidth;
 set(handles.prefilterwidth,'String',num2str(prefilterwidth));
 handles.data.ScanNumdir = find_scans_dir([]);
@@ -533,6 +539,9 @@ while 1
           return;
         else
           handles.data.Y(1:7) = handles.data.X;
+          V = polyfit(px, handles.data.peaky, 3);
+          pwr = polyval(V,handles.data.rxs);
+          handles.data.Y(8:12) = [ V'; max(pwr./handles.data.raw - 1) ];
           handles.data.level = 3;
         end
       end
@@ -617,6 +626,9 @@ while 1
       dopause = get(handles.Pause, 'Value');
       % dopause values are: 1: stop always, 2: stop on failure, 3: skip on
       % failure
+      if handles.data.Y(5) < 0.05 || handles.data.Y(7) < 0.07
+          handles.data.figerr = 2*handles.data.threshold;
+      end
       if handles.data.figerr >=0 && ...
               handles.data.figerr < handles.data.threshold && ...
               handles.data.Y(12) > 0
@@ -656,7 +668,7 @@ while 1
         end
         return;
       end
-      if handles.data.fitpass ~= floor(handles.data.fitpass)
+      if handles.data.fitpass == floor(handles.data.fitpass)
           handles.data.level = 1;
       end
       guidata(hObject,handles);
