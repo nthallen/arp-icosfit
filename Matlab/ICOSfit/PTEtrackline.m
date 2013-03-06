@@ -26,8 +26,8 @@ end
 % fr = PTE(v,5)+PTE(v,8)+PTE(v,10)
 dfr = cumsum([ 0; round(diff(fr))]);
 nfr = fr - dfr;
-PTEout = PTE(idx,:);
-PTEout(v,5) = PTEout(v,5)-dfr;
+PTEout = PTE(idx(v),:);
+PTEout(:,5) = PTEout(:,5)-dfr;
 figure;
 ax = zeros(2,1);
 ax(1) = nsubplot(2,1,1); plot(ax(1), PTE(idx(v),1),fr,'.-',PTE(idx(v),1),nfr,'.-');
