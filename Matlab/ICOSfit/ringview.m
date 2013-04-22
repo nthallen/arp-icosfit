@@ -62,14 +62,17 @@ AppData.StartSerNum = hdr.SerialNum;
 AppData.idx = idx;
 AppData.wavenum = wavenum;
 %Setup x vector in microsec, correlation shift, and delay.
+%Need to get first scan in range in case x changed.
+path = mlf_path( AppData.base, AppData.scannum(1), '.dat');
+[fe, hdr] = loadbin(path);
 xdata=1/AppData.Waves.RawRate*AppData.Waves.NAverage*[1:length(fe(:,1))];
 AppData.dt =  mean(diff(xdata));
 AppData.n = 2; %Correlation shift
-AppData.delay = 3.5e-6; %Delay in seconds of the VtoI/electronics
+AppData.delay = 3.9e-6; %Delay in seconds of the VtoI/electronics
 AppData.skip = ceil(AppData.Waves.TzSamples + AppData.delay*AppData.Waves.RawRate); %number of points to skip
 AppData.xdata=xdata-xdata(AppData.skip);  
-if size(fe,1) > AppData.skip+1000
-    AppData.fitv = [AppData.skip:1000]';  %points to include in fit
+if size(fe,1) > AppData.skip+1300
+    AppData.fitv = [AppData.skip:1300]';  %points to include in fit
 else
     AppData.fitv = [AppData.skip:length(fe(:,1))]';
 end
@@ -209,7 +212,8 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
         yl=ylim(sv_axes(1));
         if yl(1) < 0; yl(1) = 0; end
         if yl(2) <= yl(1); yl(2) = yl(1) + 1; end
-        if yl(2) > 50; yl(2) = 50; end
+        if yl(1) > 50; yl(1) = 50; end
+        if yl(2) > 50; yl(2) = 51; end
         ylim(sv_axes(1),yl);
         %Calculate mean tau in select box region
         if ~isempty(AppData.tauwindow.x)
