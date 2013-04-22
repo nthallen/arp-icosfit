@@ -68,7 +68,7 @@ path = mlf_path( AppData.base, AppData.scannum(1), '.dat');
 xdata=1/AppData.Waves.RawRate*AppData.Waves.NAverage*[1:length(fe(:,1))];
 AppData.dt =  mean(diff(xdata));
 AppData.n = 2; %Correlation shift
-AppData.delay = 3.9e-6; %Delay in seconds of the VtoI/electronics
+AppData.delay = 4.5e-6; %Delay in seconds of the VtoI/electronics
 AppData.skip = ceil(AppData.Waves.TzSamples + AppData.delay*AppData.Waves.RawRate); %number of points to skip
 AppData.xdata=xdata-xdata(AppData.skip);  
 if size(fe,1) > AppData.skip+1300
