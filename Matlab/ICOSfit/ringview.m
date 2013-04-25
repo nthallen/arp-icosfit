@@ -105,6 +105,7 @@ nanscsam = zeros(nsamples,nscans)*NaN;
 AppData.taus = struct('Name',{'auto','nonlin'}, ...
     'Tau',{nansc,nansc}, ...
     'Std',{nansc,nansc}, ...
+    'Amp',{nansc,nansc}, ...
     'Fit',{nanscsam,nanscsam}, ...
     'MeanTau',{[],[]}, ...
     'ScanNum',{AppData.scannum,AppData.scannum}, ...
@@ -113,6 +114,9 @@ AppData.taus = struct('Name',{'auto','nonlin'}, ...
     'Etalon',{nansc}, ...
     'Status',{nansc} );
 
+%-------------------------------------------------------------
+% ringview_callback() where the real work is done
+%-------------------------------------------------------------
 function ringview_callback(handles, sv_axes)
 if nargin < 2
     sv_axes = handles.Axes;
@@ -208,15 +212,22 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
             V = fitlin(fe(AppData.fitv,1), AppData.n);
             b = V(2);
             a = V(5);
-            tau = AppData.n*AppData.dt/log(b);
+            tau = AppData.n*AppData.dt./log(V(1:3));
+            trialx = exp(-AppData.xdata(AppData.fitv)/tau(2));
             z = a/(1-b);
-            trialx = exp(-AppData.xdata(AppData.fitv)/tau);
             k = sum((fe(AppData.fitv,1)'-z).*trialx)./sum(trialx.*trialx);
+            % V = polyfit(trialx, fe(AppData.fitv,1)', 1);
+            % z = V(2);
+            % k = V(1);
             fit = z+k*trialx;
-            std1 = sqrt(V(4));
-            AppData.taus(1).Tau(iscan) = tau;
+            %std1 = 1e6 * (tau(1)-tau(3))/2;
+            %std1 = sqrt(V(4));
+            std1 = std(fe(AppData.fitv,1)'-fit);
+            AppData.taus(1).Tau(iscan) = tau(2);
             AppData.taus(1).Std(iscan) = std1;
+            AppData.taus(1).Amp(iscan) = k;
             AppData.taus(1).Fit(:,iscan) = fit;
+            tau = tau(2);
             
             % Now do a non-linear logarithmic fit
             V = [ k tau z ];
@@ -229,6 +240,7 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
             AppData.taus(2).Tau(iscan) = tau2;
             AppData.taus(2).Std(iscan) = std2;
             AppData.taus(2).Fit(:,iscan) = fit2;
+            AppData.taus(2).Amp(iscan) = k2;
             handles.data.AppData = AppData;
             guidata(handles.scan_viewer,handles)
         end
