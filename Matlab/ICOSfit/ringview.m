@@ -74,6 +74,7 @@ AppData.FitDisplay = 2;
 AppData.TauDisplay = 1;
 AppData.DerivativeSkip = 10;
 AppData.ResidualDisplay = 0;
+AppData.FitLength = 40e-6; % in seconds
 AppData = ringview_init_taus(AppData);
 
 AppData.Axes = [
@@ -89,9 +90,11 @@ AppData.tauwindow.x = [];
 AppData.tauwindow.y = [];
 AppData.skip = ceil(AppData.delay * AppData.Waves.RawRate / ...
     AppData.Waves.NAverage); %number of points to skip
-AppData.xdata = AppData.Tdata - AppData.Tdata(AppData.skip);  
-if length(AppData.xdata) > AppData.skip+1300
-    AppData.fitv = (AppData.skip:1300)';  %points to include in fit
+AppData.xdata = AppData.Tdata - AppData.Tdata(AppData.skip);
+FitSamples = ceil(AppData.FitLength * AppData.Waves.RawRate / ...
+    AppData.Waves.NAverage);
+if length(AppData.xdata) > AppData.skip+FitSamples
+    AppData.fitv = (AppData.skip:AppData.skip+FitSamples)';
 else
     AppData.fitv = (AppData.skip:length(AppData.xdata))';
 end
@@ -307,10 +310,10 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
         if AppData.FitDisplay == 3
             sk = AppData.DerivativeSkip;
             xn = 1:length(AppData.xdata) - sk;
-            der = fe(xn+sk,1) - fe(xn,1);
+            der = (fe(xn+sk,1) - fe(xn,1))/sk;
             xd = (AppData.xdata(xn+sk)+AppData.xdata(xn))/2;
             plot(sv_axes(2),xd*1e6,der,'k.-');
-            ylabel(sv_axes(2),'dPower');
+            ylabel(sv_axes(2),'dPower/dSample');
             line(xlim(sv_axes(2)),[0 0], ...
                 'Color','k','LineStyle',':','Parent',sv_axes(2));
         elseif AppData.ResidualDisplay == 0
@@ -422,6 +425,7 @@ switch Tag(1)
         end
         set(AppData.menus.Fit_residuals,'Checked',res);
         handles.data.AppData = AppData;
+        handles.data.ylim{2} = [];
         guidata(hObject,handles);
         scan_viewer('scan_display',handles);
     case 'T'
@@ -478,16 +482,24 @@ switch Tag(1)
     case 'P'
         answer = inputdlg( ...
             { 'Delay in usecs', ...
-              'Correlation Offset in samples'
+              'Fit Length in usecs', ...
+              'Correlation Offset in samples', ...
+              'Derivative Offset in samples'
             }, 'Ringview Properties', 1, ...
             { sprintf('%.1f', AppData.delay * 1e6), ...
-              num2str(AppData.n)
+              num2str(AppData.FitLength*1e6), ...
+              num2str(AppData.n), ...
+              num2str(AppData.DerivativeSkip) ...
             } );
-        AppData.delay = str2double(answer{1}) * 1e-6;
-        AppData.n = round(str2double(answer{2}));
-        AppData = ringview_init_taus(AppData);
-        handles.data.AppData = AppData;
-        guidata(hObject,handles);
-        handles = guidata(hObject);
-        scan_viewer('scan_display',handles);
+        if ~isempty(answer)
+            AppData.delay = str2double(answer{1}) * 1e-6;
+            AppData.FitLength = str2double(answer{2}) * 1e-6;
+            AppData.n = round(str2double(answer{3}));
+            AppData.DerivativeSkip = round(str2double(answer{4}));
+            AppData = ringview_init_taus(AppData);
+            handles.data.AppData = AppData;
+            guidata(hObject,handles);
+            handles = guidata(hObject);
+            scan_viewer('scan_display',handles);
+        end
 end
