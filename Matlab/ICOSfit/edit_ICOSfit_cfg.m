@@ -45,7 +45,7 @@ end
 
 
 % --- Executes just before edit_ICOSfit_cfg is made visible.
-function edit_ICOSfit_cfg_OpeningFcn(hObject, eventdata, handles, varargin)
+function edit_ICOSfit_cfg_OpeningFcn(hObject, ~, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -79,7 +79,7 @@ uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = edit_ICOSfit_cfg_OutputFcn(hObject, eventdata, handles) 
+function varargout = edit_ICOSfit_cfg_OutputFcn(~, ~, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -89,7 +89,7 @@ function varargout = edit_ICOSfit_cfg_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 delete(handles.figure1);
 
-function Matlab_Path_Callback(hObject, eventdata, handles)
+function Matlab_Path_Callback(~, ~, ~)
 % hObject    handle to Matlab_Path (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -99,7 +99,7 @@ function Matlab_Path_Callback(hObject, eventdata, handles)
 
 
 % --- Executes during object creation, after setting all properties.
-function Matlab_Path_CreateFcn(hObject, eventdata, handles)
+function Matlab_Path_CreateFcn(hObject, ~, ~)
 % hObject    handle to Matlab_Path (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -112,7 +112,7 @@ end
 
 
 
-function ICOSfit_Path_Callback(hObject, eventdata, handles)
+function ICOSfit_Path_Callback(~, ~, ~)
 % hObject    handle to ICOSfit_Path (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -122,7 +122,7 @@ function ICOSfit_Path_Callback(hObject, eventdata, handles)
 
 
 % --- Executes during object creation, after setting all properties.
-function ICOSfit_Path_CreateFcn(hObject, eventdata, handles)
+function ICOSfit_Path_CreateFcn(hObject, ~, ~)
 % hObject    handle to ICOSfit_Path (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -135,7 +135,7 @@ end
 
 
 
-function WavesFile_Callback(hObject, eventdata, handles)
+function WavesFile_Callback(~, ~, ~)
 % hObject    handle to WavesFile (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -145,7 +145,7 @@ function WavesFile_Callback(hObject, eventdata, handles)
 
 
 % --- Executes during object creation, after setting all properties.
-function WavesFile_CreateFcn(hObject, eventdata, handles)
+function WavesFile_CreateFcn(hObject, ~, ~)
 % hObject    handle to WavesFile (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -158,7 +158,7 @@ end
 
 
 
-function ScanDir_Callback(hObject, eventdata, handles)
+function ScanDir_Callback(~, ~, ~)
 % hObject    handle to ScanDir (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -168,7 +168,7 @@ function ScanDir_Callback(hObject, eventdata, handles)
 
 
 % --- Executes during object creation, after setting all properties.
-function ScanDir_CreateFcn(hObject, eventdata, handles)
+function ScanDir_CreateFcn(hObject, ~, ~)
 % hObject    handle to ScanDir (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -181,7 +181,7 @@ end
 
 
 % --- Executes on selection change in popupmenu1.
-function popupmenu1_Callback(hObject, eventdata, handles)
+function popupmenu1_Callback(~, ~, ~)
 % hObject    handle to popupmenu1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -191,7 +191,7 @@ function popupmenu1_Callback(hObject, eventdata, handles)
 
 
 % --- Executes during object creation, after setting all properties.
-function popupmenu1_CreateFcn(hObject, eventdata, handles)
+function popupmenu1_CreateFcn(hObject, ~, ~)
 % hObject    handle to popupmenu1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -204,7 +204,7 @@ end
 
 
 % --- Executes on button press in Save_btn.
-function Save_btn_Callback(hObject, eventdata, handles)
+function Save_btn_Callback(hObject, ~, handles)
 % hObject    handle to Save_btn (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -224,11 +224,12 @@ fprintf(fd, 'ICOSfit_cfg.ICOSfit_Path = ''%s'';\n', ICOSfit_cfg.ICOSfit_Path );
 fprintf(fd, 'ICOSfit_cfg.WavesFile = ''%s'';\n', ICOSfit_cfg.WavesFile );
 fprintf(fd, 'ICOSfit_cfg.ScanDir = ''%s'';\n', ICOSfit_cfg.ScanDir );
 fclose(fd);
+clear ICOSfit_Config
 uiresume(handles.figure1);
 
 
 % --- Executes when user attempts to close figure1.
-function figure1_CloseRequestFcn(hObject, eventdata, handles)
+function figure1_CloseRequestFcn(~, ~, handles)
 % hObject    handle to figure1 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
