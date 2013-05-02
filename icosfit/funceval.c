@@ -463,7 +463,11 @@ int func_line::line_check(int include, float& start, float& end,
       if ( ls >= start && le <= end ) {
         nl_error(0, "Raised threshold on line %d near boundary",
                       line_number );
-      } else S_thresh = save_thresh;
+      } else {
+        nl_error( 0, "Fixing line %d (%.4f,%.4f)",
+                          line_number, ls, le );
+        S_thresh = save_thresh;
+      }
     }
     if ( le < start || ls > end ) {
       float lem = le+GlobalData.LeftLineMargin;
