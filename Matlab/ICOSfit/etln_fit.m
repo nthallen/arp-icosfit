@@ -106,11 +106,13 @@ if handles.data.ofd == -1
 end
 
 % Get existing configuration
-[ prefilterwidth, X, range_dflt, threshold ] = get_waveform_params( wv.Name, ...
-  'prefilterwidth', 5, ...
-  'X', [10.2817    48.3    0   -2.6921  .1645924   -3.7796   .0689779 ], ...
-  'SignalRegion', wv.TzSamples+100:wv.NetSamples-wv.TzSamples-20, ...
-  'threshold', .07  );
+[ prefilterwidth, X, range_dflt, threshold, TauLims ] = ...
+    get_waveform_params( wv.Name, ...
+      'prefilterwidth', 5, ...
+      'X', [10.2817    48.3    0   -2.6921  .1645924   -3.7796   .0689779 ], ...
+      'SignalRegion', wv.TzSamples+100:wv.NetSamples-wv.TzSamples-20, ...
+      'threshold', .07, ...
+      'TauLims', [.05 .01 1.0]);
 if ~isempty(SR)
     range_dflt = SR;
 end
@@ -126,6 +128,7 @@ handles.data.X = X;
 handles.data.Y = [];
 handles.data.samples = range_dflt;
 handles.data.threshold = threshold;
+handles.data.TauLims = TauLims;
 set(handles.threshold,'String',num2str(handles.data.threshold));
 handles.data.figerrs = nan * handles.data.scans;
 handles.data.passes = 0*handles.data.scans;
@@ -146,6 +149,12 @@ if handles.data.X(6) == 0
 else
     set(handles.dblexp,'Value',1);
 end
+top_menu = uimenu(handles.figure1,'Tag','TopMenu','Label','Properties');
+uimenu(top_menu,'Tag','TauLimits','Label','Tau Limits', ...
+    'Callback', @Set_Tau_Limits_Callback);
+uimenu(top_menu,'Tag','Defaults','Label','Save Defaults', ...
+    'Callback', @defaults_menu_Callback);
+
 handles.data.polling = 0;
 handles.data.Xcolor.full = [1 1 1];
 handles.data.Xcolor.fit = [.8 .8 .8];
@@ -574,14 +583,41 @@ while 1
           emdl = etln_evalJ(handles.data.Y,handles.data.rxs);
           P = polyval(handles.data.Y(8:11),handles.data.rxs);
           handles.data.figerr = std(etln-emdl)/(max(etln)-min(etln));
+          tauerr = '';
+          %------------------------------------------------------
+          % This is a check on the calculated lifetimes (tau1 & 2)
+          % I'd like to make sure neither gets too small or too
+          % large. Probably the first thing to do is make sure
+          % tau1 < tau2 and swap them if not. Then I'd like to put
+          % a lower bound and an upper bound.
+          %------------------------------------------------------
+          if dblexp && handles.data.Y(5) > handles.data.Y(7)
+              tauswap = handles.data.Y([6 7]);
+              handles.data.Y([6 7]) = handles.data.Y([4 5]);
+              handles.data.Y([4 5]) = tauswap;
+          end
+          if handles.data.Y(5) < handles.data.TauLims(1)
+              tauerr = ': Tau Value(s) below minimum threshold';
+          elseif dblexp && ...
+                  handles.data.Y(5) + handles.data.TauLims(2) > ...
+                  handles.data.Y(7)
+              tauerr = ': Tau Values do not meet minimum spacing';
+          elseif handles.data.Y(5) > handles.data.TauLims(3) || ...
+                  (dblexp && handles.data.Y(7) > handles.data.TauLims(3))
+              tauerr = ': Tau Value(s) exceed maximum threshold';
+          end
+          if ~isempty(tauerr)
+              handles.data.figerr = 2*handles.data.threshold;
+          end
+          
           handles.data.figerrs(handles.data.index) = handles.data.figerr;
           cla(handles.axes2);
           plot(handles.axes2, handles.data.indexes,handles.data.figerrs);
           set(handles.axes2,'XTickLabel',[],'YTickLabel',[], ...
             'xlim', [1 length(handles.data.scans)+1], ...
             'ylim', [0 handles.data.threshold], 'visible','on');
-          title(handles.axes2, sprintf('Relative Error: %.2g', ...
-              handles.data.figerr));
+          title(handles.axes2, sprintf('Relative Error: %.2g%s', ...
+              handles.data.figerr, tauerr));
         else
           handles.data.figerr = -1;
           handles.data.figerrs(handles.data.index) = nan;
@@ -626,9 +662,7 @@ while 1
       dopause = get(handles.Pause, 'Value');
       % dopause values are: 1: stop always, 2: stop on failure, 3: skip on
       % failure
-      if handles.data.Y(5) < 0.05 || handles.data.Y(7) < 0.07
-          handles.data.figerr = 2*handles.data.threshold;
-      end
+      
       if handles.data.figerr >=0 && ...
               handles.data.figerr < handles.data.threshold && ...
               handles.data.Y(12) > 0
@@ -639,6 +673,7 @@ while 1
            handles.data.figerr >=0 && ...
            handles.data.figerr < handles.data.threshold && ...
            handles.data.fitpass == floor(handles.data.fitpass)
+       % Negative finesse
         handles.data.Y(12) = -handles.data.Y(12);
         handles.data.Y(8:11) = handles.data.Y(8:11)/(1 - handles.data.Y(12));
         handles.data.Y(1) = handles.data.Y(1) + .5;
@@ -751,6 +786,10 @@ end
 warning('on','MATLAB:rankDeficientMatrix');
 delete(handles.figure1);
 
+function defaults_menu_Callback(hObject, eventdata)
+handles = guidata(hObject);
+defaults_btn_Callback(hObject, eventdata, handles);
+
 % --- Executes on button press in defaults_btn.
 function defaults_btn_Callback(hObject, ~, handles)
 if handles.data.level == 3
@@ -759,7 +798,8 @@ if handles.data.level == 3
 end
 waveform = handles.data.wv.Name;
 save_waveform_params( waveform, 'threshold', handles.data.threshold, ...
-  'prefilterwidth', handles.data.prefilterwidth,'X', handles.data.X );
+  'prefilterwidth', handles.data.prefilterwidth,'X', handles.data.X, ...
+  'TauLims', handles.data.TauLims );
 
 % --- Executes on button press in dblexp.
 function dblexp_Callback(hObject, ~, handles)
@@ -787,7 +827,7 @@ end
 
 
 % --- Executes during object creation, after setting all properties.
-function peakfit_panel_CreateFcn(hObject, eventdata, handles)
+function peakfit_panel_CreateFcn(~, ~, ~)
 % hObject    handle to peakfit_panel (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -831,7 +871,7 @@ end
 
 
 % --- Executes on slider movement.
-function Slider_Callback(hObject, eventdata, handles)
+function Slider_Callback(hObject, ~, handles)
 % hObject    handle to Slider (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -842,6 +882,22 @@ set(handles.Slider,'Value',0);
 handles.data.polling = 0;
 guidata(hObject,handles);
 
+function Set_Tau_Limits_Callback(hObject, ~)
+handles = guidata(hObject);
+answer = inputdlg( ...
+    { 'Minimum', ...
+      'Maximum', ...
+      'Spacing'
+    }, 'Tau Limit Properties', 1, ...
+    { sprintf('%.2f', handles.data.TauLims(1)), ...
+      sprintf('%.2f', handles.data.TauLims(3)), ...
+      sprintf('%.2f', handles.data.TauLims(2)) });
+if ~isempty(answer)
+    handles.data.TauLims(1) = str2double(answer{1});
+    handles.data.TauLims(3) = str2double(answer{2});
+    handles.data.TauLims(2) = str2double(answer{3});
+    guidata(hObject,handles);
+end
 
 % % --- If Enable == 'on', executes on mouse press in 5 pixel border.
 % % --- Otherwise, executes on mouse press in 5 pixel border or over X5.
