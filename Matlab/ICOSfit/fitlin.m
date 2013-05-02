@@ -1,4 +1,4 @@
-function V = fitlin( v, n );
+function V = fitlin( v, n )
 % V = fitlin( v , n );
 %  v  exponential decay plus offset
 %  n  number of samples to offset for the fit (defaults to 1)
@@ -9,24 +9,23 @@ function V = fitlin( v, n );
 %         z = a/(1-b);
 
 if size(v,2) ~= 1
-  error(['Input vector v must be a column vector']);
+  error('Input vector v must be a column vector');
 end
 npts = length(v);
 
 if npts < 1+n
-  error(['Input vector not long enough']);
+  error('Input vector not long enough');
 end
 y = v(1:(npts-n));
 x = v((1+n):npts);
 V = linfit(x,y);
 
 
-function V = linfit( X, Y );
+function V = linfit( X, Y )
 % V = linfit( x, y );
 % Returns the 1x5 vector V with b- b b+ s2 a from the
 % least-squares line through the points specified by vectors
 % x and y assuming that x and y both have error that is equal
-testing = 0;
 mX = mean(X);
 mY = mean(Y);
 x = X - mX;
