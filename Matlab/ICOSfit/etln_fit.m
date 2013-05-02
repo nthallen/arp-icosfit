@@ -149,10 +149,13 @@ if handles.data.X(6) == 0
 else
     set(handles.dblexp,'Value',1);
 end
-top_menu = uimenu(handles.figure1,'Tag','TopMenu','Label','Properties');
-uimenu(top_menu,'Tag','TauLimits','Label','Tau Limits', ...
+handles.top_menu = uimenu(handles.figure1,'Tag','TopMenu','Label','Properties');
+uimenu(handles.top_menu,'Tag','TauLimits','Label','Tau Limits', ...
     'Callback', @Set_Tau_Limits_Callback);
-uimenu(top_menu,'Tag','Defaults','Label','Save Defaults', ...
+handles.NoPlot_menu = ...
+    uimenu(handles.top_menu,'Tag','NoPlot', ...
+    'Label','NoPlot', 'Callback', @NoPlot_Callback);
+uimenu(handles.top_menu,'Tag','Defaults','Label','Save Defaults', ...
     'Callback', @defaults_menu_Callback);
 
 handles.data.polling = 0;
@@ -561,6 +564,7 @@ while 1
       etln = handles.data.raw;
       % [ Y, resnorm,residual,exitflag,output ] = ...
       set_fitting(handles,1);
+      DoPlot = strcmp(get(handles.NoPlot_menu,'Checked'),'off');
       if max(etln) - min(etln) > .1
         dblexp = get(handles.dblexp,'Value');
         if dblexp
@@ -631,18 +635,22 @@ while 1
       handles.data.passes = update_passes(handles,handles.data.fitpass);
       % handles.data.passes(handles.data.index) = handles.data.fitpass;
       guidata(hObject,handles);
-      update_Y_to_fig(handles);
-      % axes(handles.axes1);
-      cla(handles.axes1);
-      handles.data.peakpts = [];
-      if handles.data.figerr >= 0
-        plot(handles.axes1, handles.data.samples, etln, 'g', ...
-          handles.data.samples, emdl, 'b', ...
-          handles.data.samples, P, 'r');
-      else
-        plot(handles.axes1, handles.data.samples, etln, 'g' );
+      if DoPlot
+        update_Y_to_fig(handles);
       end
-      xlabel(handles.axes1, 'Sample');
+      % axes(handles.axes1);
+      handles.data.peakpts = [];
+      if DoPlot
+          cla(handles.axes1);
+          if handles.data.figerr >= 0
+              plot(handles.axes1, handles.data.samples, etln, 'g', ...
+                  handles.data.samples, emdl, 'b', ...
+                  handles.data.samples, P, 'r');
+          else
+              plot(handles.axes1, handles.data.samples, etln, 'g' );
+          end
+          xlabel(handles.axes1, 'Sample');
+      end
 
       % axes(handles.axes3);
       cla(handles.axes3);
@@ -898,6 +906,15 @@ if ~isempty(answer)
     handles.data.TauLims(2) = str2double(answer{3});
     guidata(hObject,handles);
 end
+
+function NoPlot_Callback(hObject, ~)
+handles = guidata(hObject);
+if strcmp(get(handles.NoPlot_menu,'Checked'),'on')
+    checked = 'off';
+else
+    checked = 'on';
+end
+set(handles.NoPlot_menu, 'Checked', checked);
 
 % % --- If Enable == 'on', executes on mouse press in 5 pixel border.
 % % --- Otherwise, executes on mouse press in 5 pixel border or over X5.
