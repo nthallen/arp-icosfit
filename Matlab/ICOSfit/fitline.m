@@ -167,6 +167,11 @@ if nargin == 0 || load_only
   pos(3) = pos(3)+10;
   set(b,'position',[lpos height pos([3 4]) ]);
   lpos = lpos + pos(3) + 10;
+  b = uicontrol(f,'style','pushbutton','string','Save Default','Callback','fitline(''default'')');
+  pos = get(b,'extent');
+  pos(3) = pos(3)+10;
+  set(b,'position',[lpos height pos([3 4]) ]);
+  lpos = lpos + pos(3) + 10;
   b = uicontrol(f,'style','pushbutton','string','Enable All','Callback','fitline(''enable'')');
   pos = get(b,'extent');
   pos(3) = pos(3)+10;
@@ -221,14 +226,21 @@ elseif strcmp(varargin{1},'te')
   else
     rm_th(te);
   end
-elseif strcmp(varargin{1},'save')
+elseif strcmp(varargin{1},'save') || strcmp(varargin{1},'default')
   f = get(gcbo,'parent');
   line_obj = update_line_obj(f);
+  svdir = '';
+  if strcmp(varargin{1},'default')
+      svdir = '../';
+      line_obj.Regions = line_obj.Regions(1);
+      line_obj.Regions.name = 'all';
+      line_obj.Regions.scan = [];
+  end
   if ~isempty(line_obj)
-    save fitline.mat line_obj
+    save( [svdir 'fitline.mat'], 'line_obj');
     suff = line_obj.Suffix;
     if ~isempty(suff)
-      fname = [ 'fitline' suff '.mat' ];
+      fname = [ svdir 'fitline' suff '.mat' ];
       save( fname, 'line_obj' );
     end
   end
