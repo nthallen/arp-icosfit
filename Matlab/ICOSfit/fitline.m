@@ -51,6 +51,17 @@ if nargin == 0 || load_only
     if iscell(line_obj.lines)
       line_obj.lines = line_obj.lines{1};
     end
+    % This is for backwards compatibility:
+    if ~isfield(line_obj.Regions,'scan')
+        if isfield(line_obj.Regions,'cpci')
+            for i=1:length(line_obj.Regions)
+                line_obj.Regions(i).scan = line_obj.Regions(i).cpci;
+            end
+            line_obj.Regions = rmfield(line_obj.Regions,'cpci');
+        else
+            line_obj.Regions(1).scan = [];
+        end
+    end
   else
     fl = { 'fitline.dat', '../fitline.dat' };
     for i=1:length(fl)
@@ -606,7 +617,11 @@ if nargin < 4
 end
 val = find(strcmp(files,cursuff));
 if isempty(val)
-  errordlg('cursuff not found. Using no suffix');
+  h = errordlg( ...
+      sprintf('File fitline.%s.mat not found. Using no suffix', ...
+      cursuff), ...
+      'Suffix configuration not found','modal');
+  waitfor(h);
   cursuff = '';
   lo.Suffix = cursuff;
   set(f,'UserData',lo);
