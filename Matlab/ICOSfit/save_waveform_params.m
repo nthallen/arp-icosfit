@@ -15,6 +15,7 @@ function save_waveform_params( waveform, varargin )
 %   'X', [10.2817    48.3    0   -2.6921  .1645924   -3.7796   .0689779 ]
 %   'SignalRegion', [wv.TzSamples+100:wv.NetSamples-wv.TzSamples-20]
 %   'threshold', .07
+%   'TauLims', [.05 .01 1.0] (min, spacing, max)
 %  (etln_fit7 used to use 'range' instead of 'SignalRegion')
 %
 % sensitivity:
