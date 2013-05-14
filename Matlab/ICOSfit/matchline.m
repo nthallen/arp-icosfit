@@ -141,7 +141,7 @@ if nargin == 0 || strcmp(op,'init')
   Gair = lines(:,5); % air-broadend halfwidth at Tref, Pref
   Pdelta = lines(:,8);
   linenu = lines(:,3);
-  linewvno = linenu + Pdelta*(1-P/760.); % corrected for pressure shift...
+  linewvno = linenu + Pdelta*(P/760.-1); % corrected for pressure shift...
   Gedcalc = 4.30213e-7 * linenu .* sqrt(T./molwts);
   STdep = lines(:,7);
   T0 = 296.;
