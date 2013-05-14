@@ -73,7 +73,7 @@ data_ok = (~isempty(fe));
 if data_ok
     % AppData.plotbase = strcmp(get(AppData.menus.Baselines,'Checked'),'on');
     i=find(AppData.scannum==scan);
-    lpos = AppData.nu + AppData.delta*(1-AppData.P_vec(i)/760.) ...
+    lpos = AppData.nu + AppData.delta*(AppData.P_vec(i)/760. - 1) ...
               - AppData.fitdata(i,AppData.v);
     if AppData.nu0 ~= 0
       lpos = lpos + AppData.nu_F0(i);
