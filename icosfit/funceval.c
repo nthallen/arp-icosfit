@@ -317,7 +317,7 @@ int func_line::adjust_params( float alamda, float P, float T, float *a ) {
     double Spt = S * pow(Tref/T, 1.5) * exp(-C2*E/T) * (1-exp(-C2*nu/T))
             * Corr_Tref;
     Ks = Spt * GlobalData.CavityLength * DRTPI; 
-    nu_P = nu1 + delta * (1 - P/760.);
+    nu_P = nu1 + delta * (P/760. - 1);
     rolledback = 0;
   }
   float numdens = get_param( a, n_idx );
