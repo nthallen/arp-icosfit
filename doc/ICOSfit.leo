@@ -12,6 +12,11 @@
 <v t="ntallen.20130522094826.2380"><vh>@chapters</vh></v>
 <v t="ntallen.20130522094826.2379" a="E"><vh>ICOSfit.exe</vh>
 <v t="ntallen.20130522100930.1248" a="E"><vh>ToDo</vh>
+<v t="ntallen.20130522124837.1267" a="E"><vh>Cleanup</vh>
+<v t="ntallen.20130522124837.1268"><vh>Deprecated Configurations</vh></v>
+<v t="ntallen.20130522124837.1269"><vh>ICOSsum.dat</vh></v>
+<v t="ntallen.20130522124837.1270"><vh>ICOSconfig.m</vh></v>
+</v>
 <v t="ntallen.20130522100930.1249"><vh>Realtime Support</vh></v>
 <v t="ntallen.20130522100930.1250"><vh>GSL Integration</vh></v>
 <v t="ntallen.20130522100930.1251"><vh>Linking parameters</vh></v>
@@ -21,8 +26,8 @@
 <v t="ntallen.20130522100930.1253"><vh>Strategy</vh></v>
 <v t="ntallen.20130522100930.1254"><vh>Troubleshooting</vh></v>
 </v>
-<v t="ntallen.20130522100930.1245" a="E"><vh>Matlab</vh>
-<v t="ntallen.20130522100930.1246" a="E"><vh>etln_fit</vh>
+<v t="ntallen.20130522100930.1245"><vh>Matlab</vh>
+<v t="ntallen.20130522100930.1246"><vh>etln_fit</vh>
 <v t="ntallen.20130522100930.1247"><vh>etln_fit2</vh></v>
 </v>
 </v>
@@ -117,5 +122,35 @@ Resetting the threshold and restarting can be a successful strategy when the fit
 <t tx="ntallen.20130522100930.1254">Just try restarting where the fit failed. This resets thresholds to configuration values.</t>
 <t tx="ntallen.20130522100930.1255">ICOSsum.dat format
 </t>
+<t tx="ntallen.20130522124837.1267"></t>
+<t tx="ntallen.20130522124837.1268">Remove unnecessary cruft:
+    Configuration Options:
+        PTFile: Obsolete input file format
+        PandTFile: Obsolete input file format
+        Binary: Make this the default
+        ASCII: Drop this format
+        MinimumFringeSpacing
+        DSFRLimits
+        TuningRate
+
+</t>
+<t tx="ntallen.20130522124837.1269">The output currently includes the following columns:
+    1: Time (but always zero!)
+    2: P
+    3: T
+    4: cal_flow (but not included in PTEFile, so always zero)
+    5: inlet_flow (ditto)
+    6: fileno
+    7: RateS(?)
+    8: normalized chi-squared
+    9: dFN (parameter from an obsolete etalon fit)
+
+Rewrite to:
+    1: fileno
+    2: P
+    3: T
+    4: normalized chi-squared</t>
+<t tx="ntallen.20130522124837.1270">Institute a new variable:
+    ICOSfit_format_ver = 2;</t>
 </tnodes>
 </leo_file>

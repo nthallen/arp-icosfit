@@ -31,6 +31,7 @@ ConfigCmd :
   'ICOSdir' '=' Path /
   'PandTFile' '=' Path /
   'PTFile' '=' Path /
+  'PTEFile' '=' Path /
   'BaselineFile' '=' Path opt_BaselineInput /
   'OutputDir' '=' Path /
   'OutputFile' '=' Path /

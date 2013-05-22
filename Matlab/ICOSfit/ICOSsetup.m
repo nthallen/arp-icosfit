@@ -38,6 +38,9 @@ if exist( [ base '/ICOSconfig.m' ], 'file' )
     error('lines not defined in ICOSconfig.m');
   end
   n_line_params = lines(:,9);
+  if ~exist('ICOSfit_format_ver','var')
+    ICOSfit_format_ver = 1;
+  end
   if any(n_line_params ~= 4)
     error('Cannot handle different line types!');
   end
@@ -75,6 +78,7 @@ else
       end
     end
   end
+  ICOSfit_format_ver = 0;
   lines = load(linefile);
   n_input_params = 8;
   n_base_params = 5;
@@ -92,19 +96,25 @@ if n_cols ~= size(fitdata,2)
   error('ICOSconfig values don''t agree with fitdata columns');
 end
 
-if n_input_params == 4
+if ICOSfit_format_ver <= 1
+  if n_input_params == 4
+    scannum = fitdata(:,1);
+    chi2 = fitdata(:,4);
+  else
+    scannum = fitdata(:,6);
+    chi2 = fitdata(:,8);
+  end
+  if n_abs_params
+    nu_F0 = fitdata(:,n_input_params+n_base_params+1);
+    dFN = fitdata(:,9);
+  else
+    nu_F0 = fitdata(:,9);
+    dFN = fitdata(:,10);
+  end
+else % ICOSfit_format_ver > 1 (2 for now)
   scannum = fitdata(:,1);
   chi2 = fitdata(:,4);
-else
-  scannum = fitdata(:,6);
-  chi2 = fitdata(:,8);
-end
-if n_abs_params
   nu_F0 = fitdata(:,n_input_params+n_base_params+1);
-  dFN = fitdata(:,9);
-else
-  nu_F0 = fitdata(:,9);
-  dFN = fitdata(:,10);
 end
 base = save_base;
 clear save_base;

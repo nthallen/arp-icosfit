@@ -4,8 +4,8 @@ function S = ICOS_setup(base, by_molecule)
 % Loads ICOSout.sum into fitdata and defines
 % C               ICOS_debug      chi2            n_input_params  
 % Chi             Nfit            col             n_line_params   
-% En              P               scannum          n_lines         
-% Gair            S0 Scorr        delta dFN dnu   nu nu_P
+% En              P               scannum         n_lines         
+% Gair            S0 Scorr        delta dnu dFN   nu nu_P
 % Ged             STdep           fitdata         nu_F0           
 % Gedcalc         T               iso             nu_text         
 % Gl              T0              lines           row             
@@ -45,6 +45,11 @@ if exist( [ base '/ICOSconfig.m' ], 'file' )
           error('Variable "%s" not defined in ICOSconfig.m', req{i});
       end
   end
+  if exist('ICOSfit_format_ver','var')
+    S.ICOSfit_format_ver = ICOSfit_format_ver;
+  else
+    S.ICOSfit_format_ver = 1;
+  end
   S.n_input_params = n_input_params;
   S.n_base_params = n_base_params;
   S.binary = binary;
@@ -79,6 +84,7 @@ else
       end
     end
   end
+  S.ICOSfit_format_ver = 1;
   S.lines = load(linefile);
   S.n_input_params = 8;
   S.n_base_params = 5;
@@ -94,20 +100,26 @@ if S.n_cols ~= size(S.fitdata,2)
   error('ICOSconfig values specify %d cols: fitdata has %d', S.n_cols, size(S.fitdata,2));
 end
 
-if S.n_input_params == 4
+if S.ICOSfit_format_ver <= 1
+  if S.n_input_params == 4
+    S.scannum = S.fitdata(:,1);
+    S.chi2 = S.fitdata(:,4);
+  else
+    % presumably this is for the n_input_params == 9 case
+    S.scannum = S.fitdata(:,6);
+    S.chi2 = S.fitdata(:,8);
+  end
+  if S.n_abs_params
+    S.nu_F0 = S.fitdata(:,S.n_input_params+S.n_base_params+1);
+    S.dFN = S.fitdata(:,9);
+  else
+    S.nu_F0 = S.fitdata(:,9);
+    S.dFN = S.fitdata(:,10);
+  end
+else % S.ICOSfit_format_ver > 1 (2 for now)
   S.scannum = S.fitdata(:,1);
   S.chi2 = S.fitdata(:,4);
-else
-  % presumably this is for the n_input_params == 9 case
-  S.scannum = S.fitdata(:,6);
-  S.chi2 = S.fitdata(:,8);
-end
-if S.n_abs_params
   S.nu_F0 = S.fitdata(:,S.n_input_params+S.n_base_params+1);
-  S.dFN = S.fitdata(:,9);
-else
-  S.nu_F0 = S.fitdata(:,9);
-  S.dFN = S.fitdata(:,10);
 end
 
 S.v = ((1:S.n_lines)-1)*(S.n_line_params+S.n_abs_line_params) + ...

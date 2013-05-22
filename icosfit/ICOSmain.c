@@ -124,6 +124,7 @@ fitdata *build_func() {
     assert( abs != 0 && abs->first != 0 && abs->first->params != 0 );
     fprintf( fp,
       "%% ICOS configuration data\n"
+      "ICOSfit_format_ver = 2;\n"
       "n_input_params = %d;\n"
       "n_base_params = %d;\n"
       "binary = %d;\n"
