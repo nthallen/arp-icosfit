@@ -1,5 +1,5 @@
 function S = ICOS_setup(base, by_molecule)
-% S = ICOSsetup([base [, by_molecule]])
+% S = ICOS_setup([base [, by_molecule]])
 % Assumes base variable is defined or defines it to be 'ICOSout'
 % Loads ICOSout.sum into fitdata and defines
 % C               ICOS_debug      chi2            n_input_params  
