@@ -6,8 +6,8 @@
 #include "funceval.h"
 #include "ptread.h"
 
-#define ICOSFIT_VERSION "2.12"
-#define ICOSFIT_VERSION_DATE "12/23/2012"
+#define ICOSFIT_VERSION "2.13"
+#define ICOSFIT_VERSION_DATE "05/13/2013"
 
 class fitdata {
   public:
