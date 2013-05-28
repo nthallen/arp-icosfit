@@ -129,7 +129,7 @@ En = lines(:,6)'; % Lower state energy in cm-1
 Gair = lines(:,5)'; % air-broadend halfwidth at Tref, Pref
 nu = lines(:,3)';
 delta = lines(:,8)';
-nu_P = col*nu + (col*delta).*(P/760. - 1); % pressure-corrected line positions
+nu_P = col*nu + (col*delta) .* P/760.; % pressure-corrected line positions
 iso = (lines(:,1)*10 + lines(:,2))';
 nu_text = {};
 if exist('by_molecule','var') && by_molecule > 0
