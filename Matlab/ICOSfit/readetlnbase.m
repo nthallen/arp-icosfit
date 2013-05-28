@@ -1,4 +1,4 @@
-function [ nu, vectors, Pdegree, Ptype, PV, Pscale ] = readetlnbase( file );
+function [ nu, vectors, Pdegree, Ptype, PV, Pscale ] = readetlnbase( file )
 % [ nu, vectors, poly_degree, Ptype, PV ] = readetlnbase( file );
 % read func_base_ptbnu file format for baseline files containing
 % polynomials and etalons (or other vectors of nu).
@@ -22,7 +22,7 @@ function [ nu, vectors, Pdegree, Ptype, PV, Pscale ] = readetlnbase( file );
 fid = fopen( file, 'r' );
 if fid > 0
     A = fread( fid, 2, 'integer*4'); 
-    if ( A(1) ~= 0 | A(2) ~= 1 )
+    if ( A(1) ~= 0 || A(2) ~= 1 )
         disp('Error: File is not in func_base_ptbnu format');
         return
     end
@@ -35,7 +35,7 @@ if fid > 0
     PV = flipud(poly_init_param);
     vectors = fread( fid, [npts,n_vectors], 'real*4' );
     
-    nu = nu0 + [0:npts-1]'*dnu;
+    nu = nu0 + (0:npts-1)'*dnu;
 else
   error('Cannot read file %s', file);
 end
