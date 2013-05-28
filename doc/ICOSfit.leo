@@ -149,7 +149,17 @@ Rewrite to:
     1: fileno
     2: P
     3: T
-    4: normalized chi-squared</t>
+    4: normalized chi-squared
+    5: Signal Start
+    6: Signal End
+    7: Fixed[1]
+    8: Threshold[1]
+    ...
+    5+2*n_lines: Fixed[n_lines]
+    6+2*n_lines: Threshold[n_lines]
+    
+    n_input_params = 6 + 2*n_lines
+</t>
 <t tx="ntallen.20130522124837.1270">Institute a new variable:
     ICOSfit_format_ver = 2;</t>
 </tnodes>
