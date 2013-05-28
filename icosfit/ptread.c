@@ -219,7 +219,33 @@ int ICOSfile::read( unsigned long int fileno ) {
       }
     }
   } else {
-    nl_error( 3, "ASCII format no longer supported" );
+    for (;;) {
+      char buf[MYBUFSIZE], *ep;
+      double value;
+
+      if ( fgets( buf, MYBUFSIZE, fp ) == 0 ) {
+        fclose(fp);
+        break;
+      }
+      value = strtod( buf, &ep );
+      if ( !isspace(*ep) ) {
+        nl_error( 2, "%s:%d: No value read", mlf->fpath, sdata->n_data+1 );
+        fclose(fp);
+        return 0;
+      }
+      sdata->append(value);
+      if ( GlobalData.BaselineInput ) {
+        while (isspace(*ep)) ++ep;
+        while ((*ep != '\0') && !isspace(*ep)) ++ep; // skip etalon
+        value = strtod( ep, &ep );
+        if ( !isspace(*ep) ) {
+          nl_error( 2, "%s:%d: Expected three values in ASCII input",
+              mlf->fpath, sdata->n_data );
+          fclose(fp);
+          return 0;
+        } else bdata->append(value);
+      }
+    }
   }
   fclose(fp);
   if ( GlobalData.PTformat != 2 )

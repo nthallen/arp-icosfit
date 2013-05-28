@@ -103,7 +103,6 @@ RULE: ConfigCmd ::= 'Binary' COMPUTE
   SetGlobal(binary, 1 );
 END;
 RULE: ConfigCmd ::= 'ASCII' COMPUTE
-  message(ERROR, "ASCII format is obsolete",0,COORDREF);
   SetGlobal(binary, 0 );
 END;
 
