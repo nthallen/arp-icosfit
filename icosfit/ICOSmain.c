@@ -25,8 +25,8 @@ void ICOS_init() {
     exit(0);
   }
   #if HAVE_LIBMALLOC_G
-	mallopt(MALLOC_CKACCESS, 1);
-	mallopt(MALLOC_FILLAREA, 1);
+    mallopt(MALLOC_CKACCESS, 1);
+    mallopt(MALLOC_FILLAREA, 1);
   #endif
 }
 
@@ -57,28 +57,28 @@ void ICOS_main() {
       nl_error( 3, "Unable to dup stdout to stderr: %s", strerror(errno) );
     // fclose(fp);
     if ( GlobalData.RestartAt <= 0 )
-	  fprintf( stderr, "ICOSfit Start\n" );
-	else fprintf( stderr, "\nICOSfit Restart at %d\n",
-	   GlobalData.RestartAt );
+      fprintf( stderr, "ICOSfit Start\n" );
+    else fprintf( stderr, "\nICOSfit Restart at %d\n",
+       GlobalData.RestartAt );
   }
   while ( fitspecs->PTf->readline() != 0 ) {
     if ( ( GlobalData.ScanNumRange[0] == 0 ||
-		   fitspecs->PTf->ScanNum >= GlobalData.ScanNumRange[0] ) &&
-		 ( GlobalData.ScanNumRange[1] == 0 ||
-		   fitspecs->PTf->ScanNum <= GlobalData.ScanNumRange[1] ) ) {
-	  if ( fitspecs->IFile->read( fitspecs->PTf->ScanNum ) ) {
-		if ( GlobalData.PTformat == 2 ) fitspecs->PTf->calc_wndata();
-		if ( fitspecs->fit() != 0 ) {
-		  fitspecs->write();
-		  fprintf(stderr, "Successfully fit %lu: chisq = %f\n",
-				   fitspecs->IFile->mlf->index,
-				   fitspecs->chisq );
-		} else {
-		  fprintf( stderr, "Failed to fit %lu\n", fitspecs->IFile->mlf->index );
-		  exit(1);
-		}
-	  }
-	}
+           fitspecs->PTf->ScanNum >= GlobalData.ScanNumRange[0] ) &&
+         ( GlobalData.ScanNumRange[1] == 0 ||
+           fitspecs->PTf->ScanNum <= GlobalData.ScanNumRange[1] ) ) {
+      if ( fitspecs->IFile->read( fitspecs->PTf->ScanNum ) ) {
+        if ( GlobalData.PTformat == 2 ) fitspecs->PTf->calc_wndata();
+        if ( fitspecs->fit() != 0 ) {
+          fitspecs->write();
+          fprintf(stderr, "Successfully fit %lu: chisq = %f\n",
+                   fitspecs->IFile->mlf->index,
+                   fitspecs->chisq );
+        } else {
+          fprintf( stderr, "Failed to fit %lu\n", fitspecs->IFile->mlf->index );
+          exit(1);
+        }
+      }
+    }
   }
   #if HAVE_LIBMALLOC_G
     fprintf( stderr, "Checking Heap\n" );
@@ -105,6 +105,11 @@ fitdata *build_func() {
       nl_error(3, "SampleRate required for skew calculation" );
     func = new func_skew( base, abs );
     nl_error( 0, "Using func_skew()" );
+  }
+  { func_line *line;
+    for ( line = abs->lfirst(); line != 0; line = line->lnext() ) {
+      fitdata::n_input_params += 2;
+    }
   }
   fitdata *fd = new fitdata( ptf, IF, func, base, abs );
   
@@ -133,11 +138,17 @@ fitdata *build_func() {
       abs->params[0].index - 1,
       GlobalData.binary,
       func_line::nu0 );
-    fprintf( fp, "BaselineFile = '%s';\n",
+    fprintf(fp, "BaselineFile = '%s';\n",
       GlobalData.BaselineFile ? GlobalData.BaselineFile : "" );
-    fprintf( fp, "PTEfile = '%s';\n",
+    fprintf(fp, "PTEfile = '%s';\n",
       (GlobalData.PTformat == 2 && GlobalData.PTFile) ?
-	GlobalData.PTFile : "" );
+        GlobalData.PTFile : "" );
+    fprintf(fp, "MirrorLoss = %.5e;\n", GlobalData.MirrorLoss);
+    fprintf(fp, "N_Passes = %d;\n", GlobalData.N_Passes);
+    fprintf(fp, "SampleRate = %f;\n", GlobalData.SampleRate);
+    fprintf(fp, "SkewTolerance = %.5e;\n", GlobalData.SkewTolerance);
+    fprintf(fp, "BackgroundRegion = [ %d %d ];\n",
+      GlobalData.BackgroundRegion[0], GlobalData.BackgroundRegion[1]);
     abs->print_config( fp );
     fclose(fp);
   }

@@ -376,7 +376,7 @@ int fitdata::fit( ) {
   }
 }
 
-const int fitdata::n_input_params = 4;
+int fitdata::n_input_params = 6;
 const int fitdata::ScanNum_col = 1;
 // const int fitdata::dFN_col = 9;
 
@@ -413,13 +413,21 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
     fclose(vofp);
   }
   if ( ofp != 0 ) {
-    int mfit = 0;
+    int mfit = 0, n_i_p = 6;
     for ( i = 1; i <= ma; i++ ) {
       if ( ia[i] != 0 ) mfit++;
     }
-    assert( ScanNum_col == 1 && n_input_params == 4 );
-    fprintf( ofp, "%6d %6.2lf %6.2lf %12.5le",
-      fileno, PTf->P, PTf->T, chisq/(End-Start-mfit+1) );
+    assert( ScanNum_col == 1 );
+    fprintf( ofp, "%6d %6.2lf %6.2lf %12.5le %d %d",
+      fileno, PTf->P, PTf->T, chisq/(End-Start-mfit+1),
+      Start, End);
+    { func_line *line;
+      for ( line = absorb->lfirst(); line != 0; line = line->lnext() ) {
+        fprintf( ofp, " %d %12.5le", line->fixed, line->S_thresh );
+        n_i_p += 2;
+      }
+    }
+    assert(n_i_p == n_input_params);
     for ( i = 1; i <= ma; i++ ) {
       fprintf( ofp, " %13.7le", a[i] );
     }

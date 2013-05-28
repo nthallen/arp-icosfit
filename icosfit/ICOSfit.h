@@ -35,7 +35,7 @@ class fitdata {
     int verbose;
     FILE *vfp;
     mlf_def_t *vmlf;
-    static const int n_input_params;
+    static int n_input_params;
     static const int ScanNum_col;
     fitdata( PTfile *ptf, ICOSfile *IF,
        func_evaluator *f, func_evaluator *baseline, func_abs *abs );
