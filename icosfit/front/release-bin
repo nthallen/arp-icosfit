@@ -8,6 +8,7 @@ rev=$1
 ofile="icosfit_$rev.tgz"
 tar -czf $ofile -C / -T - <<EOF
 usr/local/bin/icosfit.exe
+usr/local/share/QT
 EOF
 
 # These files no longer appear to be relevant.
