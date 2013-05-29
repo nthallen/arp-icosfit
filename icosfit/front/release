@@ -14,7 +14,8 @@ chmod +w $dir/Makefile
 perl -i.bak -pe 's/front\.exe/icosfit\.exe/; s/^(LIBS\t.*)$/$1\nCFLAGS\t= -Wall -O2/' $dir/Makefile
 cat Makefile.tail >>$dir/Makefile
 rm $dir/Makefile.bak
-cp -r ../QT $dir/QT
+mkdir $dir/QT
+cp ../QT/*.dat $dir/QT
 tar -czf $ofile $dir
 rm -rf $dir
 
