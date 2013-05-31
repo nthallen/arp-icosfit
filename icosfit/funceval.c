@@ -285,7 +285,7 @@ func_line::func_line( const char *name, int np, int mol, int iso,
   prev_ged = 1.;
   rolledback = 0;
   isotopomer = mol*10 + iso;
-  QT = new QTdata(isotopomer);
+  QT = 0;
   molwt = get_molwt(isotopomer);
   if ( nu0 == 0. ) nu0 = floor(nu_in);
   nu = nu_in;
@@ -305,7 +305,9 @@ func_line::~func_line() {
 }
 
 void func_line::init(float *a) {
-  if ( fix_width ) fix_param( w_idx );
+  if (fix_width) fix_param( w_idx );
+  if (QT == 0)
+    QT = new QTdata(isotopomer);
   func_evaluator::init(a);
 }
 

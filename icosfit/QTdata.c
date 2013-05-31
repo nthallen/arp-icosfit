@@ -1,5 +1,6 @@
 #include <math.h>
 #include "ICOSfit.h"
+#include "global.h"
 #include "nl_assert.h"
 
 QTdata::QTdata(int isotopologue) {
@@ -13,7 +14,7 @@ QTdata::QTdata(int isotopologue) {
   Tmin = 0;
   Tmax = 0;
   snprintf(filename, FILENAME_MAX, "%s/QT_%d.dat",
-    "/usr/local/share/QT", isotopologue);
+    GlobalData.QTdir, isotopologue);
   fp = fopen(filename, "r");
   if (fp == NULL) {
     int T;

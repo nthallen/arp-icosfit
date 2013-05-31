@@ -36,6 +36,7 @@ ConfigCmd :
   'OutputFile' '=' Path /
   'LogFile' '=' Path /
   'MFile' '=' Path /
+  'QTdir' '=' Path /
   'Verbosity' '=' Integer /
   'N_Passes' '=' Integer .
 ScanNumRange : 'CPCI14Range' / 'ScanNumRange' .

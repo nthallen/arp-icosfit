@@ -140,6 +140,9 @@ END;
 RULE: ConfigCmd ::= 'MFile' '=' Path COMPUTE
   SetGlobal(MFile, StringTable(Path.String));
 END;
+RULE: ConfigCmd ::= 'QTdir' '=' Path COMPUTE
+  SetGlobal(QTdir, StringTable(Path.String));
+END;
 RULE: ConfigCmd ::= 'Verbosity' '=' Integer COMPUTE
   SetGlobal(Verbosity, Integer);
 END;

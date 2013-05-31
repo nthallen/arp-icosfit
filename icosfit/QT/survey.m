@@ -1,4 +1,5 @@
 function [T, QTcorr] = survey(fileToRead)
+% [T,QTcorr] = survey(fileToRead)
 DELIMITER = ' ';
 HEADERLINES = 3;
 

@@ -38,6 +38,7 @@ GlobalData_t::GlobalData_t() {
   OutputFile = "ICOSsum.dat";
   LogFile = "ICOSfit.log";
   MFile = "ICOSconfig.m";
+  QTdir = "/usr/local/share/QT";
   Verbosity = 0;
   absorb = 0;
   N_Passes = 0;

@@ -37,6 +37,7 @@ class GlobalData_t {
 	const char *OutputFile;
 	const char *LogFile;
 	const char *MFile;
+  const char *QTdir;
 	int Verbosity;
 	int N_Passes;
   int BaselineInput; // non-zero if column 3 is  a baseline vector
