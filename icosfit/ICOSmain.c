@@ -25,8 +25,8 @@ void ICOS_init() {
     exit(0);
   }
   #if HAVE_LIBMALLOC_G
-	mallopt(MALLOC_CKACCESS, 1);
-	mallopt(MALLOC_FILLAREA, 1);
+    mallopt(MALLOC_CKACCESS, 1);
+    mallopt(MALLOC_FILLAREA, 1);
   #endif
 }
 
@@ -40,7 +40,7 @@ static const char *output_filename( const char *name ) {
 }
 
 void ICOS_main() {
-  fitdata *fitspecs = build_func();
+  fitdata *fitspecs;
   if ( GlobalData.LogFile != 0 ) {
     const char *fname;
     char pipename[PATH_MAX+14];
@@ -54,31 +54,32 @@ void ICOS_main() {
     if ( dup2( fileno(fp), 1 ) == -1 )
        nl_error( 3, "Unable to dup2: %s", strerror(errno) );
     if ( dup2( fileno(fp), 2 ) == -1 )
-      nl_error( 3, "Unable to dup stdout to stderr: %s", strerror(errno) );
+      nl_error( 3, "Unable to dup stderr to stderr: %s", strerror(errno) );
     // fclose(fp);
     if ( GlobalData.RestartAt <= 0 )
-	  fprintf( stderr, "ICOSfit Start\n" );
-	else fprintf( stderr, "\nICOSfit Restart at %d\n",
-	   GlobalData.RestartAt );
+      fprintf( stderr, "ICOSfit Start\n" );
+    else fprintf( stderr, "\nICOSfit Restart at %d\n",
+       GlobalData.RestartAt );
   }
+  fitspecs = build_func();
   while ( fitspecs->PTf->readline() != 0 ) {
     if ( ( GlobalData.ScanNumRange[0] == 0 ||
-		   fitspecs->PTf->ScanNum >= GlobalData.ScanNumRange[0] ) &&
-		 ( GlobalData.ScanNumRange[1] == 0 ||
-		   fitspecs->PTf->ScanNum <= GlobalData.ScanNumRange[1] ) ) {
-	  if ( fitspecs->IFile->read( fitspecs->PTf->ScanNum ) ) {
-		if ( GlobalData.PTformat == 2 ) fitspecs->PTf->calc_wndata();
-		if ( fitspecs->fit() != 0 ) {
-		  fitspecs->write();
-		  fprintf(stderr, "Successfully fit %lu: chisq = %f\n",
-				   fitspecs->IFile->mlf->index,
-				   fitspecs->chisq );
-		} else {
-		  fprintf( stderr, "Failed to fit %lu\n", fitspecs->IFile->mlf->index );
-		  exit(1);
-		}
-	  }
-	}
+           fitspecs->PTf->ScanNum >= GlobalData.ScanNumRange[0] ) &&
+         ( GlobalData.ScanNumRange[1] == 0 ||
+           fitspecs->PTf->ScanNum <= GlobalData.ScanNumRange[1] ) ) {
+      if ( fitspecs->IFile->read( fitspecs->PTf->ScanNum ) ) {
+        if ( GlobalData.PTformat == 2 ) fitspecs->PTf->calc_wndata();
+        if ( fitspecs->fit() != 0 ) {
+          fitspecs->write();
+          fprintf(stderr, "Successfully fit %lu: chisq = %f\n",
+                   fitspecs->IFile->mlf->index,
+                   fitspecs->chisq );
+        } else {
+          fprintf( stderr, "Failed to fit %lu\n", fitspecs->IFile->mlf->index );
+          exit(1);
+        }
+      }
+    }
   }
   #if HAVE_LIBMALLOC_G
     fprintf( stderr, "Checking Heap\n" );
@@ -136,7 +137,7 @@ fitdata *build_func() {
       GlobalData.BaselineFile ? GlobalData.BaselineFile : "" );
     fprintf( fp, "PTEfile = '%s';\n",
       (GlobalData.PTformat == 2 && GlobalData.PTFile) ?
-	GlobalData.PTFile : "" );
+        GlobalData.PTFile : "" );
     abs->print_config( fp );
     fclose(fp);
   }
