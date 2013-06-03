@@ -18,6 +18,7 @@ PTfile::PTfile( const char *fname ) {
   if ( fp == 0 )
     nl_error( nl_response, "Unable to open input file '%s'", fname );
   format = GlobalData.PTformat;
+  last_file_pos = -1;
   switch ( format ) {
     case 0: n_vars = 12; break;
     case 1: n_vars = 7; break;
@@ -30,11 +31,12 @@ const int MYBUFSIZE = 256;
 const int MAX_VARS = 12;
 
 int PTfile::readline() {
-
   if ( fp == 0 ) return 0;
   if ( ScanNum < next_ScanNum ) {
     // This does not include the case where ScanNum==0, because then
     // next_ScanNum == 0 as well.
+    // Note that if format != 2 (PTEfile) next_ScanNum will always be 0
+    // As we are eliminating other PT formats, this can be ignored.
     ScanNum++;
     return 1;
   }
@@ -43,6 +45,7 @@ int PTfile::readline() {
     double data[MAX_VARS];
     int i;
 
+    last_file_pos = ftell(fp);
     if ( fgets( buf, MYBUFSIZE, fp ) == 0 ) {
       fclose(fp);
       fp = 0;
@@ -97,7 +100,16 @@ int PTfile::readline() {
   }
 }
 
-void PTfile::calc_wndata( void ) {
+/**
+ * Repositions read pointer to before the most recently read line.
+ * Used during restart processing.
+ */
+void PTfile::backup() {
+  if (last_file_pos >= 0)
+    fseek(fp, last_file_pos, SEEK_SET);
+}
+
+void PTfile::calc_wndata() {
   int from = GlobalData.SignalRegion[0];
   int to = GlobalData.SignalRegion[1];
   int i;

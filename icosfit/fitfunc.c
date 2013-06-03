@@ -32,7 +32,7 @@ fitdata::fitdata( PTfile *ptf, ICOSfile *IF,
   vfp = 0;
   vmlf = 0;
   if ( verbose & 8 ) {
-    vmlf = mlf_init( 3, 60, 1, GlobalData.OutputDir, "", NULL );
+    vmlf = mlf_init( 3, 60, 1, GlobalData.OutputDir, "dir", NULL );
   }
   BaseStart = GlobalData.BackgroundRegion[0];
   BaseEnd = GlobalData.BackgroundRegion[1];
@@ -67,13 +67,28 @@ fitdata::fitdata( PTfile *ptf, ICOSfile *IF,
 #define RESTART_BUFSIZE 4096
 
 void fitdata::handle_restart( const char *ofname ) {
+  unsigned int prev_ScanNum = 0;
   if ( RestartAt != NoKey)
-    GlobalData.RestartAt = GetClpValue (RestartAt, 0);;
+    GlobalData.RestartAt = GetClpValue(RestartAt, 0);;
   if ( GlobalData.RestartAt > 0 ) {
     char bakname[PATH_MAX];
     FILE *ifp = fopen( ofname, "r" );
     if ( ifp == 0 )
       nl_error( 3, "Unable to read output file %s for restart", ofname );
+
+    for (;;) {
+      if ( PTf->readline() ) {
+        if (PTf->ScanNum == GlobalData.RestartAt) {
+          PTf->backup();
+          break;
+        } else {
+          prev_ScanNum = PTf->ScanNum;
+        }
+      } else {
+        nl_error( 3, "Did not find ScanNum %d in PTE file", GlobalData.RestartAt );
+      }
+    }
+    
     if ( GlobalData.PreserveOutput == 1 ) {
       snprintf( bakname, PATH_MAX-1, "%s.%d", ofname, GlobalData.RestartAt );
       bakname[PATH_MAX-1] = '\0';
@@ -103,7 +118,7 @@ void fitdata::handle_restart( const char *ofname ) {
         }
         if ( *p == '\0' ) break;
         ScanNum = strtoul( p, &p, 10 );
-        if ( ScanNum >= GlobalData.RestartAt - 1 ) {
+        if ( ScanNum == prev_ScanNum ) {
           for ( col++; col < dFN_col; col++ ) {
             while ( isspace(*p) ) p++;
             while ( ! isspace(*p) && *p != '\0' ) p++;
@@ -124,7 +139,7 @@ void fitdata::handle_restart( const char *ofname ) {
           }
           if ( i <= ma ) break;
           IFile->read( ScanNum ); // To initialize wndata
-          GlobalData.ScanNumRange[0] = ScanNum+1;
+          // GlobalData.ScanNumRange[0] = ScanNum+1;
           fclose( ifp );
           { func_line *line;
             for ( line = absorb->lfirst(); line != 0; line = line->lnext() ) {
@@ -142,7 +157,7 @@ void fitdata::handle_restart( const char *ofname ) {
       }
       nl_error( 3, "Reached EOF or line too long after ScanNum %d", ScanNum );
     }
-    nl_error( 3, "Did not find ScanNum %d in %s", ofname );
+    nl_error( 3, "Did not find ScanNum %d in %s", prev_ScanNum, ofname );
   } else {
     IFile->ofp = fopen( ofname, "a" );
     if ( IFile->ofp == 0 )
@@ -264,6 +279,7 @@ int fitdata::fit( ) {
   for ( i = 1; i <= ma; i++ ) a_save[i] = a[i];
 
   // And this should be done with exceptions:
+  int counter = 0;
   int err_val = setjmp(Fit_buf);
   if ( err_val == 0 ) {
     if ( FitBaseline != 0 ) {
@@ -306,7 +322,7 @@ int fitdata::fit( ) {
     // Now initialize sig properly
     for ( i = 1; i <= npts; i++ ) sig[i] = GlobalData.Sigma;
 
-    int counter, converging = 0;
+    int converging = 0;
     int vctr = 0;
     ochisq = -1;
 
@@ -347,7 +363,7 @@ int fitdata::fit( ) {
         // of room here for tweaking.
         assert( ochisq >= 0 );
         if ( chisq <= ochisq ) {
-          if ( chisq/ochisq > .999 ) {
+          if ((ochisq-chisq)/ochisq <= 1e-4 ) {
             if ( ++converging >= 4 ) {
               alamda=0.0;
               if ( adjust_params( a ) ) {
@@ -368,9 +384,13 @@ int fitdata::fit( ) {
       }
     }
     nl_error( 1, "%s: Failed to converge", IFile->mlf->fpath );
-    func->dump_params(a, 0);
-    return 0;
+    alamda = 0.0;
+    mrqmin();
+    return 1;
+    // func->dump_params(a, 0);
+    // return 0;
   } else {
+    nl_error(1, "Failure after %d iterations", counter);
     func->dump_params(a, 0);
     return 0;
   }

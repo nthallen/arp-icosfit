@@ -15,12 +15,14 @@ class PTfile {
     unsigned long next_ScanNum;
 
     int readline();
-	void calc_wndata();
+    void backup();
+    void calc_wndata();
     PTfile( const char *fname );
   private:
     int format;
     int n_vars;
-	double Etln_params[8];
+    long int last_file_pos;
+    double Etln_params[8];
 };
 
 class ICOSfile {

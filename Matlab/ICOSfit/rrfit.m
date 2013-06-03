@@ -6,34 +6,35 @@ if nargin < 1
   disp('Error: Must define base. eg ''ICOSout.R1.3p''')
   return
 end
-ICOSsetup;
+AppData.S = ICOS_setup(base);
 if nargin == 1 || isempty(range)
-  scans = listscans(base);
+  scans = AppData.S.scannum; % listscans(base);
 else
   if size(range,2) > 1
     range = range';
   end
-  rows = unique(interp1( scannum, (1:length(scannum))', range, 'nearest' ));
+  rows = unique(interp1( AppData.S.scannum, ...
+      (1:length(AppData.S.scannum))', range, 'nearest' ));
   rows = rows(isfinite(rows));
-  scans = scannum(rows);
+  scans = AppData.S.scannum(rows);
 end
 
-AppData.base = base;
 AppData.Xopt = 0;
 AppData.Yopt = 0;
 AppData.plotbase = 0;
-AppData.scannum = scannum;
-AppData.nu = nu;
-AppData.nu0 = nu0;
-AppData.delta = delta;
-AppData.P_vec = P_vec;
-AppData.fitdata = fitdata;
-AppData.nu_F0 = nu_F0;
-AppData.Scorr = Scorr;
-AppData.CavLen = CavLen;
-AppData.Nfit = Nfit;
-AppData.Ged = Ged;
-AppData.v = v;
+% AppData.base = base;
+% AppData.scannum = scannum;
+% AppData.nu = nu;
+% AppData.nu0 = nu0;
+% AppData.delta = delta;
+% AppData.P_vec = P_vec;
+% AppData.fitdata = fitdata;
+% AppData.nu_F0 = nu_F0;
+% AppData.Scorr = Scorr;
+% AppData.CavLen = CavLen;
+% AppData.Nfit = Nfit;
+% AppData.Ged = Ged;
+% AppData.v = v;
 AppData.Axes_A = [
     60    45    60     1    20    15     0     .5   0
     60    45    60     1     0    45    60     1    0
@@ -67,25 +68,29 @@ if ~isfield(AppData,'menus')
     guidata(handles.scan_viewer,handles);
 end
 scan = handles.data.Scans(handles.data.Index);
-path = mlf_path( AppData.base, scan, '.dat');
+if AppData.S.ICOS_debug
+    path = sprintf( '%s/%04d.dat', AppData.S.base, scan);
+else
+    path = mlf_path( AppData.S.base, scan, '.dat');
+end
 fe = load( path );
 data_ok = (~isempty(fe));
 if data_ok
     % AppData.plotbase = strcmp(get(AppData.menus.Baselines,'Checked'),'on');
-    i=find(AppData.scannum==scan);
-    lpos = AppData.nu + AppData.delta*(AppData.P_vec(i)/760.) ...
-              - AppData.fitdata(i,AppData.v);
-    if AppData.nu0 ~= 0
-      lpos = lpos + AppData.nu_F0(i);
+    i=find(AppData.S.scannum==scan);
+    lpos = AppData.S.nu + AppData.S.delta*(AppData.S.P_vec(i)/760.) ...
+              - AppData.S.fitdata(i,AppData.S.v);
+    if AppData.S.nu0 ~= 0
+      lpos = lpos + AppData.S.nu_F0(i);
     end
-    lgd = AppData.fitdata(i,AppData.v+1);
-    % lst = AppData.Scorr.*AppData.CavLen.*AppData.Nfit./(AppData.Ged*sqrt(pi));
-    lgl = AppData.fitdata(i,AppData.v+3);
+    lgd = AppData.S.fitdata(i,AppData.S.v+1);
+    % lst = AppData.S.Scorr.*AppData.S.CavLen.*AppData.S.Nfit./(AppData.S.Ged*sqrt(pi));
+    lgl = AppData.S.fitdata(i,AppData.S.v+3);
     lwid = (lgd+lgl); % fitdata(i,v+1)+fitdata(i,v+3);
      if AppData.Xopt == 0
         nux = fe(:,2);
         if min(nux) < 2
-            nux = nux+AppData.nu_F0(i)+AppData.nu0; % This may change
+            nux = nux+AppData.S.nu_F0(i)+AppData.S.nu0; % This may change
         end
         xdir = 'reverse';
         ttlx = 'Wavenumber (cm-1)';
@@ -101,7 +106,7 @@ if data_ok
         resY = fe(:,3)-fe(:,4);
         reslbl = 'Fit Res';
         sdev = sqrt(mean((resY).^2));
-        ttltext = [ 'Scan:' num2str(AppData.scannum(i)) ...
+        ttltext = [ 'Scan:' num2str(AppData.S.scannum(i)) ...
             ' \sigma = ' num2str(sdev)  ' '  path ];
         basep = interp1(nux,fe(:,5),lpos,'nearest');
         fitp =  interp1(nux,fe(:,4),lpos,'nearest');
@@ -114,7 +119,7 @@ if data_ok
         resY = (fe(:,3)-fe(:,4))./fe(:,5)*100;
         reslbl = 'Fit Res (%)';
         sdev = sqrt(mean((resY).^2));
-        ttltext = [ 'Scan:' num2str(AppData.scannum(i)) ...
+        ttltext = [ 'Scan:' num2str(AppData.S.scannum(i)) ...
             ' \sigma = ' num2str(sdev)  ' '  path ];
         basep = interp1(nux,fe(:,5)./fe(:,5)*100,lpos,'nearest');
         fitp =  interp1(nux,fe(:,4)./fe(:,5)*100,lpos,'nearest');
@@ -126,7 +131,7 @@ if data_ok
         resY = fe(:,3)-fe(:,4);
         reslbl = 'Fit Res';
         sdev = sqrt(mean((resY).^2));
-        ttltext = [ 'Scan:' num2str(AppData.scannum(i)) ...
+        ttltext = [ 'Scan:' num2str(AppData.S.scannum(i)) ...
             ' \sigma = ' num2str(sdev)  ' '  path ];
         basep = interp1(nux,fe(:,6),lpos,'nearest');
         fitp =  interp1(nux,fe(:,6),lpos,'nearest');

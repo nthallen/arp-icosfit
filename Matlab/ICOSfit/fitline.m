@@ -683,18 +683,24 @@ if isempty(ro.scan)
     ro.scan = [ min(ro.data.scan) max(ro.data.scan) ];
   end
 end
-idx = find(ro.data.scan>=ro.scan(1), 1 );
-if isempty(idx)
-  errordlg('Somehow ran out of scans on the left');
+v = ro.data.scan>=min(ro.scan) & ro.data.scan<=max(ro.scan);
+if ~any(v)
+  errordlg('Somehow ran out of scans');
   return
 end
-ro.scan(1) = ro.data.scan(idx);
-idx = find(ro.data.scan<=ro.scan(2), 1, 'last' );
-if isempty(idx)
-  errordlg('Somehow ran out of scans on the right');
-  return
-end
-ro.scan(2) = ro.data.scan(idx);
+% idx = find(ro.data.scan>=ro.scan(1), 1 );
+% if isempty(idx)
+%   errordlg('Somehow ran out of scans on the left');
+%   return
+% end
+% ro.scan(1) = ro.data.scan(idx);
+% idx = find(ro.data.scan<=ro.scan(2), 1, 'last' );
+% if isempty(idx)
+%   errordlg('Somehow ran out of scans on the right');
+%   return
+% end
+% ro.scan(2) = ro.data.scan(idx);
+ro.scan = [min(ro.data.scan(v)) max(ro.data.scan(v))];
 st_h = findobj(rf,'tag','reg_start');
 set(st_h,'string',num2str(ro.scan(1)));
 st_h = findobj(rf,'tag','reg_end');
