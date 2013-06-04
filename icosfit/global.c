@@ -42,4 +42,7 @@ GlobalData_t::GlobalData_t() {
   Verbosity = 0;
   absorb = 0;
   N_Passes = 0;
+  ConvergenceStep = 1e-3;
+  ConvergenceCount = 4;
+  MaxIterations = 500;
 }

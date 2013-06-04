@@ -93,6 +93,16 @@ END;
 RULE: ConfigCmd ::= 'SkewTolerance' '=' FloatVal opt_ppm COMPUTE
   SetGlobal(SkewTolerance, MUL( FloatVal.FVal, opt_ppm.FVal));
 END;
+RULE: ConfigCmd ::= 'ConvergenceStep' '=' FloatVal COMPUTE
+  SetGlobal(ConvergenceStep, FloatVal.FVal);
+END;
+RULE: ConfigCmd ::= 'ConvergenceCount' '=' Integer COMPUTE
+  SetGlobal(ConvergenceCount, Integer);
+END;
+RULE: ConfigCmd ::= 'MaxIterations' '=' Integer COMPUTE
+  SetGlobal(MaxIterations, Integer);
+END;
+
 RULE: ConfigCmd ::= 'nu0' '=' Integer COMPUTE
   IF(Nu0IsSet,
     message(ERROR, "Cannot redefine nu0",0,COORDREF),

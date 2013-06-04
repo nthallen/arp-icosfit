@@ -45,6 +45,9 @@ class GlobalData_t {
 	struct {
 	  float nu_F0;
 	} input;
+  float ConvergenceStep;
+  int ConvergenceCount;
+  int MaxIterations;
 
 	GlobalData_t();
 };

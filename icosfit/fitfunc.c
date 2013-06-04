@@ -335,7 +335,7 @@ int fitdata::fit( ) {
       }
     }
     
-    for ( counter = 0; counter < 500; counter++) {
+    for ( counter = 0; counter < GlobalData.MaxIterations; counter++) {
       if ( verbose & 8 ) {
         FILE *vvfp = pathopen( vmlf->fpath, "%04d.dat", vctr );
         this->lwrite( vfp, vvfp, vctr++ );
@@ -363,8 +363,8 @@ int fitdata::fit( ) {
         // of room here for tweaking.
         assert( ochisq >= 0 );
         if ( chisq <= ochisq ) {
-          if ((ochisq-chisq)/ochisq <= 1e-4 ) {
-            if ( ++converging >= 4 ) {
+          if ((ochisq-chisq)/ochisq <= GlobalData.ConvergenceStep ) {
+            if ( ++converging >= GlobalData.ConvergenceCount ) {
               alamda=0.0;
               if ( adjust_params( a ) ) {
                 nl_error( 0, "Retrying after enabling lines: %d", counter );
