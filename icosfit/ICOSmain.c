@@ -41,6 +41,14 @@ static const char *output_filename( const char *name ) {
 
 void ICOS_main() {
   fitdata *fitspecs;
+  if (GlobalData.ConvergenceStep <= 0 ||
+      GlobalData.ConvergenceStep >= 1) {
+    nl_error(3, "ConvergenceStep must be between 0 and 1");
+  }
+  if (GlobalData.ConvergenceCount <= 0)
+    nl_error(3, "ConvergenceCount must be greater than zero");
+  if (GlobalData.MaxIterations <= 0)
+    nl_error(3, "MaxIterations must be greater than zero");
   if ( GlobalData.LogFile != 0 ) {
     const char *fname;
     char pipename[PATH_MAX+14];
