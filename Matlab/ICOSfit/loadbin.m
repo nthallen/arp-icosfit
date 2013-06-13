@@ -1,4 +1,4 @@
-function [fe, hdr] = loadbin( ifile );
+function [fe, hdr] = loadbin( ifile )
 % fe = loadbin( ifile );
 % [fe, hdr] = loadbin(ifile);
 % Reports data written in the format of the Anderson Group's
@@ -19,7 +19,7 @@ function [fe, hdr] = loadbin( ifile );
 % When the 'hdr' output is requested, the header values are
 % decoded into mnemonic fields of the hdr struct.
 fid = fopen(ifile, 'r');
-format = 0;
+format = -1;
 hdr_out = [];
 if fid > 0
   try
@@ -27,9 +27,15 @@ if fid > 0
     if count ~= 2
         error('MATLAB:huarp:readerr','Unable to read header');
     end
-    if data(1) == hex2dec('10006') && data(2) > 255
+    if data(1) == 6
+        format = 0;
+    elseif data(1) == hex2dec('10006')
         format = 1;
-        datadim = [ bitand(data(2),hex2dec('FFFF0000'))/hex2dec('10000') bitand(data(2),255) ];
+    end
+    if format >= 0 && data(2) > 255
+        datadim = ...
+          [ bitand(data(2),hex2dec('FFFF0000'))/hex2dec('10000') ...
+              bitand(data(2),255) ];
         hdr_out.NF = bitand(data(2),hex2dec('FF00'))/256;
         [data, count] = fread(fid,10,'uint16','l');
         if count ~= 10
