@@ -332,7 +332,7 @@ if AppData.QCLI_Wave(AppData.idx(iscan)) == AppData.wavenum
             plot(sv_axes(2),AppData.xdata*1e6,fe(:,1),'k');
             ylabel(sv_axes(2),'Power');
             % ### This choice of baseline will break if fe is shorter
-            baseline = mean(fe(end-200:end,1));
+            baseline = mean(fe(end-5:end,1));
             line(xlim(sv_axes(2)),[baseline,baseline], ...
                 'Color','k','LineStyle',':','Parent',sv_axes(2));
         end
