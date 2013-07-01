@@ -51,7 +51,7 @@ QTdata::QTdata(int isotopologue) {
           if (T == Tref) QTref = Q;
           Tmax = T;
           break;
-        case -1: printf("Blank\n"); break;
+        case -1: /* printf("Blank\n"); */ break;
         default: nl_error(3, "Unexpected return: %d", n);
       }
     }
