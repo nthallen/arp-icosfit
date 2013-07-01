@@ -1,3 +1,18 @@
+2.16: 07/01/2013
+ Added small hysteresis in line_check to avoid endless loop
+
+2.15: 06/05/2013
+ Table lookup for Q(T) to support molecules other than H2O
+ away from Tref = 296K.
+ Additional configuration parameters for fit convergence testing.
+
+2.14: 05/28/2013
+ Revert pressure shift changes originally introduced in version 2.10.
+
+2.13: 05/13/2013
+ Re-corrected the pressure dependence of line positions. Previous
+ versions had a sign error.
+
 2.12: 12/23/2012
  Added Left and Right LineMargin options
 
