@@ -11,11 +11,16 @@
 # +cc_flags='-I /usr/local/include'
 
 
-%dflags == <<
+%mdflags == <<
 +cc_flags='-DHAVE_MALLOC_G_MALLOC_H -DHAVE_LIBMALLOC_G'
 +lib=malloc_g +lib_sp=(/usr/lib/malloc_g)
 
+%dflags == <<
++cc='g++'
++lib=nort m +lib_sp=(/usr/local/lib)
++cc_flags='-Wall'
+
 %help ! == %target :help
 %target == front.specs +(%flags) :exe
-%mdtarget == front.specs +(%flags) +(%dflags) +debug :exe
-%dtarget == front.specs +(%flags) +debug :exe
+%mdtarget == front.specs +(%flags) +(%mdflags) +debug :exe
+%dtarget == front.specs +(%flags) +(%dflags) +debug :exe
