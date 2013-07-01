@@ -18,6 +18,7 @@ class GlobalData_t {
   float LeftLineMarginMultiplier;
   float RightLineMargin;
   float RightLineMarginMultiplier;
+  float LineMarginHysteresis;
 	float DSFRLimits[2];
 	float CavityLength;
   float CavityFixedLength;

@@ -19,6 +19,7 @@ GlobalData_t::GlobalData_t() {
   CavityFixedLength = 0.; // cm
   LeftLineMargin = RightLineMargin = .05; // cm-1
   LeftLineMarginMultiplier = RightLineMarginMultiplier = 8;
+  LineMarginHysteresis = 1e-6;
   DSFRLimits[0] = .95;
   DSFRLimits[1] = 1.21;
   Sigma = 1000.;

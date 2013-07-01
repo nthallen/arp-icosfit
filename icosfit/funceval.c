@@ -480,12 +480,12 @@ int func_line::line_check(int include, float& start, float& end,
       float lem = le+GlobalData.LeftLineMargin;
       float lsm = ls-GlobalData.RightLineMargin;
       rv = 0;
-      if ( ls < start && lem > start ) {
+      if ( ls < start && lem - GlobalData.LineMarginHysteresis > start ) {
         start = lem; rv = 1;
         if ( GlobalData.Verbosity & 2 )
           nl_error( 0, "Exclude: Updated start to %.4f", start );
       }
-      if ( le > end && lsm < end ) {
+      if ( le > end && lsm + GlobalData.LineMarginHysteresis < end ) {
         end = lsm; rv = 1;
         if ( GlobalData.Verbosity & 2 )
           nl_error( 0, "Exclude: Updated end to %.4f", end );
