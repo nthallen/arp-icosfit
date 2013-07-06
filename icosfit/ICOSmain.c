@@ -40,7 +40,15 @@ static const char *output_filename( const char *name ) {
 }
 
 void ICOS_main() {
-  fitdata *fitspecs = build_func();
+  fitdata *fitspecs;
+  if (GlobalData.ConvergenceStep <= 0 ||
+      GlobalData.ConvergenceStep >= 1) {
+    nl_error(3, "ConvergenceStep must be between 0 and 1");
+  }
+  if (GlobalData.ConvergenceCount <= 0)
+    nl_error(3, "ConvergenceCount must be greater than zero");
+  if (GlobalData.MaxIterations <= 0)
+    nl_error(3, "MaxIterations must be greater than zero");
   if ( GlobalData.LogFile != 0 ) {
     const char *fname;
     char pipename[PATH_MAX+14];
@@ -54,13 +62,14 @@ void ICOS_main() {
     if ( dup2( fileno(fp), 1 ) == -1 )
        nl_error( 3, "Unable to dup2: %s", strerror(errno) );
     if ( dup2( fileno(fp), 2 ) == -1 )
-      nl_error( 3, "Unable to dup stdout to stderr: %s", strerror(errno) );
+      nl_error( 3, "Unable to dup stderr to stderr: %s", strerror(errno) );
     // fclose(fp);
     if ( GlobalData.RestartAt <= 0 )
       fprintf( stderr, "ICOSfit Start\n" );
     else fprintf( stderr, "\nICOSfit Restart at %d\n",
        GlobalData.RestartAt );
   }
+  fitspecs = build_func();
   while ( fitspecs->PTf->readline() != 0 ) {
     if ( ( GlobalData.ScanNumRange[0] == 0 ||
            fitspecs->PTf->ScanNum >= GlobalData.ScanNumRange[0] ) &&

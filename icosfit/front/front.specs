@@ -14,6 +14,7 @@ front.FINL.phi
 ../ptread.h
 ../funceval.c
 ../funceval.h
+../QTdata.c
 ../humdev.c
 ../ICOSfit.h
 ../funcabs.c

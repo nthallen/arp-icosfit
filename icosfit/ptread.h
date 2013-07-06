@@ -15,11 +15,13 @@ class PTfile {
     unsigned long next_ScanNum;
 
     int readline();
+    void backup();
     void calc_wndata();
     PTfile( const char *fname );
   private:
     int format;
     int n_vars;
+    long int last_file_pos;
     double Etln_params[8];
 };
 

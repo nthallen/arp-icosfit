@@ -25,6 +25,9 @@ ConfigCmd :
   'TuningRate' '=' FloatVal opt_tunerate /
   'SampleRate' '=' FloatVal Frequency /
   'SkewTolerance' '=' FloatVal opt_ppm /
+  'ConvergenceStep' '=' FloatVal /
+  'ConvergenceCount' '=' Integer /
+  'MaxIterations' '=' Integer /
   Threshold /
   FixLineParam /
   'Binary' / 'ASCII' /
@@ -37,6 +40,7 @@ ConfigCmd :
   'OutputFile' '=' Path /
   'LogFile' '=' Path /
   'MFile' '=' Path /
+  'QTdir' '=' Path /
   'Verbosity' '=' Integer /
   'N_Passes' '=' Integer .
 ScanNumRange : 'CPCI14Range' / 'ScanNumRange' .

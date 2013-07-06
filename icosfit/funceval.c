@@ -216,22 +216,22 @@ void func_product::evaluate(float x, float *a) {
   }
 }
 
-static int get_molwt( int isotopomer ) {
+static float get_molwt( int isotopomer ) {
   switch (isotopomer) {
-    case 11: return 18; // H_2O
-    case 12: return 20; // H_2{}^{18}O
-    case 13: return 19; // H_2{}^{17}O
-    case 14: return 19; // HDO
-    case 21: return 44; // CO2
-    case 22: return 45; // CO_2{}^{13}C
-    case 23: return 46; // CO_2{}^{18}O
-    case 24: return 45; // CO_2{}^{17}O
-    case 41: return 44; // N2O
-    case 42: return 45; // N^{15}NO
-    case 43: return 45; // NN^{15}O
-    case 61: return 16; // CH_4
-    case 62: return 17; // C13H4
-    case 63: return 18; // CH3D
+    case 11: return 18.011000; // H_2O
+    case 12: return 20.014811; // H_2{}^{18}O
+    case 13: return 19.015000; // H_2{}^{17}O
+    case 14: return 19.017000; // HDO
+    case 21: return 43.989830; // CO2
+    case 22: return 44.993183; // CO_2{}^{13}C
+    case 23: return 45.994076; // CO_2{}^{18}O
+    case 24: return 44.994045; // CO_2{}^{17}O
+    case 41: return 44.001060; // N2O
+    case 42: return 44.998096; // N^{15}NO
+    case 43: return 44.998096; // NN^{15}O
+    case 61: return 16.031300; // CH_4
+    case 62: return 17.034655; // C13H4
+    case 63: return 17.037476; // CH3D
     default:
       nl_error( 3,
         "Uncatalogued isotopomer '%d': Edit funceval.c get_molwt()",
@@ -285,6 +285,7 @@ func_line::func_line( const char *name, int np, int mol, int iso,
   prev_ged = 1.;
   rolledback = 0;
   isotopomer = mol*10 + iso;
+  QT = 0;
   molwt = get_molwt(isotopomer);
   if ( nu0 == 0. ) nu0 = floor(nu_in);
   nu = nu_in;
@@ -299,8 +300,14 @@ func_line::func_line( const char *name, int np, int mol, int iso,
   Corr_Tref = 1/(exp(-C2 * E / Tref ) * (1-exp(-C2*nu/Tref)));
 }
 
+func_line::~func_line() {
+  delete(QT);
+}
+
 void func_line::init(float *a) {
-  if ( fix_width ) fix_param( w_idx );
+  if (fix_width) fix_param( w_idx );
+  if (QT == 0)
+    QT = new QTdata(isotopomer);
   func_evaluator::init(a);
 }
 
@@ -314,7 +321,7 @@ void func_line::print_config( FILE *fp ) {
 int func_line::adjust_params( float alamda, float P, float T, float *a ) {
   // Eliminated a check for drifting. Taken care of in func_abs.
   if ( alamda < -1.5 ) {
-    double Spt = S * pow(Tref/T, 1.5) * exp(-C2*E/T) * (1-exp(-C2*nu/T))
+    double Spt = S * QT->evaluate(T) * exp(-C2*E/T) * (1-exp(-C2*nu/T))
             * Corr_Tref;
     Ks = Spt * GlobalData.CavityLength * DRTPI; 
     nu_P = nu1 + delta * P/760.;
@@ -473,12 +480,12 @@ int func_line::line_check(int include, float& start, float& end,
       float lem = le+GlobalData.LeftLineMargin;
       float lsm = ls-GlobalData.RightLineMargin;
       rv = 0;
-      if ( ls < start && lem > start ) {
+      if ( ls < start && lem - GlobalData.LineMarginHysteresis > start ) {
         start = lem; rv = 1;
         if ( GlobalData.Verbosity & 2 )
           nl_error( 0, "Exclude: Updated start to %.4f", start );
       }
-      if ( le > end && lsm < end ) {
+      if ( le > end && lsm + GlobalData.LineMarginHysteresis < end ) {
         end = lsm; rv = 1;
         if ( GlobalData.Verbosity & 2 )
           nl_error( 0, "Exclude: Updated end to %.4f", end );

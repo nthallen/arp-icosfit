@@ -2,6 +2,7 @@
 #define FUNCEVAL_H_INCLUDED
 
 #include <stdio.h>
+#include <vector>
 
 struct parameter {
   int index;
@@ -77,6 +78,20 @@ class func_sum : public func_aggregate {
     void evaluate(float x, float *a);
     void evaluate(float x, float *a, int i);
 };
+
+class QTdata {
+  public:
+    QTdata(int isotopologue);
+    ~QTdata();
+    double evaluate(double T);
+    int isotop;
+  private:
+    int Tmin, Tmax, dT;
+    static const int Tref = 296;
+    static const int QTBUFSIZE = 80;
+    std::vector<double> QT;
+};
+
 //--------------------------------------------------------
 // func_line objects share location and width parameters.
 // Derived classes include gaussian, lorentzian and voigt,
@@ -94,6 +109,7 @@ class func_line : public func_evaluator {
       double nu, double S, double Gair, double E, double n,
       double delta, unsigned int ipos, double threshold, int fix_w,
       int fix_fp );
+    ~func_line();
     int adjust_params( float alamda, float P, float T, float *a );
     static const int l_idx, w_idx, n_idx;
     static int n_lines;
@@ -114,16 +130,18 @@ class func_line : public func_evaluator {
     float nu, nu1, S, G_air, E, n_air, delta;
     unsigned int ipos; // was loc...
     float S_thresh;
-    int molwt;
+    float molwt;
     float Ks, nu_P, Corr_Tref;
     float prev_numdens;
     float prev_ged;
     int rolledback;
+    QTdata *QT;
     static double nu0;
     static const double DRTPI; // 1/SQRT(pi)
     static const double Tref; // 296. K
     static const double C2; // 1.4388 cm K second radiation constant hc/k
 };
+
 // func_abs has 1 common parameter, which is nu_F0
 // In Release 2.2, we inherit nu_F0 from func_skew.
 // Each line then has it's own dnu that func_abs owns

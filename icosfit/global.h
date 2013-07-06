@@ -18,6 +18,7 @@ class GlobalData_t {
   float LeftLineMarginMultiplier;
   float RightLineMargin;
   float RightLineMarginMultiplier;
+  float LineMarginHysteresis;
 	// float DSFRLimits[2];
 	float CavityLength;
   float CavityFixedLength;
@@ -37,6 +38,7 @@ class GlobalData_t {
 	const char *OutputFile;
 	const char *LogFile;
 	const char *MFile;
+  const char *QTdir;
 	int Verbosity;
 	int N_Passes;
   int BaselineInput; // non-zero if column 3 is  a baseline vector
@@ -44,6 +46,9 @@ class GlobalData_t {
 	struct {
 	  float nu_F0;
 	} input;
+  float ConvergenceStep;
+  int ConvergenceCount;
+  int MaxIterations;
 
 	GlobalData_t();
 };

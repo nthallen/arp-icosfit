@@ -19,6 +19,7 @@ GlobalData_t::GlobalData_t() {
   CavityFixedLength = 0.; // cm
   LeftLineMargin = RightLineMargin = .05; // cm-1
   LeftLineMarginMultiplier = RightLineMarginMultiplier = 8;
+  LineMarginHysteresis = 1e-6;
   // DSFRLimits[0] = .95;
   // DSFRLimits[1] = 1.21;
   Sigma = 1000.;
@@ -38,7 +39,11 @@ GlobalData_t::GlobalData_t() {
   OutputFile = "ICOSsum.dat";
   LogFile = "ICOSfit.log";
   MFile = "ICOSconfig.m";
+  QTdir = "/usr/local/share/QT";
   Verbosity = 0;
   absorb = 0;
   N_Passes = 0;
+  ConvergenceStep = 1e-3;
+  ConvergenceCount = 4;
+  MaxIterations = 500;
 }

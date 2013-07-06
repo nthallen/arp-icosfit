@@ -1,4 +1,4 @@
-function S = isovals( isos, field );
+function S = isovals( isos, field )
 % S = isovals(isos,field);
 % returns the elements of the Isotope table
 % isos is a vector of isotopomer numbers ala hitran
@@ -6,7 +6,7 @@ function S = isovals( isos, field );
 
 global ISO_DEFS
 
-if length(ISO_DEFS) == 0
+if isempty(ISO_DEFS)
   add_iso( 10, 'H_2O', '  H2O  ', 1.0, 0, 1e6, 'ppm', 0.1 );
   add_iso( 11, 'H_2O', '  H2O  ', 0.997317, 18, 1e6, 'ppm', 0.1 );
   add_iso( 12, 'H_2{}^{18}O', 'H218O', 0.00199983, 20, 1e9, 'ppb', 0.1);
@@ -28,7 +28,8 @@ if length(ISO_DEFS) == 0
   add_iso( 50, 'CO','CO', 1.0, 0, 1e6, 'ppm', 0.1 );
   add_iso( 60, 'CH_4', '  CH4  ', 1.0, 0, 1e6, 'ppm', 0.1 );
   add_iso( 61, 'CH_4', '  CH4  ', 0.98827, 16, 1e6, 'ppm', 0.1 );
-  add_iso( 62, '^{13}CH_4', '13CH4', 0.01110, 17, 1e6, 'ppm', 0.1 );
+  add_iso( 62, '^{13}CH_4', '13CH4', 0.011103100000, 17.034655, 1e6, 'ppm', 0.1 );
+  add_iso( 63, '^{12}CH_3D', '12CH3D', 0.000615751000, 17.037476, 1e6, 'ppm', 0.1 );
   add_iso( 70, 'O2','O2', 1.0, 0, 1e6, 'ppm', 0.1 );
   add_iso( 80, 'NO','NO', 1.0, 0, 1e6, 'ppm', 0.1 );
   add_iso( 90, 'SO2','SO2', 1.0, 0, 1e6, 'ppm', 0.1 );
@@ -68,7 +69,7 @@ if size(isos,1) > 1
   isos = isos';
 end
 ids = [ ISO_DEFS.id ];
-idno = interp1(ids, [1:length(ids)], isos, 'nearest' );
+idno = interp1(ids, 1:length(ids), isos, 'nearest' );
 unmatched = find(isnan(idno));
 matched = find(~isnan(idno));
 unmatched = [ unmatched find( ids(idno(matched)) ~= isos(matched) ) ];
@@ -87,8 +88,8 @@ if nargin >= 2 && strcmp( field, 'name')
   return;
 end
 
-if length(unmatched) > 0
-  error( sprintf('Unable to identify isotope: %d\n', isos(unmatched) ) );
+if ~isempty(unmatched)
+  error('Unable to identify isotope: %d\n', isos(unmatched));
 end
 
 if nargin < 2
@@ -114,11 +115,11 @@ end
 return
 end
 
-function add_iso( id, name, text, abundance, weight, multiplier, unit, precision );
+function add_iso( id, name, text, abundance, weight, multiplier, unit, precision )
 
 global ISO_DEFS;
 s = struct( 'id', id, 'name', name, 'text', text, 'abundance', abundance, 'weight', weight, 'multiplier', multiplier, 'unit', unit, 'precision', precision );
-if length(ISO_DEFS) > 0
+if ~isempty(ISO_DEFS)
   ISO_DEFS = [ ISO_DEFS; s ];
 else
   ISO_DEFS = s;

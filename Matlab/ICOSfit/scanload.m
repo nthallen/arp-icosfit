@@ -1,4 +1,4 @@
-function fe = scanload( ScanNum, base, binary );
+function fe = scanload( ScanNum, base, binary )
 % f = scanload( ScanNum [, base[, binary]] )
 % binary defaults to TRUE
 % base defaults to Config File ScanDir
@@ -9,17 +9,13 @@ ICOSfit_cfg = load_ICOSfit_cfg;
 if nargin < 3
   binary = 1;
   if nargin < 2
-    base = ICOSfit_cfg.ScanDir;
+    base = '';
   end
 end
+base = find_scans_dir(base);
 ifile = mlf_path(base,ScanNum,'.dat');
-run = getrun(1);
-iifile = ifile;
-if ~exist( iifile, 'file')
-  iifile = [ ICOSfit_cfg.Matlab_Path filesep run filesep ifile ];
-end
 if binary == 0
-  fe = load(iifile);
+  fe = load(ifile);
 else
-  fe = loadbin(iifile);
+  fe = loadbin(ifile);
 end
