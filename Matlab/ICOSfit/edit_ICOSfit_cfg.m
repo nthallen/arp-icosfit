@@ -22,7 +22,7 @@ function varargout = edit_ICOSfit_cfg(varargin)
 
 % Edit the above text to modify the response to help edit_ICOSfit_cfg
 
-% Last Modified by GUIDE v2.5 26-Oct-2012 15:17:09
+% Last Modified by GUIDE v2.5 24-Jul-2013 15:52:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -89,14 +89,38 @@ function varargout = edit_ICOSfit_cfg_OutputFcn(~, ~, handles)
 varargout{1} = handles.output;
 delete(handles.figure1);
 
-function Matlab_Path_Callback(~, ~, ~)
+function Matlab_Path_Callback(hObject, ~, handles)
 % hObject    handle to Matlab_Path (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: get(hObject,'String') returns contents of Matlab_Path as text
 %        str2double(get(hObject,'String')) returns contents of Matlab_Path as a double
-
+oldpath = get(hObject,'string');
+newpath = uigetdir(oldpath,'Selected Data Directory');
+if isstr(newpath)
+    set(hObject,'string',newpath);
+    if length(newpath) > 2 && newpath(2) == ':'
+        cwp = '';
+        for cp = { 'C:\cygwin', 'C:\cygwin.hide' }
+            cwpt = [cp{1} '\bin\cygpath.exe'];
+            if exist(cwpt,'file')
+                cwp = cwpt;
+                break;
+            end
+        end
+        if ~isempty(cwp)
+            [status, icosfit_path] = unix([cwp ' -u ' newpath]);
+            if status == 0
+                set(handles.ICOSfit_Path, 'string', icosfit_path);
+            else
+                error('Bad status from cygpath: %d', status);
+            end
+        end
+    else
+        set(handles.ICOSfit_Path, 'string', newpath);
+    end
+end
 
 % --- Executes during object creation, after setting all properties.
 function Matlab_Path_CreateFcn(hObject, ~, ~)
