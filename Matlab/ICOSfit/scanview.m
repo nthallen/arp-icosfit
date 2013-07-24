@@ -1,4 +1,4 @@
-function scanview( scans, base );
+function scanview( scans, base )
 % scanview( scans [, base] );
 % Display raw scan with etalon, optionally limited to a range
 % of Scan values.
@@ -43,7 +43,7 @@ if data_ok
         elseif ncols == 3
             handles.data.Axes = handles.data.AppData.Axes_3;
         else
-            error(sprintf('Unexpected number of columns: %d', ncols));
+            error('Unexpected number of columns: %d', ncols);
         end
         guidata(handles.scan_viewer,handles);
         scan_viewer('scan_viewer_ResizeFcn',handles.scan_viewer,[],handles);
@@ -51,18 +51,18 @@ if data_ok
         scan_viewer('scan_display',handles);
     else
         nsamples = size(fe,1);
-        plot(sv_axes(1),[1:nsamples],fe(:,1));
+        plot(sv_axes(1),1:nsamples,fe(:,1));
         title(sv_axes(1),sprintf('Scan %d: %s %s', scan, ...
             getrunaxis(handles.scan_viewer), ...
             getrun(0,handles.scan_viewer)));
         
         if ncols >= 2
             set(sv_axes(1),'xticklabel',[]);
-            plot(sv_axes(2), [1:nsamples], fe(:,2));
+            plot(sv_axes(2), 1:nsamples, fe(:,2));
             set(sv_axes(2),'YAxisLocation','right');
             if ncols >= 3
                 set(sv_axes(2),'xticklabel',[]);
-                plot(sv_axes(3), [1:nsamples], fe(:,3));
+                plot(sv_axes(3), 1:nsamples, fe(:,3));
             end
         end
         xlabel(sv_axes(ncols),'Samples');
