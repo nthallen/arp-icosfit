@@ -23,4 +23,4 @@
 %help ! == %target :help
 %target == front.specs +(%flags) :exe
 %mdtarget == front.specs +(%flags) +(%mdflags) +debug :exe
-%dtarget == front.specs +(%flags) +(%dflags) +debug :exe
+%dtarget == front.specs +(%dflags) +debug :exe
