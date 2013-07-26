@@ -6,8 +6,8 @@
 #include "funceval.h"
 #include "ptread.h"
 
-#define ICOSFIT_VERSION "2.16"
-#define ICOSFIT_VERSION_DATE "07/01/2013"
+#define ICOSFIT_VERSION "2.16rt"
+#define ICOSFIT_VERSION_DATE "07/06/2013"
 
 class fitdata {
   public:
@@ -35,9 +35,8 @@ class fitdata {
     int verbose;
     FILE *vfp;
     mlf_def_t *vmlf;
-    static const int n_input_params;
+    static int n_input_params;
     static const int ScanNum_col;
-    static const int dFN_col;
     fitdata( PTfile *ptf, ICOSfile *IF,
        func_evaluator *f, func_evaluator *baseline, func_abs *abs );
     void handle_restart( const char *ofname );

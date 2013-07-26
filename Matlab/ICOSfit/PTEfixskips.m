@@ -1,5 +1,6 @@
 function PTEfixskips( ifile, ofile )
 % PTEfixskips( ifile [, ofile ] )
+% If ofile is omitted, result is written back over ifile.
 if nargin < 2
   ofile = ifile;
 end

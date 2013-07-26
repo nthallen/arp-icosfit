@@ -30,14 +30,12 @@ class ICOSfile {
     ICOSfile(const char *fbase, const char *obase, int bin );
     int read(unsigned long int fileno);
     FILE *writefp();
-    int fit_fringes(unsigned long int fileno);
     int wn_sample( float wn );
 
     mlf_def_t *mlf;
     mlf_def_t *omlf;
     FILE *ofp;
     f_vector *sdata;
-    f_vector *edata;
     f_vector *fdata;
     static f_vector *bdata;
     static f_vector *wndata;

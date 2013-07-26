@@ -44,13 +44,13 @@ RULE: opt_preserve ::= 'PreserveOutput' COMPUTE
 END;
 
 RULE: ConfigCmd ::= 'DSFRLimits' '=' '[' FloatVal ',' FloatVal ']' COMPUTE
-  SetGlobalPair( DSFRLimits, FloatVal[1].FVal, FloatVal[2].FVal );
+  message(ERROR, "DSFRLimits is no longer supported",0,COORDREF);
 END;
 RULE: ConfigCmd ::= 'EtalonFSR' '=' FloatVal opt_wn COMPUTE
   SetGlobal(EtalonFSR, FloatVal.FVal );
 END;
 RULE: ConfigCmd ::= 'MinimumFringeSpacing' '=' FloatVal COMPUTE
-  SetGlobal(MinimumFringeSpacing, FloatVal.FVal );
+  message(ERROR, "MinimumFringeSpacing is no longer supported",0,COORDREF);
 END;
 RULE: ConfigCmd ::= 'TolerableDrift' '=' FloatVal opt_wn COMPUTE
   SetGlobal(TolerableDrift, FloatVal.FVal );
@@ -85,7 +85,7 @@ RULE: ConfigCmd ::= 'Sigma' '=' FloatVal COMPUTE
   SetGlobal(Sigma, FloatVal.FVal );
 END;
 RULE: ConfigCmd ::= 'TuningRate' '=' FloatVal opt_tunerate COMPUTE
-  SetGlobal(TuningRate, FloatVal.FVal );
+  message(ERROR, "TuningRate is no longer supported",0,COORDREF);
 END;
 RULE: ConfigCmd ::= 'SampleRate' '=' FloatVal Frequency COMPUTE
   SetGlobal(SampleRate, MUL( FloatVal.FVal, Frequency.FVal ) );
@@ -125,10 +125,12 @@ RULE: ConfigCmd ::= 'ICOSdir' '=' Path COMPUTE
 END;
 RULE: ConfigCmd ::= 'PandTFile' '=' Path COMPUTE
   SetGlobal(PTFile, StringTable(Path.String));
+  message(ERROR, "PandTFile format is obsolete",0,COORDREF);
   SetGlobal(PTformat, 0);
 END;
 RULE: ConfigCmd ::= 'PTFile' '=' Path COMPUTE
   SetGlobal(PTFile, StringTable(Path.String));
+  message(ERROR, "PTFile format is obsolete",0,COORDREF);
   SetGlobal(PTformat, 1);
 END;
 RULE: ConfigCmd ::= 'PTEFile' '=' Path COMPUTE

@@ -136,14 +136,12 @@ ICOSfile::ICOSfile( const char *fbase, const char *obase, int bin ) {
   omlf = mlf_init( 3, 60, 1, obase, "dat", NULL );
   ofp = 0;
   sdata = new f_vector(mindatasize, 1);
-  edata = new f_vector(mindatasize, 1);
   bdata = new f_vector(mindatasize, 1);
   fdata = new f_vector(100, 0);
 }
 
 f_vector *ICOSfile::bdata;
 f_vector *ICOSfile::wndata;
-int ICOSfile::dFN;
 f_vector *wndebug;
 
 #ifdef NOT_IMPLEMENTED
@@ -178,7 +176,6 @@ int ICOSfile::read( unsigned long int fileno ) {
   fp = mlf_next_file(mlf);
   if ( fp == 0 ) return 0;
   sdata->clear();
-  edata->clear();
   fdata->clear();
   bdata->clear();
   if ( binary ) {
@@ -190,9 +187,9 @@ int ICOSfile::read( unsigned long int fileno ) {
       return 0;
     }
     // Support for new SSP file format
-    if (header[0] == 0x10006 && header[1] > 255) {
-      unsigned long data[4];
-      if (fread(data, sizeof(unsigned long), 4, fp) != 4) {
+    if ((header[0] | 0x10000) == 0x10006 && header[1] > 255) {
+      unsigned long data[5];
+      if (fread(data, sizeof(unsigned long), 5, fp) != 5) {
         nl_error( 2, "%s: Error reading SSP header: %s", mlf->fpath,
           strerror(errno) );
         fclose(fp);
@@ -212,21 +209,18 @@ int ICOSfile::read( unsigned long int fileno ) {
     sdata->n_data =
       fread_swap32( sdata->data+sdata->offset, sizeof(float), header[0], fp );
     if ( sdata->n_data != (int)header[0] ) {
-      nl_error( 2, "%s: Error reading sdata: %s", strerror(errno) );
+      nl_error( 2, "%s: Error reading sdata: %s", mlf->fpath, strerror(errno) );
       fclose(fp);
       return 0;
     }
-    if ( has_etalon ) {
-      edata->check(header[0]);
-      edata->n_data =
-        fread_swap32( edata->data+edata->offset, sizeof(float), header[0], fp );
-      if ( edata->n_data != (int)header[0] ) {
-        nl_error( 2, "%s: Error reading edata: %s", strerror(errno) );
+    if ( GlobalData.BaselineInput && header[1] >= 3 ) {
+      // Skip column 2 (etalon)
+      if (fseek(fp, header[0] * sizeof(float), SEEK_CUR)) {
+        nl_error( 2, "%s: Error skipping edata: %s", mlf->fpath,
+          strerror(errno));
         fclose(fp);
         return 0;
       }
-    }
-    if ( header[1] >= 3 ) {
       bdata->check(header[0]);
       bdata->n_data =
         fread_swap32( bdata->data+bdata->offset, sizeof(float), header[0], fp );
@@ -252,23 +246,22 @@ int ICOSfile::read( unsigned long int fileno ) {
         return 0;
       }
       sdata->append(value);
-      if ( has_etalon ) {
+      if ( GlobalData.BaselineInput ) {
+        while (isspace(*ep)) ++ep;
+        while ((*ep != '\0') && !isspace(*ep)) ++ep; // skip etalon
         value = strtod( ep, &ep );
         if ( !isspace(*ep) ) {
-          if ( edata->n_data == 0 ) has_etalon = 0;
-          else {
-            nl_error( 2, "%s:%d: Expected second value",
+          nl_error( 2, "%s:%d: Expected three values in ASCII input",
               mlf->fpath, sdata->n_data );
-            fclose(fp);
-            return 0;
-          }
-        } else edata->append(value);
+          fclose(fp);
+          return 0;
+        } else bdata->append(value);
       }
     }
   }
   fclose(fp);
-  if ( GlobalData.PTformat != 2 && edata->n_data > 0
-          && fit_fringes(fileno) == 0 ) return 0;
+  if ( GlobalData.PTformat != 2 )
+    nl_error(3, "Unsupported PTformat: %d", GlobalData.PTformat);
 
   // This first baseline calculation is the zero baseline which
   // precedes the laser-on ICOS data. It should not be confused
@@ -285,154 +278,6 @@ int ICOSfile::read( unsigned long int fileno ) {
       GlobalData.BackgroundRegion[1]-GlobalData.BackgroundRegion[0]+1;
     for ( i = 1; (int)i <= sdata->n_data; i++ )
       yin[i] = yin[i] - baseline;
-  }
-  return 1;
-}
-
-// return 1 if there are no problems, otherwise
-// return 0.
-int ICOSfile::fit_fringes( unsigned long int fileno ) {
-  if ( wndata == 0 ) wndata = new f_vector( edata->n_data, 1 );
-  wndata->check( edata->n_data );
-  wndebug = wndata;
-
-  int i, j, rv = 1;
-  int from = GlobalData.SignalRegion[0];
-  int to = GlobalData.SignalRegion[1];
-
-  if ( GlobalData.TuningRate != 0 ) {
-    if (wndata->n_data == 0) {
-      float wn = 0.;
-      for ( i = from; i <= to; i++ ) {
-        wndata->data[i] = wn;
-        wn -= GlobalData.TuningRate;
-      }
-      wndata->n_data = to+1;
-    }
-  } else {
-    // These initializations should be done
-    // during the ICOSfile contruction
-    // const int n = 3;
-    // const float sx2 = 28; // sum(x^2) from -n to n
-    // const float sx4 = 196; // sum(x^4)
-    // const int n = 15;
-    // const float sx2 = 2480; // sum(x^2) from -n to n
-    // const float sx4 = 356624; // sum(x^4)
-    // const int N = 2*n+1;
-    // const float sx22 = sx2*sx2;
-    // const float b2den = N*sx4-sx22; // 588
-    static int n = 0, N;
-    static float sx2, sx4, sx22, b2den;
-    float prev_b2a = 0.;
-    float prev_a1 = 0.;
-    int new_n = int(floor(GlobalData.MinimumFringeSpacing/4));
-    int decreasing = -1; // -1 means uninitialized, 0 = b2 is increasing, 1 = decreasing
-    int filterwid[400]; // For debugging
-    
-    // Evaluate b2 for each set of points
-    // b2(n-1) b2(n) b2(n+1)
-    // if b2(n-1) >= b2(n) && b2(n) < b2(n+1)
-    // && b2(n) < 0, then we've located a
-    // fringe peak at n, and we want to set
-    // the location of that peak to n-a1
-    // or n+b1/(2*b2). This means we need
-    // to know which way we're heading and
-    
-    if ( edata->n_data < from ) return 0;
-    if ( edata->n_data < to ) to = edata->n_data;
-    for ( i = from; i < to; i++ ) {
-      if ( new_n != n ) {
-        int ni;
-        n = new_n;
-        N = n*2 + 1;
-        sx2 = sx4 = 0;
-        for ( ni = -n; ni <= n; ni++ ) {
-          float x2 = ni*ni;
-          sx2 += x2;
-          sx4 += x2*x2;
-        }
-        sx22 = sx2*sx2;
-        b2den = N*sx4 - sx22;
-      }
-      if ( i+N >= to ) break;
-          
-      float sy = 0., syx = 0., syx2 = 0.;
-      int j;
-      for ( j = -n; j <= n; j++ ) {
-        float y = edata->data[i+j+n];
-        sy += y;
-        syx += y*j;
-        syx2 += y*j*j;
-      }
-      float b2a = (N*syx2 - sy*sx2);
-      if ( decreasing < 0 ) decreasing = 0;
-      else if ( b2a < prev_b2a ) {
-        decreasing = 1;
-        float b2 = b2a/b2den;
-        float b1 = syx/sx2;
-        prev_a1 = -b1/(2*b2);
-      } else if ( decreasing > 0 && b2a > prev_b2a && prev_b2a < 0) {
-        if ( prev_a1 > -n && prev_a1 < n ) {
-          float new_fr = i + n - 1 + prev_a1;
-          filterwid[fdata->n_data] = n;
-          fdata->append( new_fr );
-          int nd = fdata->n_data;
-          if ( nd >= 3 ) {
-            float dsfr = (new_fr - fdata->data[nd-2]) /
-              ( fdata->data[nd-2] - fdata->data[nd-3] );
-            if ( dsfr < GlobalData.DSFRLimits[0] ||
-                 dsfr > GlobalData.DSFRLimits[1] ) {
-              nl_error( 1,
-                "%lu: Etalon dsfr out of range at "
-                "fringe %d, sample %d: %f",
-                 mlf->index, nd, i, dsfr );
-              // return 0;
-              rv = 0; break;
-            }
-          }
-          if ( nd >= 2 ) {
-            new_n = int(floor((fdata->data[nd-1] - fdata->data[nd-2])/4));
-          }
-          //for ( i += new_n; i < to; i++ ) {
-          //	if ( edata->data[i] > edata->data[i-1] ) break;
-          //}
-          decreasing = -1;
-        } else {
-          decreasing = 0;
-        }
-      }
-      prev_b2a = b2a;
-    }
-    if ( fdata->n_data < 2 )
-      nl_error( 3, "Unable to locate more than one fringe" );
-    if ( GlobalData.Verbosity & 64 ) {
-      fprintf(stderr, " FR: %ld", fileno );
-      for ( i = 0; i < fdata->n_data; i++ )
-        fprintf(stderr, " %.2lf", fdata->data[i] );
-      fprintf(stderr, "\n FF: %ld", fileno );
-      for ( i = 0; i < fdata->n_data; i++ )
-        fprintf(stderr, " %d", filterwid[i] );
-      fprintf(stderr, "\n" );
-    }
-    if (rv == 0) return 0;
-    if ( wndata->n_data > fdata->data[0] ) {
-      dFN = -int(floor(wndata->data[ int(floor(fdata->data[0]+.5)) ]/
-              GlobalData.EtalonFSR + .5));
-    }
-    j = 0;
-    for ( i = GlobalData.SignalRegion[0]; i <= (int)GlobalData.SignalRegion[1]; j++ ) {
-      int limit;
-      double slope = -GlobalData.EtalonFSR/(fdata->data[j+1] - fdata->data[j]);
-      double wn = -(j+dFN)*GlobalData.EtalonFSR + (i - fdata->data[j])*slope;
-      if (j + 2 == fdata->n_data || GlobalData.SignalRegion[1] < fdata->data[j+1] )
-        limit = GlobalData.SignalRegion[1];
-      else limit = int(floor(fdata->data[j+1]));
-      for (; i <= limit; i++ ) {
-        wndata->data[i] = wn;
-        wn += slope;
-      }
-    }
-    wndata->n_data = GlobalData.SignalRegion[1];
   }
   return 1;
 }

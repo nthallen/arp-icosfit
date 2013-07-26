@@ -115,6 +115,11 @@ fitdata *build_func() {
     func = new func_skew( base, abs );
     nl_error( 0, "Using func_skew()" );
   }
+  { func_line *line;
+    for ( line = abs->lfirst(); line != 0; line = line->lnext() ) {
+      fitdata::n_input_params += 2;
+    }
+  }
   fitdata *fd = new fitdata( ptf, IF, func, base, abs );
   
   // This disables the func_quad code in fitdata::fit
@@ -133,6 +138,7 @@ fitdata *build_func() {
     assert( abs != 0 && abs->first != 0 && abs->first->params != 0 );
     fprintf( fp,
       "%% ICOS configuration data\n"
+      "ICOSfit_format_ver = 2;\n"
       "n_input_params = %d;\n"
       "n_base_params = %d;\n"
       "binary = %d;\n"
@@ -141,11 +147,17 @@ fitdata *build_func() {
       abs->params[0].index - 1,
       GlobalData.binary,
       func_line::nu0 );
-    fprintf( fp, "BaselineFile = '%s';\n",
+    fprintf(fp, "BaselineFile = '%s';\n",
       GlobalData.BaselineFile ? GlobalData.BaselineFile : "" );
-    fprintf( fp, "PTEfile = '%s';\n",
+    fprintf(fp, "PTEfile = '%s';\n",
       (GlobalData.PTformat == 2 && GlobalData.PTFile) ?
         GlobalData.PTFile : "" );
+    fprintf(fp, "MirrorLoss = %.5e;\n", GlobalData.MirrorLoss);
+    fprintf(fp, "N_Passes = %d;\n", GlobalData.N_Passes);
+    fprintf(fp, "SampleRate = %f;\n", GlobalData.SampleRate);
+    fprintf(fp, "SkewTolerance = %.5e;\n", GlobalData.SkewTolerance);
+    fprintf(fp, "BackgroundRegion = [ %d %d ];\n",
+      GlobalData.BackgroundRegion[0], GlobalData.BackgroundRegion[1]);
     abs->print_config( fp );
     fclose(fp);
   }

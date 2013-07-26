@@ -119,15 +119,15 @@ void fitdata::handle_restart( const char *ofname ) {
         if ( *p == '\0' ) break;
         ScanNum = strtoul( p, &p, 10 );
         if ( ScanNum == prev_ScanNum ) {
-          for ( col++; col < dFN_col; col++ ) {
+          for ( ++col; col <= n_input_params; ++col ) {
             while ( isspace(*p) ) p++;
             while ( ! isspace(*p) && *p != '\0' ) p++;
           }
           // double nu_F0d = strtod( p, &p );
           // ICOSfile::nu_F0 = nu_F0d - func_line::nu0;
-          ICOSfile::dFN = (int) strtoul( p, &p, 10 );
+          // ICOSfile::dFN = (int) strtoul( p, &p, 10 );
           int i;
-          for ( i = 1; i <= ma; i++ ) {
+          for ( i = 1; i <= ma; ++i ) {
             a[i] = strtod( p, &p );
             if ( ! isspace(*p) ) break;
           }
@@ -396,9 +396,9 @@ int fitdata::fit( ) {
   }
 }
 
-const int fitdata::n_input_params = 9;
-const int fitdata::ScanNum_col = 6;
-const int fitdata::dFN_col = 9;
+int fitdata::n_input_params = 6;
+const int fitdata::ScanNum_col = 1;
+// const int fitdata::dFN_col = 9;
 
 void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
   int i;
@@ -433,18 +433,21 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
     fclose(vofp);
   }
   if ( ofp != 0 ) {
-    int mfit = 0;
+    int mfit = 0, n_i_p = 6;
     for ( i = 1; i <= ma; i++ ) {
       if ( ia[i] != 0 ) mfit++;
     }
-    assert( ScanNum_col == 6 && n_input_params == 9 );
-    fprintf( ofp, "%10.0lf %6.2lf %6.2lf %7.2lf %7.2lf %6d %d %12.5le"
-      // " %11.6lf"
-      " %d",
-      PTf->time, PTf->P, PTf->T, PTf->cal_flow, PTf->inlet_flow,
-      fileno, PTf->RateS, chisq/(End-Start-mfit+1),
-      // ICOSfile::nu_F0 + func_line::nu0,
-      ICOSfile::dFN );
+    assert( ScanNum_col == 1 );
+    fprintf( ofp, "%6d %6.2lf %6.2lf %12.5le %d %d",
+      fileno, PTf->P, PTf->T, chisq/(End-Start-mfit+1),
+      Start, End);
+    { func_line *line;
+      for ( line = absorb->lfirst(); line != 0; line = line->lnext() ) {
+        fprintf( ofp, " %d %12.5le", line->fixed, line->S_thresh );
+        n_i_p += 2;
+      }
+    }
+    assert(n_i_p == n_input_params);
     for ( i = 1; i <= ma; i++ ) {
       fprintf( ofp, " %13.7le", a[i] );
     }
