@@ -152,6 +152,7 @@ fitdata *build_func() {
     fprintf(fp, "PTEfile = '%s';\n",
       (GlobalData.PTformat == 2 && GlobalData.PTFile) ?
         GlobalData.PTFile : "" );
+    fprintf(fp, "EtalonFSR = %.6f;\n", GlobalData.EtalonFSR);
     fprintf(fp, "MirrorLoss = %.5e;\n", GlobalData.MirrorLoss);
     fprintf(fp, "N_Passes = %d;\n", GlobalData.N_Passes);
     fprintf(fp, "SampleRate = %f;\n", GlobalData.SampleRate);
