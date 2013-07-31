@@ -50,6 +50,11 @@ if exist( [ base '/ICOSconfig.m' ], 'file' )
   else
     S.ICOSfit_format_ver = 1;
   end
+  if S.ICOSfit_format_ver >= 2
+      S.BackgroundRegion = BackgroundRegion;
+      S.EtalonFSR = EtalonFSR;
+      S.N_Passes = N_Passes;
+  end
   S.n_input_params = n_input_params;
   S.n_base_params = n_base_params;
   S.binary = binary;
@@ -164,7 +169,8 @@ S.Cfact = 1.438789;
 S.Boltzfact = exp(S.Cfact*(S.col*S.En).*(S.T-S.T0)./(S.T0*S.T));
 S.StimEmis = (1-exp(-S.Cfact*(S.col*S.nu)./S.T))./(1-exp(-S.Cfact*(S.col*S.nu)/S.T0));
 % StimEmis = 1;
-S.Qfact = (S.T0./S.T).^1.5;
+S.Qfact = load_QT(S.T(:,1),S.iso);
+% S.Qfact = (S.T0./S.T).^1.5; % Need to do this line by line
 S.Scorr = (S.col*S.S0) .* S.Qfact .* S.Boltzfact .* S.StimEmis; % correct line strength
 if isempty(S.iso)
   S.molwts = zeros(size(S.iso));
