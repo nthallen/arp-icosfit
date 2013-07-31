@@ -1,7 +1,7 @@
-function ICOSfit_cfg = load_ICOSfit_cfg(use_default);
+function ICOSfit_cfg = load_ICOSfit_cfg(use_default)
 % ICOSfit_cfg = load_ICOSfit_cfg;
-% Checks for the existence of a ICOSfit_Config script and complains
-% if one cannot be found. 
+% Checks for the existence of an ICOSfit_Config script
+% invokes the interactive dialog if one cannot be found. 
 if nargin < 1
   use_default = 0;
 end
