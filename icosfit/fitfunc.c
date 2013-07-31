@@ -206,7 +206,7 @@ void print_vector( float *vec, const char *name, int ncol ) {
       fprintf( stderr, "\n  " );
       cols = 0;
     }
-    fprintf( stderr, "	%12.4g", vec[col] );
+    fprintf( stderr, "\t%12.4g", vec[col] );
     cols += 14;
   }
   fprintf( stderr, "\n" );
@@ -266,8 +266,8 @@ int fitdata::fit( ) {
       free_vector(sig,1,npts_vec);
     }
     npts_vec = npts;
-    x =	   vector(1,npts_vec);
-    // y =    vector(1,npts_vec);
+    x = vector(1,npts_vec);
+    // y = vector(1,npts_vec);
     sig =  vector(1,npts_vec);
     if ( x == 0 || sig == 0 )
       nl_error(3,"Out of memory resizing in fitdata::fit" );
