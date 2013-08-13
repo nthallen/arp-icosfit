@@ -58,6 +58,7 @@ if ~isfield(AppData,'menus')
     cb = @rrfit_menu_callback;
     AppData.menus.Y = uimenu(top_menu,'Tag','Ymenu','Label','Y');
     AppData.menus.Y_signal = uimenu(AppData.menus.Y,'Tag','Y_signal','Label','Signal','Checked','on','Callback',cb);
+    AppData.menus.Y_detrend = uimenu(AppData.menus.Y,'Tag','Y_detrend','Label','Detrend','Callback',cb);
     AppData.menus.Y_transmission = uimenu(AppData.menus.Y,'Tag','Y_trans','Label','Transmission','Callback',cb);
     AppData.menus.Y_strength = uimenu(AppData.menus.Y,'Tag','Y_strength','Label','Strength','Callback',cb);
     AppData.menus.X = uimenu(top_menu,'Tag','Ymenu','Label','X');
@@ -113,7 +114,6 @@ if data_ok
         meanp = (basep+fitp)/2;
         % threw in maxp to see the position of small lines
         maxp = ones(size(lpos))*max(fe(:,5));
-        
     elseif AppData.Yopt == 1
         dataY = [fe(:,3)./fe(:,5)*100, fe(:,4)./fe(:,5)*100];
         resY = (fe(:,3)-fe(:,4))./fe(:,5)*100;
@@ -138,6 +138,20 @@ if data_ok
         meanp = (basep+fitp)/2;
         % threw in maxp to see the position of small lines
         maxp = ones(size(lpos))*max(fe(:,6));
+    elseif AppData.Yopt == 3
+        dataY = fe(:,3:5);
+        trend = fe(1,5)+(0:size(fe,1)-1)'*(fe(end,5)-fe(1,5))/(size(fe,1)-1);
+        dataY = dataY - trend*[1 1 1];
+        resY = fe(:,3)-fe(:,4);
+        reslbl = 'Fit Res';
+        sdev = sqrt(mean((resY).^2));
+        ttltext = [ 'Scan:' num2str(AppData.S.scannum(i)) ...
+            ' \sigma = ' num2str(sdev)  ' '  path ];
+        basep = interp1(nux,dataY(:,3),lpos,'nearest');
+        fitp =  interp1(nux,dataY(:,2),lpos,'nearest');
+        meanp = (basep+fitp)/2;
+        % threw in maxp to see the position of small lines
+        maxp = ones(size(lpos))*max(dataY(:,3));
     end
    
     X = [ lpos lpos-lwid; lpos lpos+lwid ];
@@ -176,12 +190,16 @@ Tag = get(hObject,'Tag');
 switch Tag(1)
     case 'Y'
         sig = 'off';
+        dt = 'off';
         trans = 'off';
         stren = 'off';
         switch hObject
             case AppData.menus.Y_signal
                 sig = 'on';
                 handles.data.AppData.Yopt = 0;
+            case AppData.menus.Y_detrend
+                dt = 'on';
+                handles.data.AppData.Yopt = 3;
             case AppData.menus.Y_transmission
                 trans = 'on';
                 handles.data.AppData.Yopt = 1;
@@ -190,6 +208,7 @@ switch Tag(1)
                 handles.data.AppData.Yopt = 2;
         end
         set(AppData.menus.Y_signal,'checked',sig);
+        set(AppData.menus.Y_detrend,'checked',dt);
         set(AppData.menus.Y_transmission,'checked',trans);
         set(AppData.menus.Y_strength,'checked',stren);
         handles.data.ylim{2} = [];
