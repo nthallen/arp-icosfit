@@ -6,16 +6,25 @@ function pick_regions
 %     pinch valve is open
 %  3: within icos regions, identify two baseline regions and a sample
 %     region
+% 
+Algo='A';
+cfg = load_ICOSfit_cfg;
 line_obj = fitline('load');
 waves = load_waves;
-D = load('creng_1.mat');
-x = [1:length(D.CPCI14)]';
-v = find(diff(D.CPCI14)>0)+1; % Index of CPCI numbers
-wn = D.QCLI_Wave(v);
+D = load_mat_files('HCIeng_1');
+D.CPrs_Reg_DS = bitand(D.DS84C,32);
+D.CGas_Vlv_DS = bitand(D.DS84C,64);
+D.MGas_Vlv_DS = bitand(D.DS868,128);
+D.MPrs_Reg_DS = bitand(D.DS868,64);
+SSP_Num = eval(['D.' cfg.ScanDir '_Num']);
+x = [1:length(SSP_Num)]';
+v = find(diff(SSP_Num)>0)+1; % Index of SSP numbers
+QCLI_Wave = eval(['D.' cfg.WavesFile(1:6) '_Wave']);
+wn = QCLI_Wave(v);
 vv = [ 0; find(diff(wn)) ] + 1; % Index in v of new waveforms
 wnum = wn(vv);
-wnstart = D.CPCI14(v(vv)); % CPCI of start
-wnend = [ D.CPCI14(v(vv(2:end)))-1; max(D.CPCI14) ]; % CPCI of end
+wnstart = SSP_Num(v(vv)); % SSP of start
+wnend = [ SSP_Num(v(vv(2:end)))-1; max(SSP_Num) ]; % SSP of end
 xstart = v(vv);
 xend = v([vv(2:end); end])-1;
 
@@ -26,35 +35,45 @@ xend = v([vv(2:end); end])-1;
 % end
 
 % identify Sample Regions
-icosreg = find([waves(wnum).ISICOS]);
+icosreg = find([waves(wnum+1).ISICOS]);
 samplenum = 0;
+Axis=cfg.ScanDir(5);
+if strcmp(Axis,'I')
+    Axis='M';
+end
+if strcmp(Algo,'A')
+    Axis='C';
+end
 for i=1:length(icosreg)
-  % find index into the D arrays where we have new cpci numbers
+  % find index into the D arrays where we have new SSP numbers
   % within this region
   xreg = x(v(x(v) >= xstart(icosreg(i)) & x(v) <= xend(icosreg(i))));
-  % Now find the places where the pinch valve is open
-  % And CellP > 20
+  % Now find the places where the solenoid valve is open
+  % And CellP > 30
   % ibit, samplestart and sampleend are all referenced to
   % xreg
-  ibit = bitand(D.PVStat(xreg),1) == 0;
-  [samplestart,sampleend] = select_reg( ibit, 10 );
+  
+  PRStat = eval(['D.' Axis 'Prs_Reg_DS']);
+  CellP=eval(['D.' Axis 'CelP']);
+  ibit = bitand(PRStat(xreg),max(PRStat)) ~= 0;
+  [samplestart,sampleend] = select_reg( ibit, 150 );
   for j=1:length(samplestart)
     samplereg = xreg(samplestart(j):sampleend(j));
-    vdP = abs(diff(D.CellP(samplereg))) < .4;
+    vdP = abs(diff(CellP(samplereg))) < .4;
     [Pstart,Pend] = select_reg(vdP, 10);
     if ~isempty(Pstart)
       samplenum = samplenum + 1;
       samplePreg = samplereg(Pstart(1):end);
-      cpcistart = D.CPCI14(samplePreg(1));
-      cpciend = D.CPCI14(samplePreg(end));
-      line_obj = addregion( line_obj, 'R', samplenum, [ cpcistart cpciend ] );
-      vdT = [ 1; diff(D.Tcreng_1(samplePreg)) < 10 ];
+      sspstart = SSP_Num(samplePreg(1));
+      sspend = SSP_Num(samplePreg(end));
+      line_obj = addregion( line_obj, 'R', samplenum, [ sspstart sspend ] );
+      vdT = [ 1; diff(D.THCIeng_1(samplePreg)) < 10 ];
       [qclistart,qcliend] = select_reg(vdT,10);
       if length(qclistart) > 1 || qclistart(1) > 1
         for j1 = 1:length(qclistart)
-          Tqcli = D.Tcreng_1(samplePreg(qclistart(j1):qcliend(j1)));
+          Tqcli = D.THCIeng_1(samplePreg(qclistart(j1):qcliend(j1)));
           if qclistart(j1) > 1
-            iQ = min(find(Tqcli > Tqcli(1)+60)); % QCLI Warmup
+            iQ = find(Tqcli > Tqcli(1)+60, 1 ); % QCLI Warmup
             if isempty(iQ)
               qclistart(j1) = qcliend(j1);
             else
@@ -63,7 +82,41 @@ for i=1:length(icosreg)
           end
           if qclistart(j1) < qcliend(j1)
             line_obj = addregion( line_obj, 'R', samplenum, ...
-              D.CPCI14(samplePreg([qclistart(j1) qcliend(j1)])), j1 );
+              SSP_Num(samplePreg([qclistart(j1) qcliend(j1)])), j1 );
+          end
+        end
+      end
+    end
+  end
+  PRStat = eval(['D.' Axis 'Gas_Vlv_DS']);
+  ibit = bitand(PRStat(xreg),max(PRStat)) ~= 0;
+  [samplestart,sampleend] = select_reg( ibit, 30 );
+  for j=1:length(samplestart)
+    samplereg = xreg(samplestart(j):sampleend(j));
+    vdP = abs(diff(CellP(samplereg))) < 3;
+    [Pstart,Pend] = select_reg(vdP, 10);
+    if ~isempty(Pstart)
+      %samplenum = samplenum + 1;
+      samplePreg = samplereg(Pstart(1):end);
+      sspstart = SSP_Num(samplePreg(1));
+      sspend = SSP_Num(samplePreg(end));
+      line_obj = addregion( line_obj, 'C', samplenum, [ sspstart sspend ] );
+      vdT = [ 1; diff(D.THCIeng_1(samplePreg)) < 10 ];
+      [qclistart,qcliend] = select_reg(vdT,10);
+      if length(qclistart) > 1 || qclistart(1) > 1
+        for j1 = 1:length(qclistart)
+          Tqcli = D.THCIeng_1(samplePreg(qclistart(j1):qcliend(j1)));
+          if qclistart(j1) > 1
+            iQ = find(Tqcli > Tqcli(1)+60, 1 ); % QCLI Warmup
+            if isempty(iQ)
+              qclistart(j1) = qcliend(j1);
+            else
+              qclistart(j1) = qclistart(j1) + iQ - 1;
+            end
+          end
+          if qclistart(j1) < qcliend(j1)
+            line_obj = addregion( line_obj, 'C', samplenum, ...
+              SSP_Num(samplePreg([qclistart(j1) qcliend(j1)])), j1 );
           end
         end
       end
@@ -105,8 +158,8 @@ return
 %     if any(xBstart > xBend)
 %       error('Bad ranges');
 %     end
-%     cpciBstart = D.CPCI14(xBstart);
-%     cpciBend = D.CPCI14(xBend);
+%     cpciBstart = SSP_Num(xBstart);
+%     cpciBend = SSP_Num(xBend);
 %     for j=1:length(cpciBstart)
 %       regname = sprintf('B%d%c', RegNum, 'a'+j-1);
 %       range = [cpciBstart(j) cpciBend(j)];
@@ -132,8 +185,8 @@ return
 %     if any(xRstart > xRend)
 %       error('Bad ranges');
 %     end
-%     cpciRstart = D.CPCI14(xRstart);
-%     cpciRend = D.CPCI14(xRend);
+%     cpciRstart = SSP_Num(xRstart);
+%     cpciRend = SSP_Num(xRend);
 %     if length(cpciRstart) > 1
 %       error('Not expecting two R regions');
 %     end
@@ -177,7 +230,7 @@ if any(strcmp({lo_in.Regions.name}, name))
   fprintf( 1, 'Region %s [ %d %d ]: Not replaced\n', name, range );
 else
   fprintf( 1, 'Region %s [ %d %d ]\n', name, range );
-  lo_in.Regions(end+1) = struct('name', name, 'cpci', range );
+  lo_in.Regions(end+1) = struct('name', name, 'scan', range );
   [ names, ndx ] = sort( {lo_in.Regions.name} );
   lo_in.Regions = lo_in.Regions(ndx);
   lo_in.CurRegion = find(strcmp({lo_in.Regions.name}, 'all'));
