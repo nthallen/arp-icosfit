@@ -120,8 +120,9 @@ if isstr(newpath)
                 error('Bad status from cygpath: %d', status);
             end
         else
-            warn('Unable to locate cygpath: guessing');
+            warning('Unable to locate cygpath: guessing');
             icosfit_path = ['/cygdrive/' newpath(1) newpath(3:end) ];
+            set(handles.ICOSfit_Path, 'string', icosfit_path);
         end
     else
         set(handles.ICOSfit_Path, 'string', newpath);
