@@ -18,6 +18,7 @@ int verbose = 8;
    verbose & 16 => output derivatives in output files
    verbose & 32 => output ochisq, alamda and covariance matrix on each iteration
    verbose & 64 => output fringe positions in fit_fringes()
+   verbose & 128 => output X and K values for each voigt line in verbose(1) fits
 */
 void ICOS_init() {
   if (ShowVersion) {

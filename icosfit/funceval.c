@@ -318,6 +318,8 @@ void func_line::print_config( FILE *fp ) {
     n_air, delta, n_params );
 }
 
+void func_line::print_intermediates(FILE *fp) {}
+
 int func_line::adjust_params( float alamda, float P, float T, float *a ) {
   // Eliminated a check for drifting. Taken care of in func_abs.
   if ( alamda < -1.5 ) {

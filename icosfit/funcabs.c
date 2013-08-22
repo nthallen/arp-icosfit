@@ -2,7 +2,7 @@
 #include "ICOSfit.h"
 #include "global.h"
 
-void func_abs::print_config( FILE *fp ) {
+void func_abs::print_config(FILE *fp) {
   func_line *child;
   fprintf( fp, "CavLen = %.1f;\n", GlobalData.CavityLength );
   fprintf( fp, "n_abs_params = 1;\nn_abs_line_params = 1;\n" );
@@ -11,6 +11,13 @@ void func_abs::print_config( FILE *fp ) {
     child->print_config( fp );
   }
   fprintf( fp, "];\n" );
+}
+
+void func_abs::print_intermediates(FILE *fp) {
+  func_line *child;
+  for ( child = lfirst(); child != 0; child = child->lnext() ) {
+    child->print_intermediates(fp);
+  }
 }
 
 // static float interpolate( float x0, float x1, float y0, float y1, float x ) {

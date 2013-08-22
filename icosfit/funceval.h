@@ -124,10 +124,12 @@ class func_line : public func_evaluator {
     virtual void line_fix();
     virtual void line_float();
     int line_check(int include, float& start, float& end, float P, float T, float *a);
-    void print_config( FILE *fp );
+    void print_config(FILE *fp);
+    virtual void print_intermediates(FILE *fp);
     //--------------------------------------------------
     int isotopomer;
-    float nu, nu1, S, G_air, E, n_air, delta;
+    double nu;
+    float nu1, S, G_air, E, n_air, delta;
     unsigned int ipos; // was loc...
     float S_thresh;
     float molwt;
@@ -153,10 +155,11 @@ class func_abs : public func_evaluator {
     void init(float *a);
     void evaluate(float x, float *a);
     inline func_line *lfirst() { return (func_line *)first; }
-    int adjust_params( float alamda, float P, float T, float *a );
-    void print_config( FILE *fp );
-    void fix_linepos( int linenum );
-    void float_linepos( int linenum );
+    int adjust_params(float alamda, float P, float T, float *a);
+    void print_config(FILE *fp);
+    void print_intermediates(FILE *fp);
+    void fix_linepos(int linenum);
+    void float_linepos(int linenum);
     void dump_params(float *a, int indent);
 };
 typedef func_abs *func_abs_p;
@@ -202,10 +205,12 @@ class voigt : public func_line {
     void line_fix();
     void line_float();
     void dump_params(float *a, int indent);
+    void print_intermediates(FILE *fp);
 
   private:
     float prev_gl;
     float prev_y;
+    float X, Y, K;
     float YQ, XLIMA, XLIMB, XLIMC, XLIM4;
     int RGB, RGC, RGD;
     float A0, B1, C0, C2, D0, D1, D2, E0, E2, E4, F1, F3, F5;

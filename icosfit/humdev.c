@@ -82,9 +82,10 @@ void voigt::evaluate( float xx, float *a ) {
   float dnu = get_param(a,l_idx);
   int ixx = int(xx);
 
-  float X = (ICOSfile::wndata->data[ixx] - nu_P + dnu)/gamma_ed;
-  float Y = gamma_l/gamma_ed;
-  float K; // Voigt output (Real part)
+  // X, Y and K now private object members
+  X = (ICOSfile::wndata->data[ixx] - nu_P + dnu)/gamma_ed;
+  Y = gamma_l/gamma_ed;
+  // K Voigt output (Real part)
   float L; // Imaginery Part (needed for derivatives)
   float DKDX; // dVoigt/dX
   float DKDY; // dVoigt/dY
@@ -339,4 +340,8 @@ void voigt::line_fix() {
 void voigt::line_float() {
   if ( fix_lwidth == 0 ) float_param(gl_idx);
   func_line::line_float();
+}
+
+void voigt::print_intermediates(FILE *fp) {
+  fprintf(fp, " %12.6le %12.6le", X, K);
 }

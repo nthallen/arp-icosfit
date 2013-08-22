@@ -414,7 +414,9 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
         fprintf( vofp, "%12.6le %14.8le %12.6le %12.6le %12.6le %12.6le",
           x[i], ICOSfile::wndata->data[i+Start-1],
           y[i], yfit, base->value, absorb->value );
-        if ( verbose & 16 ) {
+        if (verbose & 128)
+          absorb->print_intermediates(vofp);
+        if (verbose & 16) {
           int j;
           for ( j = 0; j < func->n_params; j++ ) {
             if ( func->param_fixed(j) )
@@ -453,6 +455,12 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
     }
     for ( i = 1; i <= ma; i++ ) {
       fprintf( ofp, " %d", ia[i] );
+    }
+    if (verbose & 128) {
+      func_line *line;
+      for ( line = absorb->lfirst(); line != 0; line = line->lnext() ) {
+        fprintf(ofp, " %13.7le %13.7le", line->Corr_Tref, line->Ks);
+      }
     }
     fprintf( ofp, "\n" );
     fflush( ofp );
