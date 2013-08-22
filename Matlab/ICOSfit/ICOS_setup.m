@@ -101,9 +101,11 @@ end
 S.n_cols = S.n_input_params + 2 * ...
   ( S.n_base_params + S.n_abs_params + ...
     S.n_lines * (S.n_line_params + S.n_abs_line_params) );
-if S.n_cols ~= size(S.fitdata,2)
+if S.n_cols > size(S.fitdata,2)
   error('ICOSconfig values specify %d cols: fitdata has %d', S.n_cols, size(S.fitdata,2));
 end
+S.n_extra_cols = size(S.fitdata,2) - S.n_cols;
+S.n_cols = size(S.fitdata,2);
 
 if S.ICOSfit_format_ver <= 1
   if S.n_input_params == 4
