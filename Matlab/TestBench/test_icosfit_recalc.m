@@ -152,15 +152,18 @@ baseline = AppData.Baseline.XM(SR - AppData.Baseline.minx+1,:) * BP;
 nu_rel = -S.EtalonFSR*etln_evalJ(AppData.PTE(PScan,5:11), ...
     (SR-AppData.PTE(PScan,4)+1)/AppData.Baseline.Pscale);
 Abs = zeros(size(SR));
+XK = zeros(length(SR),2*S.n_lines);
 for i = 1:S.n_lines
-    X = single((nu_rel + S.nu_F0(IScan) - S.nu_P(IScan,i)) / S.Ged(IScan,i));
+    X = (nu_rel + S.nu_F0(IScan) - S.nu_P(IScan,i)) / S.Ged(IScan,i);
     Y = S.Gl(IScan,i)/S.Ged(IScan,i);
     [K,~,~] = humdev(X,Y);
-    Abs = Abs + single(S.Nfit(IScan,i)*S.Scorr(IScan,i)*S.CavLen*K / ...
-        (S.Ged(IScan,i) * sqrt(pi)));
+    XK(:,2*i-1) = X;
+    XK(:,2*i) = K;
+    Abs = Abs + S.Nfit(IScan,i)*S.Scorr(IScan,i)*S.CavLen*K / ...
+        (S.Ged(IScan,i) * sqrt(pi));
 end
 fit = baseline .* exp(-S.N_Passes * Abs);
-recalc = [ SR nu_rel raw(SR,1) fit baseline Abs ];
+recalc = [ SR nu_rel raw(SR,1) fit baseline Abs XK ];
 
 function [fit, recalc] = load_fit_and_recalc(AppData, Index)
 % Load verbose fit and recalc. Aborts if points don't match
@@ -174,6 +177,11 @@ end
 fit = load(ffile);
 assert(size(recalc,1) == size(fit,1));
 assert(all(recalc(:,1) == fit(:,1)));
+nfc = size(fit,2);
+if nfc < size(recalc,2)
+    recalc = recalc(:,1:nfc);
+end
+assert(size(recalc,2) == size(fit,2));
 
 function [maxabsdev, stddev, maxval] = blind_test(AppData)
 maxabsdev = zeros(length(AppData.Scans),6);
@@ -195,6 +203,9 @@ if nargin < 2
     sv_axes = handles.Axes;
 end
 AppData = handles.data.AppData;
+scan = handles.data.Scans(handles.data.Index);
+[fe, recalc] = load_fit_and_recalc(AppData, handles.data.Index);
+data_ok = (~isempty(fe));
 if ~isfield(AppData,'menus')
     top_menu = uimenu(handles.scan_viewer,'Tag','recalc','Label','recalc');
     cb = @recalc_menu_callback;
@@ -208,14 +219,24 @@ if ~isfield(AppData,'menus')
         uimenu(top_menu,'Tag','Y_baseline','Label','Baseline','Callback',cb);
     AppData.menus.Y_abs = ...
         uimenu(top_menu,'Tag','Y_abs','Label','Abs','Callback',cb);
+    if size(fe,2) > 6
+        AppData.menus.XK = zeros(size(fe,2)-6,1);
+        for i = 7:2:size(fe,2)-1
+            tag = sprintf('YX%d', i);
+            AppData.menus.XK(i-6) = ...
+                uimenu(top_menu,'Tag', tag, 'Label', tag(2:end), 'Callback',cb);
+            tag = sprintf('YK%d', i+1);
+            AppData.menus.XK(i-6+1) = ...
+                uimenu(top_menu,'Tag', tag, 'Label', tag(2:end), 'Callback',cb);
+        end
+    else
+        AppData.menus.XK = [];
+    end
     AppData.menus.Detrend = ...
         uimenu(top_menu,'Tag','Detrend','Label','Detrend','Callback',cb);
     handles.data.AppData = AppData;
     guidata(handles.scan_viewer,handles);
 end
-scan = handles.data.Scans(handles.data.Index);
-[fe, recalc] = load_fit_and_recalc(AppData, handles.data.Index);
-data_ok = (~isempty(fe));
 if data_ok
     % AppData.plotbase = strcmp(get(AppData.menus.Baselines,'Checked'),'on');
     S = AppData.S;
@@ -292,12 +313,22 @@ if Tag(1) == 'Y'
             abs = 'on';
             handles.data.AppData.Yopt = 6;
             handles.data.AppData.ylbl = 'abs';
+        otherwise
+            handles.data.AppData.Yopt = str2double(Tag(3:end));
+            handles.data.AppData.ylbl = Tag(2:end);
     end
     set(AppData.menus.Y_nu,'checked',nu);
     set(AppData.menus.Y_raw,'checked',raw);
     set(AppData.menus.Y_fit,'checked',fit);
     set(AppData.menus.Y_baseline,'checked',baseline);
     set(AppData.menus.Y_abs,'checked',abs);
+    for i=1:length(AppData.menus.XK)
+        checked = 'off';
+        if handles.data.AppData.Yopt == i+6
+            checked = 'on';
+        end
+        set(AppData.menus.XK(i),'checked',checked);
+    end
 elseif hObject == AppData.menus.Detrend
     handles.data.AppData.Detrend = ~AppData.Detrend;
     if handles.data.AppData.Detrend
