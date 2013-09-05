@@ -379,6 +379,12 @@ function all_done = next_scannum_file(hObject, handles )
 while 1
   if handles.data.index > 0 && handles.data.figerr >= 0 && ...
       handles.data.figerr < handles.data.threshold
+    if ~isempty(handles.data.Ylast)
+        fr0 = sum(handles.data.Ylast([1 4 6]));
+        fr1 = sum(handles.data.Y([1 4 6]));
+        df = round(fr1-fr0);
+        handles.data.Y(1) = handles.data.Y(1) - df;
+    end
     handles.data.Xlast = handles.data.X;
     handles.data.Ylast = handles.data.Y;
     i = handles.data.index;
