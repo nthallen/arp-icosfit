@@ -63,6 +63,13 @@ int PTfile::readline() {
       }
       p = ep;
     }
+    while (buf[strlen(buf)-1] != '\n') {
+      if ( fgets( buf, MYBUFSIZE, fp ) == 0 ) {
+        fclose(fp);
+        fp = 0;
+        return 0;
+      }
+    }
     if ( format == 2 ) {
       time = 0.;
       ScanNum = int(data[0]);

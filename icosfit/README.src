@@ -199,3 +199,24 @@ ICOSsum.dat format:
   each of the line parameters. A '1' indicates that the parameter
   was 'free' in the fit. A '0' means the parameter was fixed
   (or calculated based on input parameters).
+
+Format 2:
+  1 ScanNum
+  2 P
+  3 T
+  4 Chi Squared
+  5 Start
+  6 End
+  for i = 1:nlines
+    2*i+5 fixed
+    2*i+6 threshold
+  === n_input_params ===
+  n_base_params
+  n_abs_params (dnu0)
+  for i = 1:nlines
+    n_abs_line_params (1, dnu(i))
+    dnu(0)+dnu(i)
+    Ged
+    N
+    Gl
+  floating
