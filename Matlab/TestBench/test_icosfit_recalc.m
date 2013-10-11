@@ -9,7 +9,8 @@ function [maxabsdev, stddev, maxval] = test_icosfit_recalc(base, varargin)
 %   Base: Verify that recalculated baseline matches verbose baseline
 %   nu: Verify that nu gets calculated correctly
 %   Fit: Verify that recalculated fit matches verbose fit
-S = ICOS_setup(base);
+AppData.RC = icosfit_recalculate(base);
+S = AppData.RC.S;
 if S.ICOSfit_format_ver < 2
     error('ICOSfit recalculation requires ICOSfit_format_ver >= 2');
 end
@@ -23,9 +24,6 @@ AppData.IScans = 1:length(AppData.Scans);
 % fits that might run in reverse or even have multiple overlapping
 % regions.
 AppData.S = S;
-
-% Load baseline stuff
-AppData.Baseline = loadetlnbase(AppData);
 
 % Load PTE stuff
 if ~exist(AppData.S.PTEfile,'file')
@@ -116,58 +114,58 @@ else
     legend('sample','nu','raw','fit','baseline','abs');
 end
 
-function Baseline = loadetlnbase(AppData)
-% Assign Baseline params to structure
-[ nu, vectors, Pdegree, Ptype, PV, Pscale ] = ...
-    readetlnbase( AppData.S.BaselineFile );
-Baseline = struct('nu', nu, 'vectors', vectors, ...
-    'Pdegree', Pdegree, 'Ptype', Ptype, 'PV', PV, ...
-    'Pscale', Pscale);
-assert(Ptype == 0);
-assert(isempty(vectors));
-assert(AppData.S.n_base_params == Pdegree);
-assert(length(PV) == Pdegree);
-Baseline.minx = min(AppData.S.fitdata(:,5));
-maxx = max(AppData.S.fitdata(:,6));
-Baseline.XM = ((Baseline.minx:maxx)'*ones(1,Pdegree)/Pscale) .^ ...
-    (ones(maxx-Baseline.minx+1,1)*(0:Pdegree-1));
-Baseline.PVi = AppData.S.n_input_params+(1:AppData.S.n_base_params);
+% function Baseline = loadetlnbase(AppData)
+% % Assign Baseline params to structure
+% [ nu, vectors, Pdegree, Ptype, PV, Pscale ] = ...
+%     readetlnbase( AppData.S.BaselineFile );
+% Baseline = struct('nu', nu, 'vectors', vectors, ...
+%     'Pdegree', Pdegree, 'Ptype', Ptype, 'PV', PV, ...
+%     'Pscale', Pscale);
+% assert(Ptype == 0);
+% assert(isempty(vectors));
+% assert(AppData.S.n_base_params == Pdegree);
+% assert(length(PV) == Pdegree);
+% Baseline.minx = min(AppData.S.fitdata(:,5));
+% maxx = max(AppData.S.fitdata(:,6));
+% Baseline.XM = ((Baseline.minx:maxx)'*ones(1,Pdegree)/Pscale) .^ ...
+%     (ones(maxx-Baseline.minx+1,1)*(0:Pdegree-1));
+% Baseline.PVi = AppData.S.n_input_params+(1:AppData.S.n_base_params);
 
-function recalc = recalculate(AppData, Index)
-% recalc = recalculate(AppData, Index)
-% Produces an output matrix similar to the verbose fit output
-% matrix.
-assert(Index <= length(AppData.Scans));
-ScanNum = AppData.Scans(Index);
-IScan = AppData.IScans(Index);
-PScan = AppData.PTEi(Index);
-S = AppData.S;
-assert(ScanNum == S.scannum(IScan));
-ifile = mlf_path(AppData.ScanBase,ScanNum,'.dat');
-raw = loadbin(ifile); % Includes zero
-raw = raw - mean(raw(AppData.BGi,1));
-SR = (S.fitdata(IScan,5):S.fitdata(IScan,6))';
-BP = S.fitdata(IScan,AppData.Baseline.PVi)';
-baseline = AppData.Baseline.XM(SR - AppData.Baseline.minx+1,:) * BP;
-nu_rel = -S.EtalonFSR*etln_evalJ(AppData.PTE(PScan,5:11), ...
-    (SR-AppData.PTE(PScan,4)+1)/AppData.Baseline.Pscale);
-Abs = zeros(size(SR));
-XK = zeros(length(SR),2*S.n_lines);
-for i = 1:S.n_lines
-    X = (nu_rel + S.nu_F0(IScan) - S.nu_P(IScan,i)) / S.Ged(IScan,i);
-    Y = S.Gl(IScan,i)/S.Ged(IScan,i);
-    [K,~,~] = humdev(X,Y);
-    XK(:,2*i-1) = X;
-    XK(:,2*i) = K;
-    Abs = Abs + S.Nfit(IScan,i)*S.Scorr(IScan,i)*S.CavLen*K / ...
-        (S.Ged(IScan,i) * sqrt(pi));
-end
-fit = baseline .* exp(-S.N_Passes * Abs);
-recalc = [ SR nu_rel raw(SR,1) fit baseline Abs XK ];
+% function recalc = recalculate(AppData, Index)
+% % recalc = recalculate(AppData, Index)
+% % Produces an output matrix similar to the verbose fit output
+% % matrix.
+% assert(Index <= length(AppData.Scans));
+% ScanNum = AppData.Scans(Index);
+% IScan = AppData.IScans(Index);
+% PScan = AppData.PTEi(Index);
+% S = AppData.S;
+% assert(ScanNum == S.scannum(IScan));
+% ifile = mlf_path(AppData.ScanBase,ScanNum,'.dat');
+% raw = loadbin(ifile); % Includes zero
+% raw = raw - mean(raw(AppData.BGi,1));
+% SR = (S.fitdata(IScan,5):S.fitdata(IScan,6))';
+% BP = S.fitdata(IScan,AppData.Baseline.PVi)';
+% baseline = AppData.Baseline.XM(SR - AppData.Baseline.minx+1,:) * BP;
+% nu_rel = -S.EtalonFSR*etln_evalJ(AppData.PTE(PScan,5:11), ...
+%     (SR-AppData.PTE(PScan,4)+1)/AppData.Baseline.Pscale);
+% Abs = zeros(size(SR));
+% XK = zeros(length(SR),2*S.n_lines);
+% for i = 1:S.n_lines
+%     X = (nu_rel + S.nu_F0(IScan) - S.nu_P(IScan,i)) / S.Ged(IScan,i);
+%     Y = S.Gl(IScan,i)/S.Ged(IScan,i);
+%     [K,~,~] = humdev(X,Y);
+%     XK(:,2*i-1) = X;
+%     XK(:,2*i) = K;
+%     Abs = Abs + S.Nfit(IScan,i)*S.Scorr(IScan,i)*S.CavLen*K / ...
+%         (S.Ged(IScan,i) * sqrt(pi));
+% end
+% fit = baseline .* exp(-S.N_Passes * Abs);
+% recalc = [ SR nu_rel raw(SR,1) fit baseline Abs XK ];
 
 function [fit, recalc] = load_fit_and_recalc(AppData, Index)
 % Load verbose fit and recalc. Aborts if points don't match
-recalc = recalculate(AppData, Index);
+recalc = icosfit_recalculate(AppData.RC, Index);
 ScanNum = AppData.Scans(Index);
 if AppData.S.ICOS_debug
     ffile = sprintf( '%s/%04d.dat', AppData.S.base, ScanNum);
