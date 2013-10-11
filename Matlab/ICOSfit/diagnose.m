@@ -1,4 +1,4 @@
-function diagnose( base, line_nos );
+function diagnose( base, line_nos )
 % diagnose([base]);
 % diagnose(line_nos);
 % diagnose( base, line_nos );
@@ -13,14 +13,14 @@ by_molecule=0;
 run = getrun;
 lines = [];
 ICOSsetup;
-if length(line_nos) == 0
+if isempty(line_nos)
   line_nos = [1:n_lines];
 end
 line_leg = num2str(line_nos');
 
 vf = v(line_nos) + n_base_params+n_abs_params+n_lines*(n_line_params+n_abs_line_params);
 vflp = find(any(fitdata(:,vf-n_abs_line_params)));
-if length(vflp) > 0
+if ~isempty(vflp)
   figure; plot(scannum, fitdata(:,v(vflp)-n_abs_line_params) );
   legend(num2str(line_nos(vflp)'),-1);
   title(['Line Deviations: ' run ]);
@@ -40,16 +40,23 @@ xlabel('Scan Number');
 ylabel('Reduced \chi^2');
 
 figure;
-subplot(2,1,1);
-plot( scannum, nu_F0 );
-title(['\nu_{F_0}' run ]);
-ylabel('cm^{-1}');
-xlabel('Scan Number');
-subplot(2,1,2);
-plot( scannum, dFN );
-title( 'dFN' );
-ylabel('Fringes');
-xlabel('Scan Number');
+if exist('dFN','var')
+    subplot(2,1,1);
+    plot( scannum, nu_F0 );
+    title(['\nu_{F_0}' run ]);
+    ylabel('cm^{-1}');
+    xlabel('Scan Number');
+    subplot(2,1,2);
+    plot( scannum, dFN );
+    title( 'dFN' );
+    ylabel('Fringes');
+    xlabel('Scan Number');
+else
+    plot( scannum, nu_F0 );
+    title(['\nu_{F_0}' run ]);
+    ylabel('cm^{-1}');
+    xlabel('Scan Number');
+end
 
   figure;
   nsubplot( 2, 1, 1, 1 );
@@ -135,7 +142,7 @@ xlabel('Scan Number');
   % legend( nu_text, -1);
 
   lst = Scorr.*CavLen.*Nfit./(Ged*sqrt(pi));
-  lst(find(lst<=0)) = NaN;
+  lst(lst<=0) = NaN;
   figure;
   semilogy(scannum,lst(:,line_nos))
   xlabel('Scan Number');
