@@ -1,8 +1,13 @@
 function outval = icosfit_recalculate(arg1, varargin)
 % RC = icosfit_recalculate(base, varargin)
+%   Setup for subsequent calculations. Options include:
+%    'scannum', scans : limit subsequent operations to specified scans
 % recalc = icosfit_recalculate(RC, Index)
-% Produces an output matrix similar to the verbose fit output
+%   Produces an output matrix similar to the verbose fit output
 % matrix.
+%
+% RC.S is the ICOS_setup structure, but I redefine RC.S.nu_P by
+% subtracting S.nu0.
 if ischar(arg1)
     S = ICOS_setup(arg1);
     if S.ICOSfit_format_ver < 2
@@ -95,13 +100,14 @@ else
     raw = raw - mean(raw(RC.BGi,1));
     SR = (S.fitdata(IScan,5):S.fitdata(IScan,6))';
     BP = S.fitdata(IScan,RC.Baseline.PVi)';
-    baseline = RC.Baseline.XM(SR - RC.Baseline.minx+1,:) * BP;
     nu_rel = -S.EtalonFSR*etln_evalJ(RC.PTE(PScan,5:11), ...
         (SR-RC.PTE(PScan,4)+1)/RC.Baseline.Pscale);
+    %baseline = RC.Baseline.XM(SR - RC.Baseline.minx+1,:) * BP;
+    baseline = evaletlnbase(RC, SR, BP, nu_rel+S.nu_F0(IScan)+S.nu0);
     Abs = zeros(size(SR));
     XK = zeros(length(SR),2*S.n_lines);
     for i = 1:S.n_lines
-        X = (nu_rel + S.nu_F0(IScan) - S.nu_P(IScan,i)) / S.Ged(IScan,i);
+        X = (nu_rel + S.dnu(IScan,i) - S.nu_P(IScan,i)) / S.Ged(IScan,i);
         Y = S.Gl(IScan,i)/S.Ged(IScan,i);
         [K,~,~] = humdev(X,Y);
         XK(:,2*i-1) = X;
@@ -115,17 +121,26 @@ end
 
 function Baseline = loadetlnbase(RC)
 % Assign Baseline params to structure
-[ nu, vectors, Pdegree, Ptype, PV, Pscale ] = ...
+[ nu, vectors, p_coeffs, Ptype, PV, Pscale ] = ...
     readetlnbase( RC.S.BaselineFile );
 Baseline = struct('nu', nu, 'vectors', vectors, ...
-    'Pdegree', Pdegree, 'Ptype', Ptype, 'PV', PV, ...
+    'p_coeffs', p_coeffs, 'Ptype', Ptype, 'PV', PV, ...
     'Pscale', Pscale);
 assert(Ptype == 0);
-assert(isempty(vectors));
-assert(RC.S.n_base_params == Pdegree);
-assert(length(PV) == Pdegree);
+% assert(isempty(vectors));
+n_vectors = size(vectors,2);
+assert(RC.S.n_base_params == n_vectors + p_coeffs);
+assert(length(PV) == p_coeffs);
 Baseline.minx = min(RC.S.fitdata(:,5));
 maxx = max(RC.S.fitdata(:,6));
-Baseline.XM = ((Baseline.minx:maxx)'*ones(1,Pdegree)/Pscale) .^ ...
-    (ones(maxx-Baseline.minx+1,1)*(0:Pdegree-1));
+Baseline.XM = ((Baseline.minx:maxx)'*ones(1,p_coeffs)/Pscale) .^ ...
+    (ones(maxx-Baseline.minx+1,1)*(0:p_coeffs-1));
 Baseline.PVi = RC.S.n_input_params+(1:RC.S.n_base_params);
+
+function baseline = evaletlnbase(RC, SR, BP, nu)
+baseline = RC.Baseline.XM(SR - RC.Baseline.minx+1,:) * ...
+    BP(end-RC.Baseline.p_coeffs+1:end);
+for i=1:size(RC.Baseline.vectors,2)
+    baseline = baseline + ...
+        interp1(RC.Baseline.nu,RC.Baseline.vectors(:,i),nu) * BP(i);
+end
