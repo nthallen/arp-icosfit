@@ -160,6 +160,7 @@ if data_ok
     else
           xlabel(sv_axes(2),ttlx);
     end
+    linkaxes(sv_axes,'x');
 end
 
 function rrfit_menu_callback(hObject,eventdata)
