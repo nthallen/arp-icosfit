@@ -1,5 +1,5 @@
-function [ nu, vectors, Pdegree, Ptype, PV, Pscale ] = readetlnbase( file )
-% [ nu, vectors, poly_degree, Ptype, PV ] = readetlnbase( file );
+function [ nu, vectors, p_coeffs, Ptype, PV, Pscale ] = readetlnbase( file )
+% [ nu, vectors, p_coeffs, Ptype, PV, Pscale ] = readetlnbase( file );
 % read func_base_ptbnu file format for baseline files containing
 % polynomials and etalons (or other vectors of nu).
 % FILEFORMAT (from funceval.h):
@@ -29,9 +29,9 @@ if fid > 0
     A = fread( fid, 3, 'real*8' );
     Pscale = A(1); nu0 = A(2); dnu = A(3);
     A = fread( fid, 4, 'integer*2' );
-    n_vectors = A(1); npts = A(2); Pdegree = A(3); Ptype = A(4); % x== 0, nu ==1
+    n_vectors = A(1); npts = A(2); p_coeffs = A(3); Ptype = A(4); % x== 0, nu ==1
     n_vectors_init_param = fread( fid, n_vectors, 'real*4' );
-    poly_init_param = fread( fid, Pdegree+1, 'real*4' );
+    poly_init_param = fread( fid, p_coeffs, 'real*4' );
     PV = flipud(poly_init_param);
     vectors = fread( fid, [npts,n_vectors], 'real*4' );
     
