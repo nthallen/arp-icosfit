@@ -3,7 +3,7 @@ function queryHITRAN( varargin )
 %queryHITRAN; start up the gui
 
 DB='HITRAN';
-HITRAN_Table='HITRAN04';
+HITRAN_Table='HITRAN08';
 MOLEC_INFO_Table='HITRAN_Molecules';
 user='';
 pword='';
@@ -615,9 +615,9 @@ elseif strcmp(varargin{1},'plot_transmission')
   if range(v0) < 10
       dv=0.001;
   elseif range(v0) < 100
-      dv=0.01;
+      dv=0.001;
   else 
-      dv=0.1;
+      dv=0.01;
   end
   v=[floor(min(v0)):dv:ceil(max(v0))];
   Power=ones(1,length(v))*50000;
