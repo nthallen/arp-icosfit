@@ -3,10 +3,10 @@ function queryHITRAN( varargin )
 %queryHITRAN; start up the gui
 
 DB='HITRAN';
-HITRAN_Table='HITRAN08';
+HITRAN_Table='HITRAN2012';
 MOLEC_INFO_Table='HITRAN_Molecules';
-user='';
-pword='';
+user='sayres';
+pword='mysqlpw';
 
 if nargin == 0
 line_obj.DB=DB;
@@ -75,6 +75,14 @@ line_obj.mixing_ratios=[...
     0,0,0;... %HOBr
     11e-9,0,0;... %C2H4
     0,0,0;... %CH3OH
+    0,0,0;... %CH3Br
+    0,0,0;... %CH3CN
+    0,0,0;... %CF4
+    0,0,0;... %C4H2
+    0,0,0;... %HC3N
+    0,0,0;... %H2
+    0,0,0;... %CS
+    0,0,0;... %SO3
     ];
 cmap=colormap('lines');
 cmap(8:15,:)=[255 153 0;
@@ -144,7 +152,8 @@ set(hs(11),'Position',[10 height pos(3) pos(4)]);
 hs(12)=uicontrol(hp(1),'Style','text','string','HITRAN Table = ');
 pos=get(hs(12),'extent'); height=height-pos(4);
 set(hs(12),'Position',[10 height pos(3) pos(4)]);
-hs(13)=uicontrol(hp(1),'Style','listbox','string',[line_obj.tables],'max',1,'min',1,'value',1,'Callback','queryHITRAN(''change_table'')','tag','table_name');
+itable=find(strcmp(line_obj.tables,line_obj.HITRAN_Table));
+hs(13)=uicontrol(hp(1),'Style','listbox','string',[line_obj.tables],'max',1,'min',1,'value',itable,'Callback','queryHITRAN(''change_table'')','tag','table_name');
 xstart=10+pos(3);
 pos=get(hs(13),'extent');
 set(hs(13),'Position',[xstart height pos(3)+20 pos(4)]);
