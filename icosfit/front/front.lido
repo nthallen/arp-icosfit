@@ -32,7 +32,7 @@ RULE: ConfigCmd ::= 'SignalRegion' '=' IntegerPair COMPUTE
   SetGlobalPair(SignalRegion, IntegerPair.Low, IntegerPair.High );
 END;
 
-RULE: ConfigCmd ::= ScanNumRange '=' IntegerPair COMPUTE
+RULE: ConfigCmd ::= ScanNumRangeName '=' IntegerPair COMPUTE
   SetGlobalPair(ScanNumRange, IntegerPair.Low, IntegerPair.High );
 END;
 
