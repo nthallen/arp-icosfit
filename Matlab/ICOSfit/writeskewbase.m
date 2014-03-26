@@ -12,11 +12,12 @@ function Uout = writeskewbase( region, U, S, V, tol );
 % entering and exiting the cavity is simply wrapped into the input
 % power since (1-R)^2 is assumed to be constant.
 
-if isnumeric(region)
-  ofile = sprintf('sbase%d.dat', region);
-else
-  ofile = [ 'sbase.' region '.dat' ];
-end
+% if isnumeric(region)
+%   ofile = sprintf('sbase%d.dat', region);
+% else
+%   ofile = [ 'sbase.' region '.dat' ];
+% end
+ofile='sbase.dat';
 if nargin < 5
   tol = 10e-6;
 end

@@ -1,4 +1,4 @@
-function [ D, T ] = load_mat_files( varargin );
+function [ D, T ] = load_mat_files( varargin )
 % [ D, T ] = load_mat_files(...);
 % Load the first of the specified files found in the
 % usual places. Files are specified without '.mat' extension.

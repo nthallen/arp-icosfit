@@ -27,7 +27,7 @@ if nargin < 3
 end
 cellparams=load_cell_cfg;
 CavityLength = cellparams.CavityLength;
-MirrorLoss = cellparams.MirrorLoss;
+MirrorLoss = cellparams.MirrorLoss*1e-6;
 c = lightspeed; % cm/sec
 R = 1-MirrorLoss;
 N = c/(2*CavityLength*fsam);

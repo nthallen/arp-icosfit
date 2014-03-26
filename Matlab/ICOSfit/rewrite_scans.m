@@ -9,10 +9,10 @@ if nargin < 2 || isempty(obase)
    obase = 'SSPo';
 end
 if nargin < 2 || isempty(M)
-    M = [ 1 0 0; 0 1 0; 0 0 -1];
+    M = [ 1 0 0; 0 1 0; 0 0 1];
 end
     
-index = 1;
+index = 100;
 while 1
   pi = mlf_path(ibase,index);
   fi = loadbin(pi);

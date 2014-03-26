@@ -1,5 +1,5 @@
 function [Unew,V,S]=basefile(region,nsvds,suffix,range)
-%function [U,V,S]=basefile(region,nsvds,suffix)
+%function [U,V,S]=basefile(region,nsvds,suffix,range)
 if isnumeric(region)
   scannum = region;
 else
@@ -15,7 +15,12 @@ figure; for i=1:size(U,2); nsubplot(size(U,2),1,i,1); plot(U(:,i)); end
 addzoom
 Unew = zeros(length(data),size(U,2));
 Unew(range,:)=U;
-writeskewbase(region,Unew,S,V);
+MirrorLoss = cellparams.MirrorLoss*1e-6;
+if MirrorLoss == 0
+    writebase('sbase.dat',U,S,V);
+else
+    writeskewbase(region,Unew,S,V);
+end
 if nargin>=3
     eval(sprintf('!mv sbase.dat sbase%i.%s.dat',scannum(1),suffix))
     disp(sprintf('Moved sbase file to sbase%i.%s.dat\n',scannum(1),suffix))
