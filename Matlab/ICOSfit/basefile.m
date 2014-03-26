@@ -15,8 +15,8 @@ figure; for i=1:size(U,2); nsubplot(size(U,2),1,i,1); plot(U(:,i)); end
 addzoom
 Unew = zeros(length(data),size(U,2));
 Unew(range,:)=U;
-MirrorLoss = cellparams.MirrorLoss*1e-6;
-if MirrorLoss == 0
+cellparams=load_cell_cfg;
+if cellparams.MirrorLoss == 0
     writebase('sbase.dat',U,S,V);
 else
     writeskewbase(region,Unew,S,V);
