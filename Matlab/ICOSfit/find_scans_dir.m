@@ -20,18 +20,18 @@ else
     if exist(base, 'dir')
         return;
     end
-    base = [ ICOSfit_cfg.Matlab_Path '/' runF ...
-            '/' ICOSfit_cfg.ScanDir ];
+    base = [ ICOSfit_cfg.Matlab_Path filesep runF ...
+            filesep ICOSfit_cfg.ScanDir ];
     if ~exist(base, 'dir') && ~isdigit(runF(end))
         runF = runF(1:end-1);
-        base = [ ICOSfit_cfg.Matlab_Path '/' runF ...
-            '/' ICOSfit_cfg.ScanDir ];
+        base = [ ICOSfit_cfg.Matlab_Path filesep runF ...
+            filesep ICOSfit_cfg.ScanDir ];
     end
     if ~exist(base, 'dir')
         error( [ 'Unable to locate appropriate base for ' getrun(0) ] );
     end
     if nargin > 1 && ICOSfit
-      base = [ ICOSfit_cfg.ICOSfit_Path '/' runF ...
-         '/' ICOSfit_cfg.ScanDir ];
+      base = [ ICOSfit_cfg.ICOSfit_Path filesep runF ...
+         filesep ICOSfit_cfg.ScanDir ];
     end
 end
