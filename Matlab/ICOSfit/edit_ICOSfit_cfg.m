@@ -102,7 +102,7 @@ if isstr(newpath)
     set(hObject,'string',newpath);
     if length(newpath) > 2 && newpath(2) == ':'
         cwp = '';
-        for cp = { 'C:\cygwin', 'C:\cygwin.hide' }
+        for cp = { 'C:\cygwin', 'C:\cygwin.hide', 'C:\cygwin64' }
             cwpt = [cp{1} '\bin\cygpath.exe'];
             if exist(cwpt,'file')
                 cwp = cwpt;
