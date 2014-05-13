@@ -31,7 +31,8 @@ else
         error( [ 'Unable to locate appropriate base for ' getrun(0) ] );
     end
     if nargin > 1 && ICOSfit
-      base = [ ICOSfit_cfg.ICOSfit_Path filesep runF ...
-         filesep ICOSfit_cfg.ScanDir ];
+      % Do not use filesep here, since ICOSfit always expects '/'
+      base = [ ICOSfit_cfg.ICOSfit_Path '/' runF ...
+         '/' ICOSfit_cfg.ScanDir ];
     end
 end
