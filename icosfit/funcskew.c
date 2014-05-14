@@ -99,6 +99,12 @@ void func_skew::evaluate(float x, float *a) {
   float xi;
   int i, j;
   if ( prev_x < 0 || x < prev_x ) {
+    if (GlobalData.PTE_MirrorLoss_col) {
+      float R = 1 - GlobalData.input.MirrorLoss;
+      R2 = R*R;
+      R2N = pow(R2,N);
+      P_scale = (1-R2N)/(1-R2);
+    }
     for ( i = 0; i < M; i++ ) skew[i].initialized = 0;
     xi = x - M + 1.;
     skewidx = 0;

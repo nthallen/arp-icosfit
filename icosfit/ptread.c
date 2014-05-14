@@ -13,6 +13,7 @@
 #include "mlf.h"
 
 PTfile::PTfile( const char *fname ) {
+  int offset;
   fp = fopen( fname, "r" );
   ScanNum = next_ScanNum = 0;
   if ( fp == 0 )
@@ -25,10 +26,22 @@ PTfile::PTfile( const char *fname ) {
     case 2: n_vars = 11; break;
     default: nl_error( nl_response, "Unknown format code: %d", format );
   }
+  offset = n_vars - 1;
+  if (GlobalData.PTE_nu_F0_col) {
+    GlobalData.PTE_nu_F0_col += offset;
+    ++n_vars;
+  }
+  if (GlobalData.PTE_MirrorLoss_col) {
+    GlobalData.PTE_MirrorLoss_col += offset;
+    ++n_vars;
+  }
+  if (GlobalData.PTE_PowerParams_col) {
+    n_vars += 7;
+  }
 }
 
 const int MYBUFSIZE = 256;
-const int MAX_VARS = 12;
+const int MAX_VARS = 20;
 
 int PTfile::readline() {
   if ( fp == 0 ) return 0;
@@ -51,18 +64,19 @@ int PTfile::readline() {
       fp = 0;
       return 0;
     }
-    for ( p = buf, i = 0; i <= n_vars; i++ ) {
+    for ( p = buf, i = 0; i < n_vars; i++ ) {
       data[i] = strtod( p, &ep );
       if ( i == n_vars ) {
         GlobalData.input.nu_F0 = (p == ep) ? 0. : data[i];
       } else if ( p == ep ) {
-        nl_error( 2, "Invalid number of parameters in PTFile\n" );
+        nl_error( 2, "Invalid number of parameters in PTEFile\n" );
         fclose(fp);
         fp = 0;
         return 0;
       }
       p = ep;
     }
+    /* Deal with very long input lines */
     while (buf[strlen(buf)-1] != '\n') {
       if ( fgets( buf, MYBUFSIZE, fp ) == 0 ) {
         fclose(fp);
@@ -76,6 +90,12 @@ int PTfile::readline() {
       P = data[1];
       T = data[2];
       for ( i = 0; i < 8; i++ ) Etln_params[i] = data[i+3];
+      if (GlobalData.PTE_nu_F0_col) {
+        GlobalData.input.nu_F0 = data[GlobalData.PTE_nu_F0_col];
+      }
+      if (GlobalData.PTE_MirrorLoss_col) {
+        GlobalData.input.MirrorLoss = data[GlobalData.PTE_MirrorLoss_col];
+      }
       return 1;
     } else {
       time = data[0];
@@ -178,7 +198,6 @@ f_vector *wndebug;
 
 int ICOSfile::read( unsigned long int fileno ) {
   FILE *fp;
-  int has_etalon = 1;
   mlf_set_index( mlf, fileno );
   fp = mlf_next_file(mlf);
   if ( fp == 0 ) return 0;
@@ -211,7 +230,6 @@ int ICOSfile::read( unsigned long int fileno ) {
       fclose(fp);
       return 0;
     }
-    has_etalon = ( header[1] >= 2 );
     sdata->check(header[0]);
     sdata->n_data =
       fread_swap32( sdata->data+sdata->offset, sizeof(float), header[0], fp );

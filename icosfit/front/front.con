@@ -34,7 +34,7 @@ ConfigCmd :
   'ICOSdir' '=' Path /
   'PandTFile' '=' Path /
   'PTFile' '=' Path /
-  'PTEFile' '=' Path /
+  'PTEFile' '=' Path PTE_opts /
   'BaselineFile' '=' Path opt_BaselineInput /
   'OutputDir' '=' Path /
   'OutputFile' '=' Path /
@@ -65,3 +65,5 @@ FixLineParam : FixFloat LineParam .
 FixFloat : 'Fix' / 'Float' .
 LineParam : 'Lorentz' / 'Doppler' / 'FinePosition' .
 FloatVal : Float / Integer / '-' FloatVal .
+PTE_opts : / PTE_opts PTE_opt .
+PTE_opt : '+' 'nu_F0' / '+' 'MirrorLoss' / '+' 'PowerParams' .

@@ -133,10 +133,36 @@ RULE: ConfigCmd ::= 'PTFile' '=' Path COMPUTE
   message(ERROR, "PTFile format is obsolete",0,COORDREF);
   SetGlobal(PTformat, 1);
 END;
-RULE: ConfigCmd ::= 'PTEFile' '=' Path COMPUTE
+RULE: ConfigCmd ::= 'PTEFile' '=' Path PTE_options COMPUTE
   SetGlobal(PTFile, StringTable(Path.String));
   SetGlobal(PTformat, 2);
 END;
+RULE: PTE_options ::= PTE_opts END;
+
+CHAIN PTE_column : int;
+ATTR PTE_ncols : int;
+SYMBOL PTE_options COMPUTE
+  CHAINSTART HEAD.PTE_column = 0;
+END;
+SYMBOL PTE_opt COMPUTE
+  THIS.PTE_column = ADD(THIS.PTE_column,THIS.PTE_ncols);
+END;
+RULE: PTE_opt ::= '+' 'nu_F0' COMPUTE
+  PTE_opt.PTE_ncols = 1;
+  IF(SetGlobalOnce(PTE_nu_F0_col, ADD(PTE_opt.PTE_column,1)),
+    message(ERROR, "Cannot specify '+ nu_F0' more than once",0,COORDREF));
+END;
+RULE: PTE_opt ::= '+' 'MirrorLoss' COMPUTE
+  PTE_opt.PTE_ncols = 1;
+  IF(SetGlobalOnce(PTE_MirrorLoss_col, ADD(PTE_opt.PTE_column,1)),
+    message(ERROR, "Cannot specify '+ MirrorLoss' more than once",0,COORDREF));
+END;
+RULE: PTE_opt ::= '+' 'PowerParams' COMPUTE
+  PTE_opt.PTE_ncols = 7;
+  IF(SetGlobalOnce(PTE_PowerParams_col, ADD(PTE_opt.PTE_column,1)),
+    message(ERROR, "Cannot specify '+ PowerParams' more than once",0,COORDREF));
+END;
+
 RULE: ConfigCmd ::= 'BaselineFile' '=' Path opt_BaselineInput COMPUTE
   SetGlobal(BaselineFile, StringTable(Path.String));
 END;
