@@ -1,4 +1,4 @@
-function mlf_mkdir( base, fileno );
+function mlf_mkdir( base, fileno )
 % mlf_mkdir( base, fileno );
 % Creates directories as necessary in preparation for writing the
 % specified file number. The actual path to the file can be determined
