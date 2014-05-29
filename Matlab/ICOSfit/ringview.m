@@ -1,4 +1,4 @@
-function ringview( scannum, wavenum, basepath)
+function hh = ringview( scannum, wavenum, basepath)
 % ringview( [ scannum [, wavenum[, basepath]]]] );
 % Reviews ringdown data.
 if nargin < 3
@@ -82,8 +82,11 @@ AppData.Axes = [
     60    45    60     1     0    45    50     1    1
     ];
 
-scan_viewer('Scans', scannum, 'Axes', AppData.Axes, 'Name', 'Ringdown Viewer', ...
+hh_int = scan_viewer('Scans', scannum, 'Axes', AppData.Axes, 'Name', 'Ringdown Viewer', ...
     'Callback', @ringview_callback, 'AppData', AppData);
+if nargout > 0
+    hh = hh_int;
+end
 
 function AppData = ringview_init_taus(AppData)
 AppData.tauwindow.x = [];
@@ -112,7 +115,8 @@ AppData.taus = struct('Name',{'auto','nonlin'}, ...
     'SerialNum',{nansc}, ...
     'CurrentOffset',{nansc}, ...
     'Etalon',{nansc}, ...
-    'Status',{nansc} );
+    'Status',{nansc}, ...
+    'fitv', AppData.fitv );
 
 %-------------------------------------------------------------
 % ringview_callback() where the real work is done
@@ -479,14 +483,25 @@ switch Tag(1)
         assignin('base','tau',AppData.taus);
     case 'W'
         cell_cfg = load_cell_cfg;
+        if ~isfield(cell_cfg, 'N_Passes')
+            cell_cfg.N_Passes = 0;
+        end
         fd = fopen('Cell_Config.m', 'w');
-        fprintf(fd, 'function cell_cfg = Cell_Config;\n');
+        fprintf(fd, 'function cell_cfg = Cell_Config\n');
         fprintf(fd, 'cell_cfg.fsr = %.6f;\n', cell_cfg.fsr );
         fprintf(fd, 'cell_cfg.CavityLength = %.2f;\n', cell_cfg.CavityLength );
         if AppData.FitDisplay == 0
-            fprintf(fd, 'cell_cfg.MirrorLoss = %.2f;\n', AppData.CavityLength/AppData.taus(2).MeanTau/2.998e10*1e6 );
+            if isempty(AppData.taus(2).MeanTau)
+                errordlg('Must select base tau region.', 'ringview error', 'modal');
+            else
+                fprintf(fd, 'cell_cfg.MirrorLoss = %.2f;\n', AppData.CavityLength/AppData.taus(2).MeanTau/2.998e10*1e6 );
+            end
         elseif AppData.FitDisplay == 1 || AppData.FitDisplay == 2
-           fprintf(fd, 'cell_cfg.MirrorLoss = %.2f;\n', AppData.CavityLength/AppData.taus(1).MeanTau/2.998e10*1e6 );
+            if isempty(AppData.taus(1).MeanTau)
+                errordlg('Must select base tau region.', 'ringview error', 'modal');
+            else
+               fprintf(fd, 'cell_cfg.MirrorLoss = %.2f;\n', AppData.CavityLength/AppData.taus(1).MeanTau/2.998e10*1e6 );
+            end
         end 
         fprintf(fd, 'cell_cfg.N_Passes = %i;\n', cell_cfg.N_Passes );
         fprintf(fd, 'cell_cfg.CavityFixedLength = %.2f;\n', cell_cfg.CavityFixedLength );
