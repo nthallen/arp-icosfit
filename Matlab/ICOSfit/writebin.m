@@ -10,7 +10,9 @@ function writebin(ofile, fe, hdr);
 %   }
 % }
 % writebin(ofile, fe, hdr);
-% Writes the matrix with the full SSP header info.
+% Writes the matrix with the full SSP header info, where hdr
+% is a struct containing the fields:
+%  NF, NCoadd, NAvg, NSkL, NSkP, SerialNum, T_HtSink, T_FPGA, Status
 fid = fopen(ofile, 'w');
 if fid > 0
     if nargin < 3
