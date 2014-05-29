@@ -1,10 +1,10 @@
-function cell_cfg = load_cell_cfg(use_default);
+function cell_cfg = load_cell_cfg(use_default)
 % cell_cfg = load_cell_cfg;
-% Checks for the existence of a CR_Config script and complains
+% Checks for the existence of a Cell_Config script and complains
 % if one cannot be found. Below is a sample version of a
 % CR_Config function.
 %
-%  function cell_cfg = CR_Config;
+%  function cell_cfg = Cell_Config;
 %  % CR_Config defines local configuration and should be located
 %  % in a local configuration directory (as opposed to a directory
 %  % of shared scripts).
