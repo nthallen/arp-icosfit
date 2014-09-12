@@ -93,6 +93,9 @@ AppData.tauwindow.x = [];
 AppData.tauwindow.y = [];
 AppData.skip = ceil(AppData.delay * AppData.Waves.RawRate / ...
     AppData.Waves.NAverage); %number of points to skip
+if AppData.skip > length(AppData.Tdata)
+    AppData.skip = 1;
+end
 AppData.xdata = AppData.Tdata - AppData.Tdata(AppData.skip);
 FitSamples = ceil(AppData.FitLength * AppData.Waves.RawRate / ...
     AppData.Waves.NAverage);
