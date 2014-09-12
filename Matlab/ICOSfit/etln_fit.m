@@ -165,7 +165,7 @@ handles.data.polling = 0;
 handles.data.Xcolor.full = [1 1 1];
 handles.data.Xcolor.fit = [.8 .8 .8];
 handles.data.Xcolor.fixed = [.7 .7 .7];
-set(handles.tc_select,'SelectedObject',handles.X5);
+set(handles.tc_select,'SelectedObject',handles.tc1_enbl);
 % handles.data.SliderSelected = handles.X5;
 handles.SliderListener = ...
     addlistener(handles.Slider,'Value','PostSet', ...
