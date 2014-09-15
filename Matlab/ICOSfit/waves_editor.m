@@ -76,13 +76,13 @@ handles.data.index = 1;
 handles.data.rawdata = [];
 handles.data.qclicomp = 0;
 for i=1:2:length(varargin)-1
-  if strcmp(varargin{i},'data')
+  if strcmpi(varargin{i},'data')
     handles.data.rawdata = varargin{i+1};
-  elseif strcmp(varargin{i},'index')
+  elseif strcmpi(varargin{i},'index')
     handles.data.index = varargin{i+1};
-  elseif strcmp(varargin{i},'qclicomp')
+  elseif strcmpi(varargin{i},'qclicomp')
     handles.data.qclicomp = varargin{i+1};
-  elseif strcmp(varargin{i}, 'scannum')
+  elseif strcmpi(varargin{i}, 'scannum')
     handles.data.qclicomp = 1;
     scannum = varargin{i+1};
     handles.data.rawdata = scanload(scannum);
