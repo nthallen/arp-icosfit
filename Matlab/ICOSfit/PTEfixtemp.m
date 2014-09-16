@@ -36,6 +36,7 @@ end
 PTE=load(PTEif);
 PT=load(PTfile);
 
-PTE(:,3)=interp1(PT.ScanNum(diff(PT.ScanNum)>0),PT.(Tname)(diff(PT.ScanNum)>0),PTE(:,1));
+V = [false; diff(PT.ScanNum)>0];
+PTE(:,3)=interp1(PT.ScanNum(V),PT.(Tname)(V),PTE(:,1));
 
 save(PTEof,'PTE','-ascii')
