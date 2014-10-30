@@ -18,12 +18,12 @@ for i = scannum'
   else
     if f(1,1) < xmin
       nc = xmin-f(1,1);
-      resids = [ zeros(3,size(resids,2)); resids ];
+      resids = [ NaN*zeros(3,size(resids,2)); resids ];
       xmin = f(1,1);
     end
     if f(end,1) >= xmin + size(resids,1)
       nc = f(end,1)-xmin-size(resids,1)+1;
-      resids = [ resids; zeros(nc,size(resids,2)) ];
+      resids = [ resids; NaN*zeros(nc,size(resids,2)) ];
     end
     resids(f(:,1)-xmin+1,nscans) = f(:,3)-f(:,4)+f(:,5);
   end
