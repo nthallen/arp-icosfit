@@ -150,6 +150,9 @@ void PTfile::calc_wndata() {
     double fn = Etln_params[1] + Etln_params[2]*ii + Etln_params[3]*ii*ii
       + Etln_params[4]*exp(-ii/Etln_params[5])
       + Etln_params[6]*exp(-ii/Etln_params[7]);
+    if (GlobalData.EtalonFeedback != 0) {
+      fn = fn - GlobalData.EtalonFeedback * sin(2 * M_PI * fn);
+    }
     ICOSfile::wndata->data[i] = -GlobalData.EtalonFSR * fn;
   }
   ICOSfile::wndata->n_data = to;

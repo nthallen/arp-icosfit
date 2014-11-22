@@ -9,6 +9,7 @@ ConfigCmd :
   'FitFunction' '=' Ident /
   'MirrorLoss' '=' FloatVal opt_ppm /
   'EtalonFSR' '=' FloatVal opt_wn /
+  'EtalonFeedback' '=' FloatVal /
   'MinimumFringeSpacing' '=' FloatVal /
   'DSFRLimits' '=' '[' FloatVal ',' FloatVal ']' /
   'TolerableDrift' '=' FloatVal opt_wn /

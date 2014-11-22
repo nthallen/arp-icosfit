@@ -13,6 +13,7 @@ GlobalData_t::GlobalData_t() {
   FitFunction = "func_tau";
   MirrorLoss = 180.e-6;
   EtalonFSR = 0.019805;
+  EtalonFeedback = 0.;
   // MinimumFringeSpacing = 12.;
   TolerableDrift = .01; // cm-1
   CavityLength = 70.; // cm

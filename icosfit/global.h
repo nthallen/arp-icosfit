@@ -12,6 +12,7 @@ class GlobalData_t {
 	const char *FitFunction;
 	float MirrorLoss;
 	float EtalonFSR;
+  float EtalonFeedback;
 	// float MinimumFringeSpacing;
 	float TolerableDrift;
   float LeftLineMargin;

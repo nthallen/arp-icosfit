@@ -49,6 +49,9 @@ END;
 RULE: ConfigCmd ::= 'EtalonFSR' '=' FloatVal opt_wn COMPUTE
   SetGlobal(EtalonFSR, FloatVal.FVal );
 END;
+RULE: ConfigCmd ::= 'EtalonFeedback' '=' FloatVal COMPUTE
+  SetGlobal(EtalonFeedback, FloatVal.FVal );
+END;
 RULE: ConfigCmd ::= 'MinimumFringeSpacing' '=' FloatVal COMPUTE
   message(ERROR, "MinimumFringeSpacing is no longer supported",0,COORDREF);
 END;
