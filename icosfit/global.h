@@ -36,6 +36,7 @@ class GlobalData_t {
   int PTE_nu_F0_col;
   int PTE_MirrorLoss_col;
   int PTE_PowerParams_col;
+  int PTE_Feedback_col;
 	const char *BaselineFile;
 	const char *LineFile;
 	const char *OutputDir;

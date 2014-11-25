@@ -36,6 +36,7 @@ GlobalData_t::GlobalData_t() {
   PTE_nu_F0_col = 0;
   PTE_MirrorLoss_col = 0;
   PTE_PowerParams_col = 0;
+  PTE_Feedback_col = 0;
   BaselineFile = 0;
   BaselineInput = 0;
   LineFile = "fitline.dat";

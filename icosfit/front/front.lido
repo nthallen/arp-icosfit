@@ -161,9 +161,14 @@ RULE: PTE_opt ::= '+' 'MirrorLoss' COMPUTE
     message(ERROR, "Cannot specify '+ MirrorLoss' more than once",0,COORDREF));
 END;
 RULE: PTE_opt ::= '+' 'PowerParams' COMPUTE
-  PTE_opt.PTE_ncols = 7;
+  PTE_opt.PTE_ncols = 7; /* includes finesse, iteration and fit quality */
   IF(SetGlobalOnce(PTE_PowerParams_col, ADD(PTE_opt.PTE_column,1)),
     message(ERROR, "Cannot specify '+ PowerParams' more than once",0,COORDREF));
+END;
+RULE: PTE_opt ::= '+' 'Feedback' COMPUTE
+  PTE_opt.PTE_ncols = 1;
+  IF(SetGlobalOnce(PTE_Feedback_col, ADD(PTE_opt.PTE_column,1)),
+    message(ERROR, "Cannot specify '+ Feedback' more than once",0,COORDREF));
 END;
 
 RULE: ConfigCmd ::= 'BaselineFile' '=' Path opt_BaselineInput COMPUTE

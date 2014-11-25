@@ -21,12 +21,16 @@ PTfile::PTfile( const char *fname ) {
   format = GlobalData.PTformat;
   last_file_pos = -1;
   switch ( format ) {
-    case 0: n_vars = 12; break;
-    case 1: n_vars = 7; break;
-    case 2: n_vars = 11; break;
+    case 0: n_vars = 12; break; // Obsolete
+    case 1: n_vars = 7; break; // Obsolete
+    case 2: n_vars = 11; break; // PTE file
     default: nl_error( nl_response, "Unknown format code: %d", format );
   }
   offset = n_vars - 1;
+  if (GlobalData.PTE_Feedback_col) {
+    GlobalData.PTE_Feedback_col += offset;
+    ++n_vars;
+  }
   if (GlobalData.PTE_nu_F0_col) {
     GlobalData.PTE_nu_F0_col += offset;
     ++n_vars;
@@ -37,6 +41,9 @@ PTfile::PTfile( const char *fname ) {
   }
   if (GlobalData.PTE_PowerParams_col) {
     n_vars += 7;
+  }
+  if (GlobalData.PTE_Feedback_col && !GlobalData.PTE_PowerParams_col) {
+    nl_error(nl_response, "PTE option '+Feedback' requires '+PowerParams'");
   }
 }
 
@@ -96,6 +103,12 @@ int PTfile::readline() {
       if (GlobalData.PTE_MirrorLoss_col) {
         GlobalData.input.MirrorLoss = data[GlobalData.PTE_MirrorLoss_col];
       }
+      if (GlobalData.PTE_Feedback_col) {
+        Etln_params[8] = data[GlobalData.PTE_Feedback_col];
+        for (i = 0; i < 4; ++i) {
+          Etln_params[9+i] = data[GlobalData.PTE_PowerParams_col + i];
+        }
+      }
       return 1;
     } else {
       time = data[0];
@@ -150,7 +163,11 @@ void PTfile::calc_wndata() {
     double fn = Etln_params[1] + Etln_params[2]*ii + Etln_params[3]*ii*ii
       + Etln_params[4]*exp(-ii/Etln_params[5])
       + Etln_params[6]*exp(-ii/Etln_params[7]);
-    if (GlobalData.EtalonFeedback != 0) {
+    if (GlobalData.PTE_Feedback_col) {
+      double P = Etln_params[9]*ii*ii*ii + Etln_params[10]*ii*ii +
+        Etln_params[11]*ii + Etln_params[12];
+      fn = fn - Etln_params[8]*P*sin(2 * M_PI * fn);
+    } else if (GlobalData.EtalonFeedback != 0) {
       fn = fn - GlobalData.EtalonFeedback * sin(2 * M_PI * fn);
     }
     ICOSfile::wndata->data[i] = -GlobalData.EtalonFSR * fn;
