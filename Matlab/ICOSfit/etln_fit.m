@@ -34,7 +34,7 @@ function varargout = etln_fit(varargin)
 
 %### Trouble in 070625.2 at 337 and 852
 
-% Last Modified by GUIDE v2.5 02-Nov-2012 15:36:33
+% Last Modified by GUIDE v2.5 24-Nov-2014 14:08:59
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -147,6 +147,9 @@ handles.data.Op = ...
   optimset(handles.data.Op,'Jacobian', 'on','TolFun',.1, ...
   'MaxFunEvals',100,'Display','off','Algorithm',{'levenberg-marquardt',1});
 
+handles.data.col_ef = 8;
+handles.data.col_pwr = 9;
+handles.data.col_fin = 13;
 if handles.data.X(6) == 0
     set(handles.dblexp,'Value',0);
 else
@@ -208,7 +211,7 @@ if ~isempty(handles.data.peakpts)
   delete(handles.data.peakpts)
 end
 axes(handles.axes1);
-[X,Y] = ginput;
+[X,~] = ginput;
 X = sort(X);
 Y = interp1(handles.data.samples, handles.data.raw, X, 'nearest');
 % axes(handles.axes1);
@@ -229,7 +232,7 @@ handles.data.peaky = fy;
 F0 = 1;
 if ~isempty(fx)
   V = polyfit(handles.data.peakx*1e-3,handles.data.peaky,3);
-  handles.data.Y = [ handles.data.X V F0 ];
+  handles.data.Y = [ handles.data.X 0 V F0 ];
 end
 guidata(hObject, handles);
 update_Y_to_fig(handles);
@@ -319,6 +322,7 @@ if handles.data.level >= handles.data.startlevel
       set(handles.Pause,'visible','off');
       set(handles.Slider,'visible','off');
       set(handles.tc_select,'visible','off');
+      set(handles.EtlnFdbkPanel,'visible','off');
       % expose level 1 elements
       set(handles.peakdet_panel,'visible','on');
       set([handles.X1 handles.X2 handles.X3 handles.X4 handles.X6 ...
@@ -352,6 +356,7 @@ if handles.data.level >= handles.data.startlevel
       set(handles.peakdet_panel,'visible','off');
       set(handles.fullfit_panel,'visible','off');
       set(handles.Pause,'visible','off');
+      set(handles.EtlnFdbkPanel,'visible','off');
       % update_X_to_fig(handles);
     case 3
       set(handles.Slider,'visible','off');
@@ -372,6 +377,12 @@ if handles.data.level >= handles.data.startlevel
       set(handles.peakdet_panel,'visible','off');
       set(handles.fullfit_panel,'visible','on');
       set(handles.Pause,'Value',1,'visible','on');
+      fdbk = get(handles.FdbkChk,'value');
+      if fdbk
+        set(handles.EtlnFdbkPanel,'visible','on');
+      else
+        set(handles.EtlnFdbkPanel,'visible','off');
+      end
       update_Y_to_fig(handles);
   end
 end
@@ -393,17 +404,17 @@ while 1
     i = handles.data.index;
     if handles.data.saveall
       fprintf( handles.data.ofd, ...
-        '%d %.2f %.1f %d %.7g %.7g %.7g %.7g %.7g %.7g %.7g 0 %.7g %.7g %.7g %.7g %.7g %.7g %.7g\n', ...
+        '%d %.2f %.1f %d %.7g %.7g %.7g %.7g %.7g %.7g %.7g %.6g %.7g %.7g %.7g %.7g %.7g %.7g %.7g\n', ...
         handles.data.scans(i), handles.data.P(i), ...
         handles.data.T(i), ...
-        handles.data.samples(1), handles.data.Y(1:12), ...
+        handles.data.samples(1), handles.data.Y(1:handles.data.col_fin), ...
         handles.data.fitpass, handles.data.figerr );
     else
       fprintf( handles.data.ofd, ...
-        '%d %.2f %.1f %d %.7g %.7g %.7g %.7g %.7g %.7g %.7g\n', ...
+        '%d %.2f %.1f %d %.7g %.7g %.7g %.7g %.7g %.7g %.7g %.6g\n', ...
         handles.data.scans(i), handles.data.P(i), ...
         handles.data.T(i), ...
-        handles.data.samples(1), handles.data.Y(1:7) );
+        handles.data.samples(1), handles.data.Y(1:handles.data.col_ef) );
     end
   end
   if handles.data.index >= length(handles.data.scans)
@@ -562,7 +573,8 @@ while 1
           handles.data.Y(1:7) = handles.data.X;
           V = polyfit(px, handles.data.peaky, 3);
           pwr = polyval(V,handles.data.rxs);
-          handles.data.Y(8:12) = [ V'; max(pwr./handles.data.raw - 1) ];
+          handles.data.Y(handles.data.col_pwr + [0:4]) = ...
+            [ V'; max(pwr./handles.data.raw - 1) ];
           handles.data.level = 3;
         end
       end
@@ -576,25 +588,43 @@ while 1
       DoPlot = strcmp(get(handles.NoPlot_menu,'Checked'),'off');
       if max(etln) - min(etln) > .1
         dblexp = get(handles.dblexp,'Value');
+        fdbk = get(handles.FdbkChk,'Value');
         if dblexp
-          fY = handles.data.Y;
+          if fdbk
+            fitcols = 1:handles.data.col_fin;
+            zerocols = [];
+          else
+            fitcols = [1:7 handles.data.col_pwr:handles.data.col_fin];
+            zerocols = handles.data.col_ef;
+          end
+        elseif fdbk
+          fitcols = [1:5 handles.data.col_ef:handles.data.col_fin];
+          zerocols = 6;
         else
-          fY = handles.data.Y([1:5 8:12]);
+          fitcols = [1:5 handles.data.col_pwr:handles.data.col_fin];
+          zerocols = [6 handles.data.col_ef];
         end
-        fY = lsqcurvefit(@etln_evalJ, fY, ...
-          handles.data.rxs, etln, ...
-          [], [], handles.data.Op);
-        if dblexp
-          handles.data.Y = fY;
+        fY = handles.data.Y(fitcols);
+        if fdbk
+          fY = lsqcurvefit(@etlnfb_evalJ, fY, ...
+            handles.data.rxs, etln, ...
+            [], [], handles.data.Op);
         else
-          handles.data.Y([1:5 8:12]) = fY;
-          handles.data.Y(6) = 0;
+          fY = lsqcurvefit(@etln_evalJ, fY, ...
+            handles.data.rxs, etln, ...
+            [], [], handles.data.Op);
         end
+        handles.data.Y(fitcols) = fY;
+        handles.data.Y(zerocols) = 0.;
         set_fitting(handles,0);
         % axes(handles.axes2)
         if ~any(isnan(handles.data.Y))
-          emdl = etln_evalJ(handles.data.Y,handles.data.rxs);
-          P = polyval(handles.data.Y(8:11),handles.data.rxs);
+          if fdbk
+            emdl = etlnfb_evalJ(handles.data.Y,handles.data.rxs);
+          else
+            emdl = etln_evalJ(handles.data.Y([1:7,9:13]),handles.data.rxs);
+          end
+          P = polyval(handles.data.Y(handles.data.col_pwr + [0:3]),handles.data.rxs);
           handles.data.figerr = std(etln-emdl)/(max(etln)-min(etln));
           tauerr = '';
           %------------------------------------------------------
@@ -629,7 +659,7 @@ while 1
           set(handles.axes2,'XTickLabel',[],'YTickLabel',[], ...
             'xlim', [1 length(handles.data.scans)+1], ...
             'ylim', [0 handles.data.threshold], 'visible','on');
-          title(handles.axes2, sprintf('Relative Error: %.2g%s', ...
+          title(handles.axes2, sprintf('Relative Error: %f%s', ...
               handles.data.figerr, tauerr));
         else
           handles.data.figerr = -1;
@@ -686,19 +716,23 @@ while 1
         set(handles.next_btn,'String','Next');
         interact = dopause == 1;
         return;
-      elseif handles.data.Y(12) < 0 && ...
+      elseif handles.data.Y(handles.data.col_fin) < 0 && ...
            handles.data.figerr >=0 && ...
            handles.data.figerr < handles.data.threshold && ...
            handles.data.fitpass == floor(handles.data.fitpass)
        % Negative finesse
-        handles.data.Y(12) = -handles.data.Y(12);
-        handles.data.Y(8:11) = handles.data.Y(8:11)/(1 - handles.data.Y(12));
+        handles.data.Y(handles.data.col_fin) = ...
+          -handles.data.Y(handles.data.col_fin);
+        cols_pwr = handles.data.col_pwr + [0:3];
+        handles.data.Y(cols_pwr) = ...
+          handles.data.Y(cols_pwr)/(1 - handles.data.Y(handles.data.col_fin));
         handles.data.Y(1) = handles.data.Y(1) + .5;
         handles.data.fitpass = handles.data.fitpass + .5;
       elseif handles.data.figerr >= 0 && ...
-              handles.data.Y(12) < 0 && ...
+              handles.data.Y(handles.data.col_fin) < 0 && ...
               handles.data.fitpass == floor(handles.data.fitpass)
-        handles.data.Y(12) = -handles.data.Y(12);
+        handles.data.Y(handles.data.col_fin) = ...
+          -handles.data.Y(handles.data.col_fin);
         handles.data.fitpass = handles.data.fitpass + .5;
       elseif handles.data.fitpass < 2 && isempty(handles.data.peakx) && ...
           ~isempty(handles.data.Ylast) && ...
@@ -742,39 +776,18 @@ set(handles.X7, 'String', num2str(handles.data.X(7)));
 function update_Y_to_fig(handles)
 handles.data.X = handles.data.Y(1:7);
 update_X_to_fig(handles);
-set(handles.X8, 'String', num2str(handles.data.Y(8)));
-set(handles.X9, 'String', num2str(handles.data.Y(9)));
-set(handles.X10, 'String', num2str(handles.data.Y(10)));
-set(handles.X11, 'String', num2str(handles.data.Y(11)));
-set(handles.X12, 'String', num2str(handles.data.Y(12)));
-
-% function handles = update_X_from_fig(handles)
-% X(1) = str2double(get(handles.X1,'String'));
-% X(2) = str2double(get(handles.X2,'String'));
-% X(3) = str2double(get(handles.X3,'String'));
-% X(4) = str2double(get(handles.X4,'String'));
-% X(5) = str2double(get(handles.X5,'String'));
-% X(6) = str2double(get(handles.X6,'String'));
-% X(7) = str2double(get(handles.X7,'String'));
-% handles.data.X = X;
-
-% function handles = update_Y_from_fig(handles)
-% handles = update_X_from_fig(handles);
-% Y = handles.data.X;
-% Y(8) = str2double(get(handles.X8,'String'));
-% Y(9) = str2double(get(handles.X9,'String'));
-% Y(10) = str2double(get(handles.X10,'String'));
-% Y(11) = str2double(get(handles.X11,'String'));
-% Y(12) = str2double(get(handles.X12,'String'));
-% handles.data.Y = Y;
+set(handles.X8, 'String', num2str(handles.data.Y(handles.data.col_pwr)));
+set(handles.X9, 'String', num2str(handles.data.Y(handles.data.col_pwr+1)));
+set(handles.X10, 'String', num2str(handles.data.Y(handles.data.col_pwr+2)));
+set(handles.X11, 'String', num2str(handles.data.Y(handles.data.col_pwr+3)));
+set(handles.X12, 'String', num2str(handles.data.Y(handles.data.col_fin)));
+set(handles.feedback, 'String', num2str(handles.data.Y(handles.data.col_ef)));
 
 % --- Executes on button press in Pause.
 function Pause_Callback(~, ~, ~)
 % hObject    handle to Pause (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of Pause
 
 
 function set_fitting(handles, turn_on )
@@ -935,3 +948,19 @@ set(handles.NoPlot_menu, 'Checked', checked);
 % guidata(hObject, handles);
 % handles = setup_level(hObject, handles);
 % execute_level(hObject, handles);
+
+
+% --- Executes on button press in FdbkChk.
+function FdbkChk_Callback(hObject, ~, handles)
+% hObject    handle to FdbkChk (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if handles.data.level == 3
+  fdbk = get(handles.FdbkChk,'value');
+  if fdbk
+    set(handles.EtlnFdbkPanel,'visible','on');
+  else
+    set(handles.EtlnFdbkPanel,'visible','off');
+  end
+  execute_level(hObject, handles);
+end

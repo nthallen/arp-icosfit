@@ -12,6 +12,10 @@ function S = ICOS_setup(base, by_molecule)
 % Glcalc          base            molwts          v               
 % Gv              binary          n_base_params   
 % Gvcalc          by_molecule     n_cols
+%%%%
+% C Number density of air molecules cm-3
+% Nfit Number density of measured quantity molecules cm-3
+% Chi Mixing ratio (normalized by HITRAN for isotopologues)
 %%%%%
 % v identifies the columns of fitdata corresponding to each line
 if nargin < 2
@@ -54,6 +58,7 @@ if exist( [ base '/ICOSconfig.m' ], 'file' )
       S.BackgroundRegion = BackgroundRegion;
       S.EtalonFSR = EtalonFSR;
       S.N_Passes = N_Passes;
+      S.SignalRegion = S.fitdata(:,[5 6]);
   end
   S.n_input_params = n_input_params;
   S.n_base_params = n_base_params;
