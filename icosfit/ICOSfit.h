@@ -7,7 +7,7 @@
 #include "ptread.h"
 
 #define ICOSFIT_VERSION "2.21"
-#define ICOSFIT_VERSION_DATE "11/25/2014"
+#define ICOSFIT_VERSION_DATE "12/01/2014"
 
 class fitdata {
   public:

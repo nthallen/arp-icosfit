@@ -170,6 +170,9 @@ RULE: PTE_opt ::= '+' 'Feedback' COMPUTE
   IF(SetGlobalOnce(PTE_Feedback_col, ADD(PTE_opt.PTE_column,1)),
     message(ERROR, "Cannot specify '+ Feedback' more than once",0,COORDREF));
 END;
+RULE: PTE_opt ::= '+' 'Placeholder' COMPUTE
+  PTE_opt.PTE_ncols = 1;
+END;
 
 RULE: ConfigCmd ::= 'BaselineFile' '=' Path opt_BaselineInput COMPUTE
   SetGlobal(BaselineFile, StringTable(Path.String));

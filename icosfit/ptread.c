@@ -40,10 +40,12 @@ PTfile::PTfile( const char *fname ) {
     ++n_vars;
   }
   if (GlobalData.PTE_PowerParams_col) {
+    GlobalData.PTE_PowerParams_col += offset;
     n_vars += 7;
   }
-  if (GlobalData.PTE_Feedback_col && !GlobalData.PTE_PowerParams_col) {
-    nl_error(nl_response, "PTE option '+Feedback' requires '+PowerParams'");
+  if ((GlobalData.PTE_Feedback_col || GlobalData.EtalonFeedback)
+       && !GlobalData.PTE_PowerParams_col) {
+    nl_error(nl_response, "EtalonFeedback and PTE option '+Feedback' both require PTE option '+PowerParams'");
   }
 }
 
@@ -104,9 +106,12 @@ int PTfile::readline() {
         GlobalData.input.MirrorLoss = data[GlobalData.PTE_MirrorLoss_col];
       }
       if (GlobalData.PTE_Feedback_col) {
-        Etln_params[8] = data[GlobalData.PTE_Feedback_col];
+        Etln_params[GlobalData.PTE_Feedback_col-3] = data[GlobalData.PTE_Feedback_col];
+      }
+      if (GlobalData.PTE_PowerParams_col) {
         for (i = 0; i < 4; ++i) {
-          Etln_params[9+i] = data[GlobalData.PTE_PowerParams_col + i];
+          Etln_params[GlobalData.PTE_PowerParams_col + i - 3] =
+            data[GlobalData.PTE_PowerParams_col + i];
         }
       }
       return 1;
@@ -163,12 +168,18 @@ void PTfile::calc_wndata() {
     double fn = Etln_params[1] + Etln_params[2]*ii + Etln_params[3]*ii*ii
       + Etln_params[4]*exp(-ii/Etln_params[5])
       + Etln_params[6]*exp(-ii/Etln_params[7]);
-    if (GlobalData.PTE_Feedback_col) {
-      double P = Etln_params[9]*ii*ii*ii + Etln_params[10]*ii*ii +
-        Etln_params[11]*ii + Etln_params[12];
-      fn = fn - Etln_params[8]*P*sin(2 * M_PI * fn);
-    } else if (GlobalData.EtalonFeedback != 0) {
-      fn = fn - GlobalData.EtalonFeedback * sin(2 * M_PI * fn);
+    if (GlobalData.PTE_PowerParams_col &&
+        (GlobalData.PTE_Feedback_col || GlobalData.EtalonFeedback != 0)) {
+      int pc = GlobalData.PTE_PowerParams_col-3; // Should be 9
+      double P = Etln_params[pc]*ii*ii*ii + Etln_params[pc+1]*ii*ii +
+        Etln_params[pc+2]*ii + Etln_params[pc+3];
+      if (GlobalData.PTE_Feedback_col) {
+        P = P * Etln_params[GlobalData.PTE_Feedback_col-3]; // Should be 8, right?
+      }
+      if (GlobalData.EtalonFeedback != 0) {
+        P = P * GlobalData.EtalonFeedback;
+      }
+      fn = fn - P*sin(2 * M_PI * fn);
     }
     ICOSfile::wndata->data[i] = -GlobalData.EtalonFSR * fn;
   }
