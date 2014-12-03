@@ -237,12 +237,15 @@ elseif strcmp(varargin{1},'save') || strcmp(varargin{1},'default')
       line_obj.Regions.scan = [];
   end
   if ~isempty(line_obj)
+    f_sav = line_obj.reg_fig;
+    line_obj.reg_fig = 0;
     save( [svdir 'fitline.mat'], 'line_obj');
     suff = line_obj.Suffix;
     if ~isempty(suff)
       fname = [ svdir 'fitline' suff '.mat' ];
       save( fname, 'line_obj' );
     end
+    line_obj.reg_fig = f_sav;
   end
   return
 elseif strcmp(varargin{1},'matchline')
@@ -258,7 +261,7 @@ elseif strcmp(varargin{1},'editregions')
   line_obj = update_line_obj(f);
   % Create a new figure (or make the current regions figure active)
   if ~isempty(line_obj)
-    if line_obj.reg_fig && ishandle(line_obj.reg_fig)
+    if (line_obj.reg_fig ~= 0) && ishandle(line_obj.reg_fig)
       set(line_obj.reg_fig,'visible','on');
       figure(line_obj.reg_fig);
       fitline('reg_select',line_obj.reg_fig,line_obj.CurRegion);
@@ -347,8 +350,9 @@ elseif strcmp(varargin{1},'editregions')
 elseif strcmp(varargin{1},'deletefig')
   f = gcbo;
   line_obj = get(f,'UserData');
-  if line_obj.reg_fig && ishandle(line_obj.reg_fig)
+  if (line_obj.reg_fig ~= 0) && ishandle(line_obj.reg_fig)
     delete(line_obj.reg_fig);
+    line_obj.reg_fig = 0;
   end
   return
 elseif strcmp(varargin{1},'reg_deletefig')
@@ -518,8 +522,11 @@ elseif strcmp(varargin{1},'addsuffix')
   line_obj.Suffix = new_suffix;
   set(rf,'UserData',line_obj);
   fname = [ 'fitline' new_suffix '.mat' ];
+  f_sav = line_obj.reg_fig;
+  line_obj.reg_fig = 0;
   save(fname, 'line_obj');
   save('fitline.mat', 'line_obj');
+  line_obj.reg_fig = f_sav;
   add_suffix(rf,line_obj,[],new_suffix);
   return;
 elseif strcmp(varargin{1},'suffixcallback')

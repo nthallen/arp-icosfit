@@ -22,7 +22,7 @@ class PTfile {
     int format;
     int n_vars;
     long int last_file_pos;
-    double Etln_params[8];
+    double Etln_params[14];
 };
 
 class ICOSfile {
