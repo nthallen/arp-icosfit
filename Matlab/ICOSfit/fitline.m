@@ -40,11 +40,16 @@ if nargin == 0 || load_only
   % we might actually want more than one open at a time.
   % Look for fitline.mat in the current directory or the
   % parent directory
-  fl = { filename, [ '../' filename ] };
-  for i = 1:length(fl)
-    if exist( fl{i}, 'file' )
-      load(fl{i}); % defines line_obj
-      break;
+  if exist( filename, 'file' )
+    load(filename); % defines line_obj
+  elseif exist(['../' filename], 'file')
+    load(['../' filename]); % defines line_obj
+    if exist('line_obj', 'var')
+      line_obj.Regions = [];
+      line_obj.Regions.name = 'all';
+      line_obj.Regions.scan = [];
+      line_obj.CurRegion = 1;
+      line_obj.Suffix = '';
     end
   end
   if exist( 'line_obj', 'var' )
