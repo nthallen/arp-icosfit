@@ -1,3 +1,26 @@
+2.21: 12/03/2014
+ Added support for etalon feedback parameters.
+
+2.20: 05/14/2014
+ Added the ability to include scan-by-scan mirror loss in the
+ PTEfile format.
+
+2.19: 09/14/2013
+ Fixed bug introduced in 2.18 causing negative numbers in the
+ config file to be syntax errors. 
+
+2.18: 09/13/2013
+ Added support for additional columns in input PTEfiles.
+ Accept '-' characters in PATH strings.
+
+2.17: 08/22/2013
+ Changed output file format, eliminating unused output columns
+ and adding output columns required to reproduce rrfit-style
+ plots without verbose output. This allows verbosity to be set
+ to zero without losing information. Currently Matlab fit_view
+ can replace rrfit for Herriott cell data, but support for ICOS
+ can't be too far behind.
+
 2.16: 07/01/2013
  Added small hysteresis in line_check to avoid endless loop
 

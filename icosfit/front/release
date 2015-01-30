@@ -4,6 +4,7 @@ function nl_error {
   exit 1
 }
 rev=$1
+[ -n "$rev" ] || nl_error "Please specify version number"
 dir="icosfit-$rev"
 ofile="icosfit_src_$rev.tgz"
 [ -e "$dir" ] && nl_error Directory $dir already exists
