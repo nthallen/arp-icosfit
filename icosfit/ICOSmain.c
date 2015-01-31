@@ -66,8 +66,10 @@ void ICOS_main() {
       nl_error( 3, "Unable to dup stderr to stderr: %s", strerror(errno) );
     // fclose(fp);
     if ( GlobalData.RestartAt <= 0 )
-      fprintf( stderr, "ICOSfit Start\n" );
-    else fprintf( stderr, "\nICOSfit Restart at %d\n",
+      fprintf( stderr, "ICOSfit Version %s (%s) Start\n",
+        ICOSFIT_VERSION, ICOSFIT_VERSION_DATE );
+    else fprintf( stderr, "\nICOSfit Version %s (%s) Restart at %d\n",
+       ICOSFIT_VERSION, ICOSFIT_VERSION_DATE,
        GlobalData.RestartAt );
   }
   fitspecs = build_func();
