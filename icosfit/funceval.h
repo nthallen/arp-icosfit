@@ -128,7 +128,7 @@ class func_line : public func_evaluator {
     virtual void print_intermediates(FILE *fp);
     //--------------------------------------------------
     int isotopomer;
-    double nu;
+    float nu;
     float nu1, S, G_air, E, n_air, delta;
     unsigned int ipos; // was loc...
     float S_thresh;
