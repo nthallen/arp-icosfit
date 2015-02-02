@@ -1,3 +1,14 @@
+2.22: 02/01/2015
+ Fixed bug in 64-bit versions where background was
+ miscalculated and scan data was shifted. Scan data
+ was shifted 5 samples left when scans were loaded.
+ If the BackgroundRegion was within 5 samples of laser
+ turn on, the zero baseline value was miscalculated,
+ resulting in elevated concentrations. The shifting
+ would also match features to the wrong tuning rate,
+ but we expect that difference to be offsetting and
+ much smaller than the zero baseline error.
+ 
 2.21: 12/03/2014
  Added support for etalon feedback parameters.
 
@@ -20,6 +31,9 @@
  to zero without losing information. Currently Matlab fit_view
  can replace rrfit for Herriott cell data, but support for ICOS
  can't be too far behind.
+ Fixed off-by-one error reading SSP files. Input scans had been
+ shifted right by one sample with a spurious point added as
+ the first sample.
 
 2.16: 07/01/2013
  Added small hysteresis in line_check to avoid endless loop

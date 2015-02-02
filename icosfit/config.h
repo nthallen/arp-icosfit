@@ -25,7 +25,8 @@
    a 'unsigned long' on Watcom and 'unsigned short' on a 64-bit
    architecture. *sigh*
 */
-typedef unsigned int icos_hdr_t;
+#include <stdint.h>
+typedef uint32_t icos_hdr_t;
 
 #include <endian.h>
 #if BYTE_ORDER == BIG_ENDIAN

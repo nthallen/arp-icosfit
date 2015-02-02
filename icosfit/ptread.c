@@ -245,8 +245,8 @@ int ICOSfile::read( unsigned long int fileno ) {
     }
     // Support for new SSP file format
     if ((header[0] | 0x10000) == 0x10006 && header[1] > 255) {
-      unsigned long data[5];
-      if (fread(data, sizeof(unsigned long), 5, fp) != 5) {
+      icos_hdr_t data[5];
+      if (fread(data, sizeof(icos_hdr_t), 5, fp) != 5) {
         nl_error( 2, "%s: Error reading SSP header: %s", mlf->fpath,
           strerror(errno) );
         fclose(fp);
