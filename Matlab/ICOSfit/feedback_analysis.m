@@ -1,54 +1,79 @@
-function feedback_analysis(varargin)
-% feedback_analysis([scans,] [refbase ,] base);
+function  [osc_out, beta_out, S_out] = feedback_analysis(varargin)
+% feedback_analysis([scans,] base [, base ...]);
 % 
 % feedback_analysis takes one to three arguments:
 %   An optional list of scan numbers to use in the analysis
 %   An optional reference base name of an icosfit for comparison
 %   The base name of an icosfit run to fully analyze.
-base = '';
-refbase = '';
 scans = [];
-switch length(varargin)
-  case 1,
-    base = varargin{1};
-  case 2,
-    if isnumeric(varargin{1})
-      scans = varargin{1};
-      base = varargin{2};
-    else
-      refbase = varargin{1};
-      base = varargin{2};
-    end
-  case 3,
-    scans = varargin{1};
-    refbase = varargin{2};
-    base = varargin{3};
-  otherwise
-    help feedback_analysis
-    return;
+bi = 1;
+if isnumeric(varargin{1})
+  scans = varargin{1};
+  bi = 2;
 end
-[line_pos,S] = get_line_position(base);
-if ~isempty(refbase)
-  [line_pos0,S0] = get_line_position(refbase);
-  osc0 = fit_comp([], S0, line_pos0, scans);
-  osc = fit_comp(S0, S, line_pos, scans);
-  figure;
-  lnums = 1:length(osc);
-  plot(lnums,osc0,'rs-',lnums,osc,'*-b');
-  set(gca,'YGrid','On','XDir','Reverse','xlim',[0.75 lnums(end)+0.25]);
-  title(sprintf('%s/%s: Residual Oscillation by Line',getrun,base));
-  legend('Standard','Feedback');
-else
-  osc = fit_comp([], S, line_pos, scans);
-  figure;
-  lnums = 1:length(osc);
-  plot(lnums,osc,'rs-');
-  set(gca,'YGrid','On','XDir','Reverse','xlim',[0.75 lnums(end)+0.25]);
-  title(sprintf('%s/%s: Residual Oscillation by Line',getrun,refbase));
+if bi > length(varargin)
+  help feedback_analysis
+  return;
+end
+bases = varargin(bi:end);
+[line_pos0,S0] = get_line_position(bases{1});
+if nargout > 2
+  S_out = cell(length(bases),1);
+  S_out{1} = S0;
+end
+osc = zeros(length(bases),size(S0.Chi,2));
+beta = osc;
+[osc(1,:), beta(1,:)] = fit_comp([],S0, line_pos0, scans);
+for i = 2:length(bases)
+  [line_pos,S] = get_line_position(bases{i});
+  [ osc(i,:), beta(i,:) ] = fit_comp(S0, S, line_pos, scans);
+  if nargout > 2
+    S_out{i} = S;
+  end
+end
+
+f = figure;
+lnums = 1:length(osc);
+plot(lnums,osc','s-');
+legend(bases);
+set(gca,'YGrid','On','XDir','Reverse','xlim',[0.75 lnums(end)+0.25]);
+title(sprintf('%s: Residual Oscillation by Line',getrun));
+set(f,'Name',sprintf('%s Summary',getrun));
+
+f = figure;
+plot(lnums, beta', 's-');
+legend(bases);
+set(gca,'YGrid','On','XDir','Reverse','xlim',[0.75 lnums(end)+0.25]);
+title(sprintf('%s: Phase of oscilation',getrun));
+set(f,'Name',sprintf('%s Phase',getrun));
+
+% f = figure;
+% plot(osc', beta','.-');
+% xlabel('Amplitude');
+% ylabel('Phase');
+% title(sprintf('%s: Phase plot',getrun));
+% set(f,'Name',sprintf('%s: Phase plot',getrun));
+f = figure;
+plot(S0.nu, beta');
+title(sprintf('%s: Phase vs Wavenumber', getrun));
+xlabel('cm^{-1}');
+ylabel('Phase deg');
+set(f, 'Name', sprintf('%s: Phase vs cm-1', getrun));
+
+f = figure;
+polar(deg2rad(beta'), osc','.-');
+title(sprintf('%s: Phase Plot',getrun));
+set(f,'Name',sprintf('%s: Phase Plot',getrun));
+
+if nargout > 0
+  osc_out = osc;
+  if nargout > 1
+    beta_out = beta;
+  end
 end
 
 
-function osc_out = fit_comp(S0, S, line_pos, scans)
+function [osc_out, beta_out] = fit_comp(S0, S, line_pos, scans)
 if isempty(scans)
   scans = S.scannum;
 end
@@ -68,7 +93,6 @@ end
 x = (PTE(1,4):max(S.SignalRegion(:,2)))';
 X = (x' - PTE(1,4))/1000;
 row = ones(1,length(x));
-col = ones(length(scans),1);
 a = PTE(:,7);
 b = PTE(:,6);
 c = PTE(:,5);
@@ -81,8 +105,10 @@ fn = a*(X.^2) + b*X + c*row + (d*row).*exp(-(1./tau)*X) + ...
 [XX,YY] = meshgrid(x,scans);
 
 osc = zeros(1,size(S.Chi,2));
+beta_out = osc;
 for loi=1:size(S.Chi,2)
   f = figure;
+  set(f,'Name',sprintf('%s: Line %d',S.base,loi));
   p = get(f,'Position');
   new_h = 500;
   new_w = 1500;
@@ -102,7 +128,7 @@ for loi=1:size(S.Chi,2)
     ylabel(ax(1),sprintf('Ref: %s',S0.base));
     set(ax(1),'XTickLabel',[]);
     plot(ax(2),scan10, fastavg(S.Chi(vs,loi),10),'.');
-    ylabel(ax(2),sprintf('Ref: %s',S0.base));
+    ylabel(ax(2),sprintf('%s',S.base));
     xlabel(ax(2),'Scan Number');
     set(ax(2),'YAxisLocation','Right');
     linkaxes(ax,'x');
@@ -111,8 +137,8 @@ for loi=1:size(S.Chi,2)
   Chimean = mean(S.Chi(vs,loi));
   Chires = (S.Chi(vs,loi)-Chimean)./Chimean;
   % Gedmean = mean(S.Ged(vs,loi));
-  Gedrat = S.Ged./S.Gedcalc;
-  Gedres = Gedrat(vs,loi);
+  % Gedrat = S.Ged./S.Gedcalc;
+  % Gedres = Gedrat(vs,loi);
   fn3 = interp2(XX,YY,fn,line_pos(vs,loi),scans);
   
   Navg = 10;
@@ -131,20 +157,31 @@ for loi=1:size(S.Chi,2)
   ylabel(ax(2),'Fractional Fringe');
   set(ax(2),'YAxisLocation','Right');
   linkaxes(ax,'x');
-  %
-  xffn = [0, 0.5, 1];
-  vxffn = 0.5*[1, -1, 1];
-  vffn = interp1(xffn,vxffn,ffn3);
-  Vffn = polyfit(vffn,Chires10,1);
-  vffnfit = polyval(Vffn,vxffn);
-  osc(loi) = Vffn(1);
+  
+  % This is a fit to a V
+%   xffn = [0, 0.5, 1];
+%   vxffn = 0.5*[1, -1, 1];
+%   vffn = interp1(xffn,vxffn,ffn3);
+%   Vffn = polyfit(vffn,Chires10,1);
+%   vffnfit = polyval(Vffn,vxffn);
+%   osc(loi) = Vffn(1);
+ 
+  % This is a fit to an arbitrary sine wave
+  SM = [1+0*ffn3, sin(2*pi*ffn3), cos(2*pi*ffn3)];
+  sa = SM\Chires10;
+  osc(loi) = sqrt(sa(2)^2 + sa(3)^2);
+  xffn = (0:.01:1)';
+  vffnfit = sa(1) + sa(2)*sin(2*pi*xffn) + sa(3)*cos(2*pi*xffn);
+  beta = 90 - (atan2(sa(3),sa(2)) * 180 / pi);
+  beta_out(loi) = beta;
   
   ax = nsubplot(2,3,[2 2],3,xsp);
   %scatter(ffn3,Chires10,[],scan10);
-  plot(ax,ffn3,Chires10,'.',xffn,vffnfit,'r.-');
-  title(ax,sprintf('%s: Line %d', getrun, loi));
-  xlabel(ax,'Etalon Fraction fringe position at line center');
+  plot(ax,ffn3*360,Chires10,'.',xffn*360,vffnfit,'r');
+  title(ax,sprintf('%s: Line %d, \\beta = %.0f^o', getrun, loi, beta));
+  xlabel(ax,'Etalon Fractional fringe position at line center');
   ylabel(ax,'Mixing Ratio RDFM');
+  drawnow;
 end
 
 osc_out = osc;
