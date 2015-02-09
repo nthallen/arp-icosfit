@@ -38,7 +38,11 @@ if isempty(ISO_DEFS)
   add_iso( 120, 'HNO3','HNO3', 1.0, 0, 1e6, 'ppm', 0.1 );
   add_iso( 130, 'OH','OH', 1.0, 0, 1e6, 'ppm', 0.1 );
   add_iso( 140, 'HF','HF', 1.0, 0, 1e6, 'ppm', 0.1 );
-  add_iso( 150, 'HCl','HCl', 1.0, 0, 1e6, 'ppm', 0.1 );
+  add_iso( 150, 'HCl','HCl', 1.0, 35.976677, 1e9, 'ppt', 0.1 );
+  add_iso( 151, 'HCl','HCl', 0.757587, 35.976677, 1e9, 'ppt', 0.1 );
+  add_iso( 152, 'H{}^{37}Cl','H37Cl', 0.242257, 37.973728, 1e9, 'ppt', 0.1 );
+  add_iso( 153, 'D{}^{35}Cl','D35Cl', 0.00018005, 36.983, 1e9, 'ppt', 0.1 );
+  add_iso( 154, 'D{}^{37}Cl','D37Cl', 0.000037735, 38.98, 1e9, 'ppt', 0.1 );
   add_iso( 160, 'HBr','HBr', 1.0, 0, 1e6, 'ppm', 0.1 );
   add_iso( 170, 'HI','HI', 1.0, 0, 1e6, 'ppm', 0.1 );
   add_iso( 180, 'ClO','ClO', 1.0, 0, 1e6, 'ppm', 0.1 );
