@@ -12,7 +12,7 @@ if ~isempty(varargin) && isnumeric(varargin{1})
   scans = varargin{1};
   bi = 2;
 end
-if length(varargin) >= bi && strnicmp(varargin{bi},
+%if length(varargin) >= bi && strnicmp(varargin{bi})
 if bi > length(varargin)
   help feedback_analysis
   return;
