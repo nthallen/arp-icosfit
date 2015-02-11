@@ -67,7 +67,7 @@ fitdata::fitdata( PTfile *ptf, ICOSfile *IF,
 #define RESTART_BUFSIZE 4096
 
 void fitdata::handle_restart( const char *ofname ) {
-  unsigned int prev_ScanNum = 0;
+  // unsigned int prev_ScanNum = 0;
   if ( RestartAt != NoKey)
     GlobalData.RestartAt = GetClpValue(RestartAt, 0);;
   if ( GlobalData.RestartAt > 0 ) {
@@ -81,8 +81,8 @@ void fitdata::handle_restart( const char *ofname ) {
         if (PTf->ScanNum == GlobalData.RestartAt) {
           PTf->backup();
           break;
-        } else {
-          prev_ScanNum = PTf->ScanNum;
+        // } else {
+          // prev_ScanNum = PTf->ScanNum;
         }
       } else {
         nl_error( 3, "Did not find ScanNum %d in PTE file", GlobalData.RestartAt );
@@ -110,7 +110,6 @@ void fitdata::handle_restart( const char *ofname ) {
       while ( fgets( buf, RESTART_BUFSIZE, ifp ) != 0 ) {
         int col;
         char *p = buf;
-        fprintf( IFile->ofp, "%s", buf );
         while ( isspace( *p ) ) p++;
         for ( col = 1; col < ScanNum_col; col++ ) {
           while ( ! isspace(*p) && *p != '\0' ) p++;
@@ -118,7 +117,9 @@ void fitdata::handle_restart( const char *ofname ) {
         }
         if ( *p == '\0' ) break;
         ScanNum = strtoul( p, &p, 10 );
-        if ( ScanNum == prev_ScanNum ) {
+        if (ScanNum >= GlobalData.RestartAt) { // What if ScanNum is decreasing?
+          break;
+        } else {
           for ( ++col; col <= n_input_params; ++col ) {
             while ( isspace(*p) ) p++;
             while ( ! isspace(*p) && *p != '\0' ) p++;
@@ -131,33 +132,33 @@ void fitdata::handle_restart( const char *ofname ) {
             a[i] = strtod( p, &p );
             if ( ! isspace(*p) ) break;
           }
-          if ( i <= ma ) break;
+          if ( i <= ma )
+            nl_error(3, "Syntax error reading Scan %u from %s", ScanNum, ofname);
           for ( i = 1; i <= ma && *p != '\0'; i++ ) {
             while ( isspace(*p) ) p++;
             if ( *p == '0' || *p == '1' ) ia[i] = *p++ - '0';
             else nl_error( 3, "Expected 0 or 1 during Restart" );
           }
-          if ( i <= ma ) break;
-          IFile->read( ScanNum ); // To initialize wndata
-          // GlobalData.ScanNumRange[0] = ScanNum+1;
-          fclose( ifp );
-          { func_line *line;
-            for ( line = absorb->lfirst(); line != 0; line = line->lnext() ) {
-              if ( line->param_fixed( line->l_idx ) ) {
-                line->fixed = 1;
-                if ( line->param_fixed( line->n_idx ) )
-                  nl_error( 0, "Line at %.4f is off", line->nu );
-                else
-                  nl_error( 0, "Line at %.4f is fixed", line->nu );
-              }
-            }
-          }
-          return;
+          assert(i > ma);
+          fprintf( IFile->ofp, "%s", buf );
         }
       }
-      nl_error( 3, "Reached EOF or line too long after ScanNum %d", ScanNum );
+      fclose( ifp );
+      IFile->read( ScanNum ); // To initialize wndata
+      { func_line *line;
+        for ( line = absorb->lfirst(); line != 0; line = line->lnext() ) {
+          if ( line->param_fixed( line->l_idx ) ) {
+            line->fixed = 1;
+            if ( line->param_fixed( line->n_idx ) )
+              nl_error( 0, "Line at %.4f is off", line->nu );
+            else
+              nl_error( 0, "Line at %.4f is fixed", line->nu );
+          }
+        }
+      }
+      return;
     }
-    nl_error( 3, "Did not find ScanNum %d in %s", prev_ScanNum, ofname );
+    nl_error( 3, "Unexpected loop exit in handle_restart");
   } else {
     IFile->ofp = fopen( ofname, "a" );
     if ( IFile->ofp == 0 )

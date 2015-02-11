@@ -1,3 +1,9 @@
+2.23:
+ Fixed rounding problem in ICOSfile::wn_sample
+ which caused assertion failures.
+ Added explicit failure on non-decreasing tuning rate.
+ Reconfigured handle_restart() to allow skipping problematic scans.
+ 
 2.22: 02/01/2015
  Fixed bug in 64-bit versions where background was
  miscalculated and scan data was shifted. Scan data

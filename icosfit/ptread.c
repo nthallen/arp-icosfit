@@ -182,6 +182,9 @@ void PTfile::calc_wndata() {
       fn = fn - P*sin(2 * M_PI * fn);
     }
     ICOSfile::wndata->data[i] = -GlobalData.EtalonFSR * fn;
+    if (i > from && ICOSfile::wndata->data[i] >= ICOSfile::wndata->data[i-1]) {
+      nl_error(3, "%ld:%d: Tuning rate not monotonically decreasing", ScanNum, i);
+    }
   }
   ICOSfile::wndata->n_data = to;
 }
@@ -356,7 +359,7 @@ int ICOSfile::wn_sample( float wn ) {
   if ( wn <= wnlow ) return low;
   if ( wn >= wnhigh ) return high;
   while ( low > high ) {
-    int mid = int(low + (wn-wnlow)*(high-low)/(wnhigh-wnlow));
+    int mid = floor(0.5+low + (wn-wnlow)*(high-low)/(wnhigh-wnlow));
     assert( high <= mid && mid <= low );
     if ( mid == low ) return low;
     if ( mid == high ) return high;
