@@ -6,7 +6,7 @@ function [fe, hdr] = loadbin( ifile )
 %
 % Returns an empty matrix if the file cannot be read.
 % 
-% This version support two different file formats.
+% This version supports two different file formats.
 % The first format consists of two uint32 values defining the number of
 % rows and columns followed by the data as 32-bit floats in
 % column order.
