@@ -248,7 +248,7 @@ guidata(hObject, handles);
 SaveDirs = get(handles.SaveDir,'String');
 SaveDir = SaveDirs{get(handles.SaveDir,'value')};
 fd = fopen([ SaveDir '/ICOSfit_Config.m'], 'w');
-fprintf(fd, 'function ICOSfit_cfg = ICOSfit_Config;\n');
+fprintf(fd, 'function ICOSfit_cfg = ICOSfit_Config\n');
 fprintf(fd, '% ICOSfit_Config defines local configuration\n');
 fprintf(fd, 'ICOSfit_cfg.Matlab_Path = ''%s'';\n', ICOSfit_cfg.Matlab_Path );
 fprintf(fd, 'ICOSfit_cfg.ICOSfit_Path = ''%s'';\n', ICOSfit_cfg.ICOSfit_Path );

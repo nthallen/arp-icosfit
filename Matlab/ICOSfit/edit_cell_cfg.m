@@ -248,7 +248,7 @@ guidata(hObject, handles);
 SaveDirs = get(handles.SaveDir,'String');
 SaveDir = SaveDirs{get(handles.SaveDir,'value')};
 fd = fopen([ SaveDir '/Cell_Config.m'], 'w');
-fprintf(fd, 'function cell_cfg = Cell_Config;\n');
+fprintf(fd, 'function cell_cfg = Cell_Config\n');
 fprintf(fd, '% ICOSfit_Config defines local configuration\n');
 fprintf(fd, 'cell_cfg.fsr = %s;\n', cell_cfg.fsr );
 fprintf(fd, 'cell_cfg.CavityLength = %s;\n', cell_cfg.CavityLength );
