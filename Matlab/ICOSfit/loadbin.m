@@ -28,6 +28,7 @@ if fid > 0
         error('MATLAB:huarp:readerr','Unable to read header');
     end
     if data(1) == 6
+        % early version of the SSP format
         format = 0;
     elseif data(1) == hex2dec('10006')
         format = 1;
