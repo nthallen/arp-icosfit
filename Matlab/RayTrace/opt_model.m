@@ -66,7 +66,41 @@ classdef opt_model < handle
       end
     end
     
+    function set_visible(M, vis, opt_n)
+      if nargin < 3
+        opt_n = 1:length(M.Optic);
+      end
+      if iscolumn(opt_n)
+        opt_n = opt_n';
+      end
+      if iscolumn(vis)
+        vis = vis';
+      end
+      if length(opt_n) > 1 && length(vis) == 1
+        vis = vis*ones(size(opt_n));
+      end
+      if ~isrow(opt_n) || ~isrow(vis) || length(opt_n) ~= length(vis)
+        error('MATLAB:HUARP:argument mismatch', ...
+          'vis and opt_n not the same length');
+      end
+      for i=1:length(opt_n)
+        M.Optic{opt_n(i)}.visible = vis(i);
+      end
+      mvis = false;
+      for i=1:length(M.Optic)
+        if M.Optic{i}.visible
+          mvis = true;
+        end
+      end
+      M.visible = mvis;
+    end
+    
     function push_ray(M, R, n_inc, fr_obj, to_obj)
+      % M.push_ray(R, n_inc, fr_obj, to_obj)
+      % R: ray
+      % n_inc: the index of the preceding ray in Rays
+      % fr_obj: the source optic index
+      % to_obj: the destination optic index
       if ~isempty(R) && to_obj > 0 && to_obj <= length(M.Optic)
         if M.ray_stack_idx >= M.ray_stack_size
           error('MATLAB:HUARP:RayStackOverflow', 'Ray Stack Overflow');
@@ -97,6 +131,7 @@ classdef opt_model < handle
       M.Rays(M.n_rays).ray = R;
       n = M.n_rays;
     end
+    
     function [xyz, oxyz] = extract_endpoints(M, opt_n)
       % xyz = M.extract_endpoints(opt_n);
       % [xyz, oxyz] = extract_endpoints(M, opt_n);
@@ -130,6 +165,48 @@ classdef opt_model < handle
       plot(xyz(:,2), xyz(:,3), '.r', p(:,2), p(:,3), 'k');
       set(gca,'DataAspectRatio',[1 1 1 ]);
       xlabel('cm');
+      drawnow; shg;
+    end
+    
+    function plot_endpoints_skew(M, opt_n)
+      Opt = M.Optic{opt_n};
+      if abs(dot([1 0 0],Opt.D)) < .99
+        error('MATLAB:HUARP:RotatedOptic', ...
+          'Rotated Optical elements not supported in plot_endpoints');
+      end
+      [xyz, dxyz] = M.extract_endpoints_skew(opt_n);
+      Y = [ xyz(:,2), xyz(:,2)+dxyz(:,2)];
+      Z = [ xyz(:,3), xyz(:,3)+dxyz(:,3)];
+      % figure;
+      clf;
+      p = M.Optic{opt_n}.Surface{1}.perimeter;
+      plot(xyz(:,2), xyz(:,3), '.r', p(:,2), p(:,3), 'k', Y', Z', 'b');
+      set(gca,'DataAspectRatio',[1 1 1 ]);
+      xlabel('cm');
+    end
+    
+    function [xyz, dxyz, divergence, skew] = extract_endpoints_skew(M, opt_n)
+      % xyz in the point of incidence on the optic surface
+      % dxyz is a direction vector normalized so the x component is 1
+      [xyz, oxyz] = M.extract_endpoints(opt_n);
+      dxyz = xyz - oxyz;
+      % ldxyz = sqrt(sum(dxyz.^2,2));
+      % dxyz = diag(1./ldxyz)*dxyz;
+      dxyz = diag(1./dxyz(:,1)) * dxyz;
+      
+      if nargout >= 3
+        yz = xyz(:,[2 3]);
+        dyz = dxyz(:,[2 3]);
+        r = sqrt(sum(yz.^2,2));
+        ryz = diag(1./r) * yz; % unit vector in radial direction
+        divergence = sum(ryz .* dyz,2);
+      end
+      if nargout >= 4
+        col = ones(size(ryz,1),1);
+        rsk = cross(col*[1 0 0], [0*col,ryz]);
+        rsk = rsk(:,[2 3]);
+        skew = sum(rsk.*dyz,2);
+      end
     end
     
     function d_angle = extract_angles(M, opt_n)
@@ -143,7 +220,15 @@ classdef opt_model < handle
     
     function Res = evaluate_endpoints(M, opt_n, n_pts)
       % Res = M.evaluate_endpoints(opt_n[, n_pts]);
-      % Analysis includes:
+      % This function is ripe for override to eliminate unnecesary
+      % computation and to provide customized analysis.
+      %
+      % If you create new metrics and/or eliminate old ones, you
+      % must also override the results_struct static method. Note
+      % that these methods can also be overridden in subclasses of
+      % opt_model_p.
+      %
+      % Current Analysis includes:
       %   min_dist: Minimum spacing from first spot within n_pts
       %   min_dist_n: Spot number of minimum spacing
       %   area: area filled (assuming precession)

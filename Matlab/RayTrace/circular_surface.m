@@ -41,22 +41,14 @@ classdef circular_surface < opt_surface
     end
     
     function [Pintercept,Vnormal] = intercept(circ, Rincident)
-      if isempty(Rincident)
+      Pintercept = circ.intercept_plane(Rincident);
+      if isempty(Pintercept)
+        Vnormal = [];
+      elseif sum((Pintercept-circ.O).^2) > circ.r^2
         Pintercept = [];
         Vnormal = [];
       else
-        M = [ circ.D 0
-          1 0 0 -Rincident.D(1)
-          0 1 0 -Rincident.D(2)
-          0 0 1 -Rincident.D(3) ];
-        A = [ dot(circ.O,circ.D); Rincident.O'];
-        V = M\A; % V = [x y z t]'
-        Pintercept = V(1:3)';
         Vnormal = circ.D;
-        if V(4) < 0 || sum((Pintercept-circ.O).^2) > circ.r^2
-          % does not intercept
-          Pintercept = [];
-        end
       end
     end
   end

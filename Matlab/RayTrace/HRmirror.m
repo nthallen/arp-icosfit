@@ -29,7 +29,7 @@ classdef HRmirror < optic
       HR.R = R_in;
       Ocirc = HR.O - w*HR.D;
       Dcirc = -HR.D;
-      HR.Surface{1} = spherical_segment(HR.r, HR.RC, HR.O, HR.D, T_in, 1-T_in, ni_in, ne_in);
+      HR.Surface{1} = spherical_segment(HR.r, HR.RC, HR.O, HR.D, T_in, R_in, ni_in, ne_in);
       HR.Surface{2} = circular_surface(HR.r, Ocirc, Dcirc, 1, 0, ni_in, ne_in);
       %HR.Surface{1} = circular_surface(HR.r, HR.O, HR.D, 1, 0, ni_in, ne_in);
     end

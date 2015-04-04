@@ -51,7 +51,7 @@ classdef opt_model_p
           end
           PM.M = PM.P_model(P);
           PM.M.propagate;
-          Res = PM.evaluate_endpoints;
+          Res = PM.evaluate_endpoints(P);
           Res.max_rays = P.max_rays;
           if ~isempty(p1)
             Res.(p1) = P.(p1);
@@ -106,7 +106,7 @@ classdef opt_model_p
             fmt = P.(fmtfld);
             p2ttl = sprintf([', ' fmt ], P.(PM.p2));
           else
-            p1ttl = sprintf(' x %d', PM.P2i);
+            p2ttl = sprintf(' x %d', PM.p2i);
           end
         end
         ttl = [ P.title p1ttl p2ttl ];
@@ -122,7 +122,7 @@ classdef opt_model_p
         end
         frame = getframe(gcf);
         writeVideo(PM.writerObj, frame);
-      elseif isfield(P, 'pause');
+      elseif isfield(P, 'pause') && P.pause;
         drawnow;
         shg;
         pause;
@@ -132,20 +132,55 @@ classdef opt_model_p
     end
     
     function plot_results(PM, meshz)
-      if isempty(PM.p1) || isempty(PM.p2)
-        fprintf(1,'p1 or p2 undefined in plot_results');
+      if isempty(PM.p1)
+        fprintf(1,'p1 undefined in plot_results\n');
         return;
       end
-      try
-        mesh(PM.Results.(PM.p1),PM.Results.(PM.p2),PM.Results.(meshz));
-        xlabel(PM.p1); ylabel(PM.p2); zlabel(meshz);
-      catch ME
-        fprintf(1, 'mesh failed or invalid args: %s\n', ME.message);
+      if isempty(PM.p2)
+        clf;
+        plot(PM.Results.(PM.p1),PM.Results.(meshz),'.');
+        xlabel(strrep(PM.p1,'_','\_'));
+        ylabel(strrep(meshz,'_','\_'));
+      else
+        try
+          clf;
+          mesh(PM.Results.(PM.p1),PM.Results.(PM.p2),PM.Results.(meshz));
+          xlabel(strrep(PM.p1,'_','\_'));
+          ylabel(strrep(PM.p2,'_','\_'));
+          zlabel(strrep(meshz,'_','\_'));
+        catch ME
+          fprintf(1, 'mesh failed or invalid args: %s\n', ME.message);
+        end
       end
     end
     
-    function Res = evaluate_endpoints(PM)
-      Res = PM.M.evaluate_endpoints(length(PM.M.Optic));
+    function Res = evaluate_endpoints(PM,~)
+      % Res = PM.evaluate_endpoints(P);
+      % This is the default that does not know what the parameter
+      % structure holds, so it does not use it and simply
+      % evaluates the last optic in the chain.
+      % This can be overridden to give paramteric control.
+      opt_n = length(PM.M.Optic);
+      Res = PM.M.evaluate_endpoints(opt_n);
+    end
+    
+    function PM = clean_results(PM)
+      % PM = PM.clean_results;
+      % Using PM.Results.n_rays, marks all all results as NaN
+      % where n_rays is not maximal. The assumption is that
+      % rays have escaped.
+      if isfield(PM.Results,'n_rays')
+        snr = size(PM.Results.n_rays);
+        mnr = max(max(PM.Results.n_rays));
+        subpar = PM.Results.n_rays < mnr;
+        flds = fieldnames(PM.Results);
+        for i=1:length(flds)
+          fld = flds{i};
+          if all(size(PM.Results.(fld)) == snr)
+            PM.Results.(fld)(subpar) = NaN;
+          end
+        end
+      end
     end
   end
   

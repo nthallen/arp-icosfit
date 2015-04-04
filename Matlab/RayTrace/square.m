@@ -22,8 +22,8 @@ classdef square < opt_surface
       
       l2 = l/2;
       col = ones(9,1);
-      sq.perimeter = col*O + l2 * [-1;0;1;1;1;0;-1;-1;-1]*sq.rad1 + ...
-        l2 * [1; 1; 1; 0; -1; -1; -1; 0;1]*sq.rad2;
+      sq.perimeter = col*O + l2 * [0;1;1;1;0;-1;-1;-1;0]*sq.rad1 + ...
+        l2 * [1; 1; 0; -1; -1; -1; 0; 1; 1]*sq.rad2;
     end
     
     function draw(sq)

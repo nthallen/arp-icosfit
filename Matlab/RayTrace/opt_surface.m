@@ -32,8 +32,14 @@ classdef opt_surface
       [Pintercept,Vnormal] = surf.intercept(Rincident);
       % Pintercept is Rincident extended to the intersection point
       if isempty(Pintercept)
-        if ~isempty(Rincident) && surf.visible
-          Rincident.draw;
+        if ~isempty(Rincident)
+          Pintercept = surf.intercept_plane(Rincident);
+          if ~isempty(Pintercept)
+            Rincident.E = Pintercept;
+          end
+          if surf.visible
+            Rincident.draw;
+          end
         end
         Rref = [];
         Rtrans = [];
@@ -43,16 +49,16 @@ classdef opt_surface
           Rincident.draw;
         end
         N = dot(Rincident.D,Vnormal);
-        if surf.R == 0
+        if surf.R == 0 || Rincident.P < surf.emission_threshold
           Rref = [];
         else
           Rref = opt_ray(Rincident.E, Rincident.D - 2*N*Vnormal);
-          Rref.P = Rref.P * surf.R;
-          if Rref.P < surf.emission_threshold
-            Rref = [];
-          end
+          Rref.P = Rincident.P * surf.R;
+%           if Rref.P < surf.emission_threshold
+%             Rref = [];
+%           end
         end
-        if surf.T == 0
+        if surf.T == 0 || Rincident.P < surf.emission_threshold
           Rtrans = [];
         else
           % handle refraction
@@ -64,9 +70,27 @@ classdef opt_surface
           end
           Rtrans = opt_ray(Pintercept, N*Vnormal+sintrans);
           Rtrans.P = Rincident.P * surf.T;
-          if Rtrans.P < surf.emission_threshold
-            Rtrans = [];
-          end
+%           if Rtrans.P < surf.emission_threshold
+%             Rtrans = [];
+%           end
+        end
+      end
+    end
+    
+    function Pintercept = intercept_plane(surf, Rincident)
+      if isempty(Rincident)
+        Pintercept = [];
+      else
+        M = [ surf.D 0
+          1 0 0 -Rincident.D(1)
+          0 1 0 -Rincident.D(2)
+          0 0 1 -Rincident.D(3) ];
+        A = [ dot(surf.O,surf.D); Rincident.O'];
+        V = M\A; % V = [x y z t]'
+        if V(4) < 0
+          Pintercept = [];
+        else
+          Pintercept = V(1:3)';
         end
       end
     end
