@@ -169,14 +169,13 @@ classdef opt_model_p
       % Using PM.Results.n_rays, marks all all results as NaN
       % where n_rays is not maximal. The assumption is that
       % rays have escaped.
-      if isfield(PM.Results,'n_rays')
-        snr = size(PM.Results.n_rays);
-        mnr = max(max(PM.Results.n_rays));
-        subpar = PM.Results.n_rays < mnr;
+      if isfield(PM.Results,'inside')
+        subpar = ~PM.Results.inside;
+        snr = size(subpar);
         flds = fieldnames(PM.Results);
         for i=1:length(flds)
           fld = flds{i};
-          if all(size(PM.Results.(fld)) == snr)
+          if ~strcmp(fld,'inside') && all(size(PM.Results.(fld)) == snr)
             PM.Results.(fld)(subpar) = NaN;
           end
         end

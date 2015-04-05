@@ -6,6 +6,8 @@ classdef opt_model < handle
     Rays
     n_rays
     Spot_Size % diameter in cm
+    n_points_overlap
+    Inside
   end
   
   properties
@@ -31,10 +33,12 @@ classdef opt_model < handle
         'ray', cell(M.ray_stack_size,1));
       M.ray_stack_idx = 0;
       M.Spot_Size = 0.4; % 4 mm
+      M.n_points_overlap = 30;
+      M.Inside = true;
     end
     
     function propagate(M)
-      if M.visible
+      if M.visible && M.n_rays == 0
         clf;
       end
       for i=1:length(M.Optic)
@@ -42,7 +46,9 @@ classdef opt_model < handle
           error('MATLAB:HUARP:UndefinedOptic', 'Optic %d is undefined', i);
         end
         % M.Optic{i}.visible = M.visible;
-        M.Optic{i}.draw;
+        if M.visible && M.n_rays == 0
+          M.Optic{i}.draw;
+        end
       end
       if M.visible
         set(gca,'dataaspectratio',[1 1 1]);
@@ -62,6 +68,24 @@ classdef opt_model < handle
             next_opt = RS.to_obj - 1;
           end
           M.push_ray(Rtransmit, inc_n, opt_n, next_opt);
+        end
+      end
+    end
+    
+    function redraw(M)
+      if M.visible
+        clf;
+        for i=1:length(M.Optic)
+          if isempty(M.Optic{i})
+            error('MATLAB:HUARP:UndefinedOptic', 'Optic %d is undefined', i);
+          end
+          M.Optic{i}.draw;
+        end
+        set(gca,'dataaspectratio',[1 1 1]);
+        drawnow;
+        for i=1:M.n_rays
+          M.Rays(i).ray.draw;
+          drawnow;
         end
       end
     end
@@ -129,6 +153,9 @@ classdef opt_model < handle
       M.Rays(M.n_rays).n_inc = inc_n;
       M.Rays(M.n_rays).n_opt = opt_n;
       M.Rays(M.n_rays).ray = R;
+      if ~R.Inside
+        M.Inside = false;
+      end
       n = M.n_rays;
     end
     
@@ -234,11 +261,40 @@ classdef opt_model < handle
       %   area: area filled (assuming precession)
       %   mean_angle: in degrees
       %   n_rays
-      xyz = M.extract_endpoints(opt_n);
+      Res = M.results_struct;
+      
+      [xyz, ~] = M.extract_endpoints(opt_n);
       if nargin < 3
         n_pts = size(xyz,1);
       end
+
+      % Overlap calculation
+      Res.overlap = 0;
+      if n_pts > 1
+        if n_pts < M.n_points_overlap
+          npo = n_pts;
+        else
+          npo = M.n_points_overlap;
+        end
+        for i=1:npo
+          d = xyz(i+1:npo,:) - ones(npo-i,1)*xyz(i,:);
+          d = sqrt(sum(d.^2,2));
+          Res.overlap = Res.overlap + ...
+            sum(max(0,M.Spot_Size-d))/M.Spot_Size;
+        end
+      end
       
+      % inside calculation
+      Res.inside = M.Inside;
+      
+      % Total power calculation
+      vf = find([M.Rays(1:M.n_rays).n_opt] == opt_n);
+      Res.total_power = 0;
+      for i = 1:length(vf)
+        Res.total_power = Res.total_power + M.Rays(i).ray.P;
+      end
+      
+      % min_dist, min_dist_n, close and close_n
       if n_pts > 1
         d = xyz(2:n_pts,:) - ones(n_pts-1,1)*xyz(1,:);
         dd = sqrt(sum(d.^2,2));
@@ -252,8 +308,10 @@ classdef opt_model < handle
         Res.close_n = NaN;
         Res.close = NaN;
       end
+      
       rr = minmax(sqrt(sum(xyz(:,[2 3]).^2,2))');
-      Res.area = pi*(rr(2)^2 - rr(1)^2);
+      Res.max_radius = rr(2);
+      Res.eccentricity = sqrt(1 - (rr(1)^2 / rr(2)^2));
       Res.mean_angle = mean(M.extract_angles(opt_n));
       if Res.mean_angle > pi
         Res.mean_angle = Res.mean_angle - 2*pi;
@@ -281,14 +339,19 @@ classdef opt_model < handle
     end
     
     function Res = results_struct
-        Res.min_dist = [];
-        Res.min_dist_n = [];
-        Res.close_n = [];
-        Res.close = [];
-        Res.area = [];
-        Res.mean_angle = [];
-        Res.n_rays = [];
-        Res.max_rays = [];
+      Res.overlap = [];
+      Res.inside = [];
+      Res.n_rays = [];
+      Res.max_rays = [];
+      Res.max_radius = [];
+      Res.eccentricity = [];
+      Res.mean_angle = [];
+      Res.total_power = [];
+
+      Res.min_dist = [];
+      Res.min_dist_n = [];
+      Res.close_n = [];
+      Res.close = [];
     end
   end
 end
