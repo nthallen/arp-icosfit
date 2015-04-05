@@ -36,6 +36,7 @@ classdef opt_surface
           Pintercept = surf.intercept_plane(Rincident);
           if ~isempty(Pintercept)
             Rincident.E = Pintercept;
+            Rincident.Inside = false;
           end
           if surf.visible
             Rincident.draw;
