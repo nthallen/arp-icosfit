@@ -82,10 +82,10 @@ classdef opt_model < handle
           M.Optic{i}.draw;
         end
         set(gca,'dataaspectratio',[1 1 1]);
-        drawnow;
+        % drawnow;
         for i=1:M.n_rays
           M.Rays(i).ray.draw;
-          drawnow;
+          % drawnow;
         end
       end
     end
