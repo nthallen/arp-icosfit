@@ -6,12 +6,13 @@ classdef Herriott_Mirror < HRmirror
   
   methods
     function HM = Herriott_Mirror(nm, r_in, RC_in, CT_in, R_in, Ap, Ar, O_in, D_in, vis)
-      % HM = Herriott_Mirror(name, r, RoC, CT, R, O, D, ni, ne, visible);
+      % HM = Herriott_Mirror(name, r, RoC, CT, R, Ap, Ar, O, D, ni, ne, visible);
       % name: name
       % r: mirror radius
       % RoC: radius of curvature
       % CT: center thickness of mirror
       % R: Mirror reflectivity
+      % Ap: Aperature position
       % Ar: Aperature radius (beam diameter)
       % O: position of the center of the curved surface
       % D: direction from O toward center of curvature

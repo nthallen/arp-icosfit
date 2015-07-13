@@ -203,7 +203,12 @@ classdef opt_model_p
       flds = fieldnames(R1);
       for i=1:length(flds)
         fld = flds{i};
-        R2.(fld) = reshape([R1.(fld)],size(R1,1),size(R1,2));
+        D = [R1.(fld)];
+        if isempty(D)
+          R2.(fld) = D;
+        else
+          R2.(fld) = reshape(D,size(R1,1),size(R1,2));
+        end
       end
     end
   end

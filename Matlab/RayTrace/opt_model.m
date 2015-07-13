@@ -263,7 +263,7 @@ classdef opt_model < handle
       %   n_rays
       Res = M.results_struct;
       
-      [xyz, ~] = M.extract_endpoints(opt_n);
+      [xyz, oxyz] = M.extract_endpoints(opt_n);
       if nargin < 3
         n_pts = size(xyz,1);
       end
