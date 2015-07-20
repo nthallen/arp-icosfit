@@ -23,6 +23,8 @@ classdef ICOS_beam < handle
       IB.IBP.dyz = 0.01;
       IB.IBP.Dyz = [0.01 0.2];
       IB.IBP.opt_n = 0;
+      IB.IBP.Tinterval = 60;
+      IB.IBP.Track_Power = 0;
       IB.Res = [];
     end
     
@@ -63,9 +65,13 @@ classdef ICOS_beam < handle
       IB.Res.Int(length(IB.IBP.Dyz)).img = [];
       IB.Res.Dy = Dy;
       IB.Res.Dz = Dz;
+      if IB.IBP.Track_Power
+        IB.Res.Pwr = [];
+      end
       P = IB.P;
       % IB.IBP.evaluate_endpoints = 0;
       TStart = tic;
+      Treport = 0;
       for i = 1:Nsamples
         if ResLen > IB.Res.N
           P.beam_dy = Dy(i);
@@ -77,11 +83,19 @@ classdef ICOS_beam < handle
           if isempty(IB.Res.perimeter)
             IB.Res.perimeter = PM.M.Optic{IB.IBP.opt_n}.Surface{1}.perimeter;
           end
-          pre_opt = [PM.M.Rays([PM.M.Rays(2:PM.M.n_rays).n_inc]).n_opt];
-          cur_opt = [PM.M.Rays(2:PM.M.n_rays).n_opt];
+          Ri = 2:PM.M.n_rays;
+          pre_opt = [PM.M.Rays([PM.M.Rays(Ri).n_inc]).n_opt];
+          cur_opt = [PM.M.Rays(Ri).n_opt];
           vo = pre_opt == 2 & cur_opt == 3;
           pass = cumsum(vo);
-          vf = find([PM.M.Rays(2:PM.M.n_rays).n_opt] == IB.IBP.opt_n)+1;
+          % but reset the pass count 
+          vr = pre_opt == 1 & cur_opt == 2;
+          repass = vr .* pass;
+          vri = find(vr);
+          repass(vri(2:end)) = diff(repass(vri));
+          pass = cumsum(vo-repass)';
+          
+          vf = find([PM.M.Rays(Ri).n_opt] == IB.IBP.opt_n)+1;
           nvf = length(vf);
           IB.Res.NPasses(i) = nvf;
           if IB.Res.N+nvf > ResLen
@@ -92,16 +106,54 @@ classdef ICOS_beam < handle
           end
           for j=1:nvf
             IB.Res.N = IB.Res.N+1;
-            IB.Res.E(IB.Res.N,:) = PM.M.Rays(vf(j)).ray.E;
-            IB.Res.D(IB.Res.N,:) = PM.M.Rays(vf(j)).ray.D;
-            IB.Res.P(IB.Res.N) = PM.M.Rays(vf(j)).ray.P;
+            ray = PM.M.Rays(vf(j)).ray;
+            IB.Res.E(IB.Res.N,:) = ray.E;
+            IB.Res.D(IB.Res.N,:) = ray.D;
+            IB.Res.P(IB.Res.N) = ray.P;
             IB.Res.NPass(IB.Res.N) = pass(vf(j));
             IB.Res.Sample(IB.Res.N) = i;
           end
+          if IB.IBP.Track_Power
+            A = [pre_opt' cur_opt'];
+            [B,~,ib] = unique(A,'rows');
+            ib(pass > IB.IBP.NPI) = 0;
+            RP = zeros(size(Ri'));
+            inside = zeros(size(Ri'));
+            for Pi=1:length(Ri)
+              ray = PM.M.Rays(Ri(Pi)).ray;
+              RP(Pi) = ray.P;
+              inside(Pi) = ray.Inside;
+            end
+            outside = ~inside;
+            for Pi=1:length(B)
+              fld = sprintf('R%d_%d', B(Pi,1), B(Pi,2));
+              if ~isfield(IB.Res.Pwr, fld)
+                IB.Res.Pwr.(fld) = struct('I',0,'O',0,'NI',0,'NO',0);
+              end
+              for pre = 'IO'
+                if pre == 'I'
+                  icond = inside;
+                else
+                  icond = outside;
+                end
+                IB.Res.Pwr.(fld).(pre) = IB.Res.Pwr.(fld).(pre) + ...
+                  sum(RP((ib == Pi) & icond));
+                IB.Res.Pwr.(fld).(['N' pre]) = IB.Res.Pwr.(fld).(['N' pre]) + ...
+                  sum((ib == Pi) & icond);
+              end
+            end
+            if isfield(IB.Res.Pwr,'R2_3') && isfield(IB.Res.Pwr,'R3_4') ...
+                && IB.Res.Pwr.R2_3.NI ~= IB.Res.Pwr.R3_4.NI
+              fprintf(1, 'Sample %d: R2_3.NI ~= R3_4.NI\n', i);
+            end
+          end
         end
         TIter = toc(TStart);
-        fprintf(1,'%.1f: Iteration: %d Passes: %d Total: %d\n', TIter, ...
-          i, IB.Res.NPasses(i), IB.Res.N);
+        if TIter > Treport + IB.IBP.Tinterval
+          fprintf(1,'%.1f: Iteration: %d Passes: %d Total: %d\n', TIter, ...
+            i, IB.Res.NPasses(i), IB.Res.N);
+          Treport = TIter;
+        end
       end
       T = P.T;
       IB.Res.Ptotal = sum(IB.Res.P(1:IB.Res.N))/Nsamples;
@@ -202,6 +254,9 @@ classdef ICOS_beam < handle
         end
         figs(Dyzi) = figure;
         h = image(Yr*dyz,Zr*dyz,Pimg','CDataMapping','scaled'); shg
+        pos = get(figs(Dyzi),'position');
+        pos(1) = 5 + (Dyzi-1)*pos(3);
+        set(figs(Dyzi),'position',pos);
         set(gca,'DataAspectRatio',[1 1 1],'Ydir','normal');
         ch = colorbar;
         mname = strrep(func2str(IB.model),'_','\_');
@@ -212,6 +267,7 @@ classdef ICOS_beam < handle
         ylabel(ch,'Fraction of expected total power');
         xlabel('Y position of detector center, cm');
         ylabel('Z position of detector center, cm');
+        drawnow; shg;
       end
       if nargout > 0
         ff = figs;
