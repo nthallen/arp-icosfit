@@ -1,5 +1,16 @@
+function res2 = exexparam4(loadfile)
+% res2 = exexparam4(loadfile)
+% loadfile is the name of a .mat file containing the output of
+% exexparam3 or similar functions defining ICOS/RIM
+% configuration parameters. This function extends those parameters
+% to pick optimal focusing parameters.
+%
+% The output structure contains all the information from the input
+% structure but adds additional fields for the optimized parameters.
 %%
-load('exexparam3save.mat');
+% load('exexparam3save.mat');
+%%
+load(loadfile);
 %%
 n = 2.4361;
 i = 0;

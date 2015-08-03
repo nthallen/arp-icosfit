@@ -14,12 +14,18 @@ for i=1:length(res)
   P.r2 = res(i).D2*2.54/2;
   P.mirror_spacing = res(i).L;
   P.y0 = res(i).Rr2;
-  P.dy = -res(i).ORd2;
-  P.dz = res(i).ORs2;
+  if isfield(res(i),'ORd2') && ~isempty(res(i).ORd2)
+    P.dy = -res(i).ORd2;
+    P.dz = res(i).ORs2;
+    P.herriott_spacing = res(i).ORL;
+  else
+    P.dy = -res(i).Rd2;
+    P.dz = res(i).Rs2;
+    P.herriott_spacing = res(i).RL;
+  end
   P.HRC = res(i).RR1;
   P.Hr = res(i).RD1*2.54/2;
   % P.HCT = 0.4;
-  P.herriott_spacing = res(i).ORL;
   if isfield(res(i),'Lenses')
     P.Lenses = res(i).Lenses;
     P.Lens_Space = res(i).Lens_Space;

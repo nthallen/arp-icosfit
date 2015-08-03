@@ -1,4 +1,5 @@
 %%
+% exexparam3b is simply a refactor of exexparam3 to use the new exparam
 % The basic idea here is:
 %   Given R1, R2, RR1 and two other parameters, we should be
 %   able to solve for the entire RIM/ICOS configuration.
@@ -30,18 +31,17 @@ clear P res
 P.R1 = 75;
 P.r1 = 2; %3;
 P.Rw1 = 0.25;
-res(ntrials) = exparam1(P); % should be empty, just to initialize
+Res = cell(ntrials,0);
 trialn = 1;
 for IR2i = 1:nIR2
   P.R2 = IR2(IR2i);
   for HR1i = 1:nHR1
     P.RR1 = HR1(HR1i);
-    res(trialn) = exparam1(P);
+    Res{trialn} = exparam(P)';
     trialn = trialn+1;
   end
 end
-%%
-res = split_results(res);
+res = [Res{:}]';
 %%
 nres = length(res);
 issane = ones(nres,1);
@@ -74,15 +74,15 @@ for i = 1:nres
     issane(i) = 0;
   end
   
-  % Radius of curvature cannot exceed mirror radius
   L = res(i).L;
   if L < 5
     fprintf(1,'Discarding %d: cell too short: %f\n', i, L);
     issane(i) = 0;
   end
 end
-res = res(issane > 0);
 %%
+res = res(issane > 0);
+%
 %for i = 1:length(res)
 % Need to propagate CT1 and CT2 through the catalog
 f1 = [];
@@ -93,29 +93,7 @@ i = 0;
 while i < length(res)
   %%
   i = i+1;
-  P = ICOS_Model6.props;
-  P.R1 = res(i).R1;
-  P.R2 = res(i).R2;
-  P.r1 = 3*2.54/2;
-  P.r2 = res(i).D2*2.54/2;
-  P.mirror_spacing = res(i).L;
-  P.y0 = res(i).Rr2;
-  P.dy = -res(i).Rd2;
-  P.dz = res(i).Rs2;
-  % P.CT2 = res(i).CT2;
-  P.HRC = res(i).RR1;
-  P.Hr = res(i).RD1*2.54/2;
-  P.HCT = 0.4;
-  P.herriott_spacing = res(i).RL;
-
-  P.stop_ICOS = 0;
-  P.visible = 1;
-  P.visibility = [];
-  P.focus = 0;
-  P.ICOS_passes_per_injection = 100;
-  P.max_rays = 3000;
-  P.injection_scale = 1;
-  % PM = ICOS_Model6(P);
+  P = render_model(res(i));
 %% fine tune dy/dz
   P.stop_ICOS = 0;
   P.visible = 0;
@@ -124,7 +102,6 @@ while i < length(res)
   P.HR = 0;
   P.ICOS_passes_per_injection = 100;
   P.max_rays = 3000;
-  P.injection_scale = 1;
   P.plot_endpoints = 0;
   P.evaluate_endpoints = 3;
   P.skip.overlap = 1;

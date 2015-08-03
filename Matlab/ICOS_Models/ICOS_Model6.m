@@ -38,46 +38,70 @@ classdef ICOS_Model6 < opt_model_p
       else
         opt_n = length(PM.M.Optic);
       end
-      xyz = PM.M.extract_endpoints(opt_n);
-      n_pts = size(xyz,1);
-      if n_pts > P.n_overlap_spots
-        n_pts = P.n_overlap_spots;
+
+      if ~(P.skip.overlap && P.skip.eccentricity)
+        xyz = PM.M.extract_endpoints(opt_n);
+        Res.n_rays = size(xyz,1);
       end
       
       Res = PM.results_struct;
       Res.inside = PM.M.Inside;
 
       % Total power calculation
-      vf = find([PM.M.Rays(1:PM.M.n_rays).n_opt] == opt_n);
-      Res.total_power = 0;
-      for i = 1:length(vf)
-        ray = PM.M.Rays(vf(i)).ray;
-        if ray.Inside
-          Res.total_power = Res.total_power + ray.P;
+      if ~P.skip.total_power
+        vf = find([PM.M.Rays(1:PM.M.n_rays).n_opt] == opt_n);
+        Res.total_power = 0;
+        for i = 1:length(vf)
+          ray = PM.M.Rays(vf(i)).ray;
+          if ray.Inside
+            Res.total_power = Res.total_power + ray.P;
+          end
         end
       end
 
       % Overlap calculation
-      Res.overlap = 0;
-      if n_pts > 1
-        for i=1:n_pts
-          d = xyz(i+1:n_pts,:) - ones(n_pts-i,1)*xyz(i,:);
-          d = sqrt(sum(d.^2,2));
-          Res.overlap = Res.overlap + ...
-            sum(max(0,P.beam_diameter-d))/P.beam_diameter;
+      if ~P.skip.overlap
+        n_pts = size(xyz,1);
+        if n_pts > P.n_overlap_spots
+          n_pts = P.n_overlap_spots;
+        end
+        Res.overlap = 0;
+        if n_pts > 1
+          for i=1:n_pts
+            d = xyz(i+1:n_pts,:) - ones(n_pts-i,1)*xyz(i,:);
+            d = sqrt(sum(d.^2,2));
+            Res.overlap = Res.overlap + ...
+              sum(max(0,P.beam_diameter-d))/P.beam_diameter;
+          end
         end
       end
-      yz = xyz(:,[2 3]);
-      rr = minmax(sqrt(sum(yz.^2,2))');
-      Res.max_radius = rr(2);
-      Res.eccentricity = sqrt(1 - (rr(1)^2 / rr(2)^2));
-      Res.mean_angle = mean(PM.M.extract_angles(opt_n));
-      if Res.mean_angle > pi
-        Res.mean_angle = Res.mean_angle - 2*pi;
-      end
-      Res.mean_angle = rad2deg(Res.mean_angle);
       
-      Res.n_rays = size(xyz,1);
+      if ~P.skip.eccentricity
+        yz = xyz(:,[2 3]);
+        rr = minmax(sqrt(sum(yz.^2,2))');
+        Res.max_radius = rr(2);
+        Res.eccentricity = sqrt(1 - (rr(1)^2 / rr(2)^2));
+      end
+      
+      if ~P.skip.mean_angle
+        Res.mean_angle = mean(PM.M.extract_angles(opt_n));
+        if Res.mean_angle > pi
+          Res.mean_angle = Res.mean_angle - 2*pi;
+        end
+        Res.mean_angle = rad2deg(Res.mean_angle);
+      end
+      
+      % RIM_passes
+      if ~P.skip.RIM_passes
+        if P.HR > 0
+          n_inc = [PM.M.Rays(2:PM.M.n_rays).n_inc];
+          s_opt = [PM.M.Rays(n_inc).n_opt]; % source optic
+          Res.RIM_passes = sum(s_opt == 1);
+        else
+          Res.RIM_passes = 0;
+        end
+      end
+      
       Res.max_rays = PM.M.max_rays;
     end
     
@@ -121,12 +145,18 @@ classdef ICOS_Model6 < opt_model_p
       P.visibility = [];
       P.plot_endpoints = 0;
       P.evaluate_endpoints = 0;
+      P.skip.total_power = 0;
+      P.skip.overlap = 0;
+      P.skip.eccentricity = 0;
+      P.skip.mean_angle = 0;
+      P.skip.RIM_passes = 0;
       P.focus = 0;
       P.herriott_spacing = 10; % Before the first ICOS mirror
       P.HRC = 15*2.54; % Herriott radius of curvature
       P.HCT = 0.2;
       P.Hr = 1.5*2.54; % Herriott radius
       P.HR = 0.98; % Herriott reflectivity
+      P.Herriott_passes = 1000; % essentially unlimited. Stop with HR=0.
       P.ICOS_passes_per_injection = 20;
       P.stop_ICOS = 0;
       P.T = 250e-6;
@@ -256,13 +286,15 @@ classdef ICOS_Model6 < opt_model_p
       %  [-P.herriott_spacing 0 0], [1 0 0], n_air, n_air, P.visible);
       M.Optic{2} = HRmirror('M1', P.r1, P.R1, P.CT1, T, 1-T, [0 0 0], [1 0 0], n_ZnSe, n_air, P.visible && visibility(2));
       % Ignore rays transmitted back through ICOS mirror:
-      M.Optic{2}.Surface{2}.emission_threshold = 2*T^2;
+      % M.Optic{2}.Surface{2}.emission_threshold = 2*T^2;
+      M.Optic{2}.max_passes = P.Herriott_passes;
       if P.stop_ICOS
         M.Optic{3} = HRmirror('M2', P.r2, P.R2, P.CT2, 0, 0, [d 0 0], [-1 0 0], n_ZnSe, n_air, P.visible && visibility(3));
       else
         M.Optic{3} = HRmirror('M2', P.r2, P.R2, P.CT2, T, 1-T, [d 0 0], [-1 0 0], n_ZnSe, n_air, P.visible && visibility(3));
         % Limit the number of passes in the ICOS cell:
-        M.Optic{3}.Surface{1}.emission_threshold = T*(1-T)^P.ICOS_passes_per_injection;
+        % M.Optic{3}.Surface{1}.emission_threshold = T*(1-T)^P.ICOS_passes_per_injection;
+        M.Optic{3}.max_passes = P.ICOS_passes_per_injection;
       end
       if P.focus > 0
         opt_n = 4;
@@ -307,6 +339,7 @@ classdef ICOS_Model6 < opt_model_p
       Res.mean_angle = [];
       Res.n_rays = [];
       Res.max_rays = [];
+      Res.RIM_passes = [];
     end
   end
 end
