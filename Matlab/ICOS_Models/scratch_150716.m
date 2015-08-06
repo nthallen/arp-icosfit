@@ -16,13 +16,19 @@ Analyze_IM6b(res,'AIM6btmp.2', 'select', 2);
 Analyze_IM6b(res,'AIM6btmp.2', 'select', 2, 'Nsamples', 500, 'ICOS_passes', 10);
 %%
 Analyze_IM6b(res,'AIM6btmp2.2', 'select', 2, 'Nsamples', 100, ...
-  'ICOS_passes', 1, 'rng_state', IB.IBP.rng_state, 'opt_n', 1, 'pass_counts', 1);
+  'ICOS_passes', 1, 'rng_state', IB.IBP.rng_state, 'opt_n', 1, 'Npass_dim', 1);
 %%
 Analyze_IM6b(res,'AIM6btmp3.2', 'select', 2, 'Nsamples', 100, ...
-  'ICOS_passes', 1, 'rng_state', IB.IBP.rng_state, 'opt_n', 1, 'pass_counts', 1, 'Track_Power', 1);
+  'ICOS_passes', 1, 'rng_state', IB.IBP.rng_state, 'opt_n', 1, 'Npass_dim', 1, 'Track_Power', 1);
 %%
 % AIM6b.2 is based on exexparam3/4 with r1 = 2 cm.
 Analyze_IM6b(res, 'AIM6b.2', 'Npasses', 10000,'select',1:50);
+%%
+res2 = exexparam4('exexparam3a_75.mat');
+%%
+% AIM6b.3a.75 is from exexparam3a/4 with L = 50cm Rw1 = 0.25 and R2=75cm
+% (The selection here is limited to Ltot < 1m)
+Analyze_IM6b(res2, 'AIM6b.3a.75', 'select', 1:18, 'Track_Power', 1);
 %%
 for i=1:190
   ofile = sprintf('AIM6b.2.%d_10000x100.mat', i);

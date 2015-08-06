@@ -17,6 +17,7 @@
 % These are some of the possible values for R2
 IM2 = ispcatalog;
 IR2 = unique([IM2.R_cm]);
+IR2 = 75;
 
 HM1 = ed_rim_catalog;
 HR1 = unique([HM1.R_cm]);
@@ -170,7 +171,7 @@ while i < length(res)
     iteration = iteration + 1;
     PM = ICOS_Model6(P,'herriott_spacing', ...
       P.herriott_spacing + linspace(-delta,delta,21));
-    
+    %%
     criteria = 'eccentricity';
     PM = PM.clean_results;
     PM.Results.eccentricity(PM.Results.RIM_passes <= 1) = NaN;
@@ -221,4 +222,4 @@ while i < length(res)
   res(i).ORL = P.herriott_spacing;
 end
 %%
-save exexparam3a_save.mat res
+save exexparam3a_75.mat res

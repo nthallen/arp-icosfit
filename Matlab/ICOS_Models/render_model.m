@@ -1,4 +1,4 @@
-function P_o = render_model(res)
+function P_o = render_model(res, varargin)
 % render_model(res);
 %   Invokes ICOS_Model6
 % P = render_model(res);
@@ -41,6 +41,16 @@ for i=1:length(res)
   P.ICOS_passes_per_injection = 100;
   P.max_rays = 3000;
   P.injection_scale = 1;
+  i = 1;
+  while i < length(varargin)
+    if isfield(P, varargin{i})
+      P.(varargin{i}) = varargin{i+1};
+    else
+      error('MATLAB:HUARP:InvalidOption', ...
+        'Invalid option: "%s"', varargin{i});
+    end
+    i = i+2;
+  end
   
   if nargout > 0
     P_o(i) = P;

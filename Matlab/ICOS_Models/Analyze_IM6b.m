@@ -51,6 +51,9 @@ for i=Opt.select
     end
     save(ofile, 'IB');
     fprintf(1, 'Saved result to %s\n', ofile);
+    Pwr = IB.PowerSummary;
+    res(i).NH = Pwr.NH;
+    res(i).max_pwr = Pwr.max_pwr;
   else
     fprintf(1, 'Skipping result %d\n', i);
   end
