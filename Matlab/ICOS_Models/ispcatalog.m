@@ -1,4 +1,7 @@
 function Cat = ispcatalog
+% Cat = ispcatalog;
+% Builds a struct array of plano-convex ZiSe blanks that
+% we could use for high-reflectivity mirrors
 Cat = [
   ispoptic('Custom75', 3, -750)
   ispoptic('ZC-PX-12-25', 0.5, 35.97)
@@ -35,4 +38,5 @@ Cat = [
   ];
 
 function elt = ispoptic(catnum, dia, R)
+% input radius of curvature is in mm. Output is in cm.
 elt = struct('cat', catnum, 'dia_in', dia, 'R_cm', -R/10);

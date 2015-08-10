@@ -61,19 +61,32 @@ classdef ICOS_Model6 < opt_model_p
 
       % Overlap calculation
       if ~P.skip.overlap
-        n_pts = size(xyz,1);
-        if n_pts > P.n_overlap_spots
-          n_pts = P.n_overlap_spots;
+        n_opt = [PM.M.Rays(1:PM.M.n_rays).n_opt];
+        v = n_opt == opt_n;
+        vi = find(v);
+        RIM_pass = zeros(length(vi),1);
+        for i=1:length(vi)
+          RIM_pass(i) = PM.M.Rays(vi(i)).ray.pass(1);
         end
-        Res.overlap = 0;
-        if n_pts > 1
-          for i=1:n_pts
-            d = xyz(i+1:n_pts,:) - ones(n_pts-i,1)*xyz(i,:);
-            d = sqrt(sum(d.^2,2));
-            Res.overlap = Res.overlap + ...
-              sum(max(0,P.beam_diameter-d))/P.beam_diameter;
+        RIM_passes = unique(RIM_pass);
+        overlap = zeros(size(RIM_passes));
+        for j=1:length(RIM_passes)
+          ji = find(RIM_pass == RIM_passes(j));
+          n_pts = length(ji);
+          if n_pts > P.n_overlap_spots
+            n_pts = P.n_overlap_spots;
+            ji = ji(1:n_pts);
+          end
+          if n_pts > 1
+            for i=1:n_pts
+              d = xyz(i+1:n_pts,2:3) - ones(n_pts-i,1)*xyz(i,2:3);
+              d = sqrt(sum(d.^2,2));
+              overlap(j) = overlap(j) + ...
+                sum(max(0,P.beam_diameter-d))/P.beam_diameter;
+            end
           end
         end
+        Res.overlap = mean(overlap);
       end
       
       if ~P.skip.eccentricity
@@ -195,7 +208,7 @@ classdef ICOS_Model6 < opt_model_p
       P.LensTypes.ZC_NM_12_12.R1 = 1.072;
       P.LensTypes.ZC_NM_12_12.R2 = 2.938;
       P.LensTypes.ZC_NM_12_12.CT = 0.22;
-      P.LensTypes.ZC_NM_12_12.EFL = -1.30;
+      P.LensTypes.ZC_NM_12_12.EFL = 1.30;
       % ZC-PM-25-25 1" positive meniscus d/f = 1
       P.LensTypes.ZC_PM_25_25.type = 'positive_meniscus';
       P.LensTypes.ZC_PM_25_25.r = 2.54/2;

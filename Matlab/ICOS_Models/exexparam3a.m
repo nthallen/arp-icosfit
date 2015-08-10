@@ -17,7 +17,7 @@
 % These are some of the possible values for R2
 IM2 = ispcatalog;
 IR2 = unique([IM2.R_cm]);
-IR2 = 75;
+%IR2 = 75;
 
 HM1 = ed_rim_catalog;
 HR1 = unique([HM1.R_cm]);
@@ -85,6 +85,12 @@ for i = 1:nres
     fprintf(1,'Discarding %d: cell too short: %f\n', i, L);
     issane(i) = 0;
   end
+  
+  RL = res(i).RL;
+  if RL > 50
+    fprintf(1,'Discarding %d: RIM too long: %f\n', i, RL);
+    issane(i) = 0;
+  end
 end
 %%
 res = res(issane > 0);
@@ -119,23 +125,23 @@ while i < length(res)
   eccentricity = 1;
   iteration = 1;
   %%
-  if isempty(f1)
-    f1 = figure;
-    pos = get(f1,'position');
-    pos(1) = 0;
-    set(f1,'position',pos);
-  else
-    figure(f1);
-  end
+%   if isempty(f1)
+%     f1 = figure;
+%     pos = get(f1,'position');
+%     pos(1) = 0;
+%     set(f1,'position',pos);
+%   else
+%     figure(f1);
+%   end
   while delta > 1e-4 && eccentricity < best_eccentricity && iteration < 10
     %%
     best_eccentricity = eccentricity;
     PM = ICOS_Model6(P,'dy',P.dy+linspace(-delta,delta,5),'dz',P.dz+linspace(-delta,delta,5));
     PM = PM.clean_results;
-    PM.plot_results('eccentricity');
-    title(sprintf('%d/%d: ICOS optimization delta = %g, iteration %d', ...
-      i, length(res), delta, iteration));
-    drawnow; shg;
+    %PM.plot_results('eccentricity');
+%     title(sprintf('%d/%d: ICOS optimization delta = %g, iteration %d', ...
+%       i, length(res), delta, iteration));
+%     drawnow; shg;
     [new_dy,new_dz,eccentricity,ri,ci] = PM.identify_minimum('eccentricity');
     if isempty(new_dy) || isempty(new_dz)
       delta = delta*10;
@@ -157,13 +163,13 @@ while i < length(res)
   P.evaluate_endpoints = 1;
   P.skip.RIM_passes = 0;
   delta = 2; % cm +/-
-  if isempty(f2)
-    f2 = figure;
-    pos(1) = pos(1) + pos(3);
-    set(f2,'position',pos);
-  else
-    figure(f2);
-  end
+%   if isempty(f2)
+%     f2 = figure;
+%     pos(1) = pos(1) + pos(3);
+%     set(f2,'position',pos);
+%   else
+%     figure(f2);
+%   end
   iteration = 0;
   %%
   while delta > 0.1
@@ -175,10 +181,10 @@ while i < length(res)
     criteria = 'eccentricity';
     PM = PM.clean_results;
     PM.Results.eccentricity(PM.Results.RIM_passes <= 1) = NaN;
-    PM.plot_results(criteria);
-    title(sprintf('%d/%d: RIM eccentricity: delta = %g iteration %d', ...
-      i, length(res), delta, iteration));
-    drawnow; shg;
+    %PM.plot_results(criteria);
+%     title(sprintf('%d/%d: RIM eccentricity: delta = %g iteration %d', ...
+%       i, length(res), delta, iteration));
+%     drawnow; shg;
     %%
     [P.herriott_spacing,~,RIM_passes] = PM.identify_minimum('-RIM_passes');
     RIM_passes = abs(RIM_passes)+1;
@@ -197,29 +203,44 @@ while i < length(res)
     P.herriott_spacing + linspace(-delta,delta,11));
   PM = PM.clean_results;
   PM.Results.eccentricity(PM.Results.RIM_passes <= 1) = NaN;
-  PM.plot_results(criteria);
-  title(sprintf('%d/%d: RIM+ICOS %s', i, length(res), criteria));
-  drawnow; shg;
+  %PM.plot_results(criteria);
+%   title(sprintf('%d/%d: RIM+ICOS %s', i, length(res), criteria));
+%   drawnow; shg;
   [P.herriott_spacing,~,~] = PM.identify_minimum(criteria);
+  %% Calculate overlap
+  P.evaluate_endpoints = 2;
+  P.skip.total_power = 1;
+  P.skip.eccentricity = 1;
+  P.skip.mean_angle = 1;
+  P.skip.overlap = 0;
+  P.skip.RIM_passes = 0;
+  P.visible = 0;
+  P.HR = 0.98; % restored from before
+  PM = ICOS_Model6(P);
+  overlap = PM.Results.overlap;
   %%
-  P.visible = 1;
+  P.visible = 0;
   P.visibility = [];
   P.focus = 1;
   P.evaluate_endpoints = -1;
-  if isempty(f3)
-    f3 = figure;
-    pos(1) = pos(1) + pos(3);
-    set(f3,'position',pos);
-  else
-    figure(f3);
-  end
-  PM = ICOS_Model6(P);
-  title(sprintf('Result %d', i));
-  drawnow; shg;
+%   if isempty(f3)
+%     f3 = figure;
+%     pos(1) = pos(1) + pos(3);
+%     set(f3,'position',pos);
+%   else
+%     figure(f3);
+%   end
+%   PM = ICOS_Model6(P);
+  %title(sprintf('Result %d', i));
+  %drawnow; shg;
   %%
   res(i).ORd2 = -P.dy;
   res(i).ORs2 = P.dz;
   res(i).ORL = P.herriott_spacing;
+  res(i).overlap = overlap;
+  fprintf(1,'Completed %d/%d: RR1:%.1f RL:%.1f r1:%.1f R2:%.1f overlap:%.1f\n', ...
+    i, length(res), res(i).RR1, res(i).RL, res(i).r1, res(i).R2, ...
+    res(i).overlap);
 end
 %%
-save exexparam3a_75.mat res
+save exexparam3a_w25_L50.mat res

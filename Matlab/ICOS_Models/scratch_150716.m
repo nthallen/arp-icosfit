@@ -3,9 +3,9 @@ for i=1:length(res)
   check_params(i,res(i));
 end
 %%
-for i=1:length(res2)
-  render_model(res2(i));
-  title(sprintf('Result %d/%d', i, length(res2)));
+for i=1:length(res)
+  render_model(res(i));
+  title(sprintf('Result %d/%d', i, length(res)));
   drawnow; shg;
 end
 %%
@@ -29,6 +29,37 @@ res2 = exexparam4('exexparam3a_75.mat');
 % AIM6b.3a.75 is from exexparam3a/4 with L = 50cm Rw1 = 0.25 and R2=75cm
 % (The selection here is limited to Ltot < 1m)
 Analyze_IM6b(res2, 'AIM6b.3a.75', 'select', 1:18, 'Track_Power', 1);
+%%
+% This is from exexparam3a_75_5 => exexparam4_75_5a
+Analyze_IM6b(res, 'AIM6b.3a.75_5a', 'select', 8, 'Track_Power', 1);
+%%
+% This is from exexparam3a_w5_L50 => exexparam4_w5_L50
+Analyze_IM6b(res, 'AIM6b_w75_L50', 'select', 9, 'Track_Power', 1);
+%%
+% This is from exexparam3a_w25_L50 => exexparam4_w25_L50
+Analyze_IM6b(res, 'AIM6b_w25_L50', 'select', 32, 'Track_Power', 1);
+%%
+% Start testing of ICOS_search
+IS = ICOS_search('R1', 75, 'Rw1', 0.4, 'mnc', 'w4_L50', 'L', 50, 'RL_lim', [-inf 50]);
+IS.search_ICOS_RIM;
+IS.search_focus('select1', 3);
+IS.analyze('select2',3);
+%%
+IS = ICOS_search('R1', 75, 'Rw1', 0.25, 'mnc', 'w25_L50', 'L', 50, 'RL_lim', [-inf 50]);
+IS.search_ICOS_RIM;
+%%
+IS.search_focus('select', 5);
+%%
+IS.analyze('select',[2:5]);
+%%
+% This is specifically looking at M2=ZC-PX-38-200, R2=-28.12
+IS = ICOS_search('R1', 75, 'Rw1', 0.25, 'mnc', 'w25_L50_R28', 'L', 50, ...
+  'R2_lim', [-29 -28]);
+IS.search_ICOS_RIM;
+%%
+IS.search_focus('select', 5);
+%%
+IS.analyze('select',[2:5]);
 %%
 for i=1:190
   ofile = sprintf('AIM6b.2.%d_10000x100.mat', i);
@@ -95,3 +126,4 @@ while i < length(res)
   %%
   check_params(2, res2);
 end
+
