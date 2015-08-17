@@ -36,13 +36,37 @@ R.s2 = [];
 
 R.r15 = [];
 
+% We can nominally provide 5 parameters and calculate the rest.
+% The supported parameters are:
+SP.RR1 = 1;
+SP.Rw1 = 2;
+SP.RL = 4;
+SP.R1 = 8;
+SP.r1 = 16;
+SP.L = 32;
+SP.R2 = 64;
+
+% We will check that the input defines exactly 5 parameters, that
+% the parameters are in the supported set, and then use the sum
+% of the codes here to determine which solution to use.
 flds = fields(P);
+if length(flds) ~= 5
+  error('MATLAB:HUARP:InvalidArg','%d parameters specified: expected 5', ...
+    length(flds));
+end
+solution_code = 0;
 for i=1:length(flds)
   fld = flds{i};
-  R.(fld) = P.(fld);
+  if isfield(SP, fld)
+    solution_code = solution_code + SP.(fld);
+    R.(fld) = P.(fld);
+  else
+    error('MATLAB:HUARP:InvalidArg','Invalid parameter: "%s"', ...
+    	fld);
+  end
 end
 
-if isfield(P,'RR1') && isfield(P,'r1') % assume RR1, R1, R2, r1 and Rw1
+if solution_code == SP.RR1 + SP.R1 + SP.R2 + SP.r1 + SP.Rw1
   R.d1 = R.r1./R.R1;
   R.Rd2 = -R.d1*R.n;
   R.RR2 = - R.R1/R.n;
@@ -91,8 +115,7 @@ if isfield(P,'RR1') && isfield(P,'r1') % assume RR1, R1, R2, r1 and Rw1
       end
     end
   end
-elseif isfield(P,'RR1') && isfield(P,'L')
-  % assuming RR1, R1, R2, Rw1, L
+elseif solution_code == SP.RR1 + SP.R1 + SP.R2 + SP.L + SP.Rw1
   if (R.R1+R.R2-R.L)/(R.R1*R.R2) > 0
     R.RR2 = -R.R1/R.n;
     k = sqrt((R.R1-R.L)*(R.R1+R.R2-R.L)/(R.L*R.R1^2*(R.R2-R.L)));
@@ -135,5 +158,33 @@ elseif isfield(P,'RR1') && isfield(P,'L')
       end
     end
   end
+elseif solution_code == SP.RL + SP.R1 + SP.R2 + SP.L + SP.Rw1
+  R.Rs2 = R.Rw1/R.RL;
+  R.s1 = R.Rs2;
+  R.r2 = R.s1*sqrt(R.L*R.R1*R.R2/(R.R1+R.R2-R.L));
+  R.r1 = R.r2*sqrt(R.R1*(R.R2-R.L)/(R.R2*(R.R1-R.L)));
+  R.Rr2 = R.r1;
+  R.RR2 = -R.R1/R.n;
+  R.Rh1 = R.Rr2*(R.RR2-R.RL)/R.RR2;
+  R.Rr1 = sqrt(R.Rh1^2+R.Rw1^2);
+  R.Rh2 = R.Rh1*R.Rr2/R.Rr1;
+  R.RR1 = R.RL*R.Rr1/(R.Rr1-R.Rh2);
+  R.Rd1 = R.Rr1/R.RR1;
+  R.d1 = R.r1/R.R1;
+  R.Rd2 = -R.n*R.d1;
+  R.Rs1 = R.Rr2*sqrt((R.RR1+R.RR2-R.RL)/(R.RL*R.RR1*R.RR2));
+  R.Rw2 = R.Rs1*R.RL;
+  
+  R.d2 = R.r2/R.R2;
+  R.h1 = R.r2*(R.R2-R.L)/R.R2;
+  R.w1 = sqrt(R.r1^2-R.h1^2);
+  R.h2 = R.r1*(R.R1-R.L)/R.R1;
+  R.w2 = sqrt(R.r2^2-R.h2^2);
+  R.s2 = R.w1/R.L;
+  
+  R.r15 = R.s1*R.r1/tand(15);
+  Res{1,end+1} = R;
+else
+  error('MATLAB:HUARP:NoSolution', 'No solution defined for supplied parameters');
 end
 R = [Res{:}]';
