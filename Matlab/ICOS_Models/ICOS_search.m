@@ -241,6 +241,11 @@ classdef ICOS_search < handle
       else
         res = IS.res1(SFopt.select);
       end
+      if ~isempty(IS.res2) && ~isfield(IS.res2,'Nres2')
+        for i=1:length(IS.res2)
+          IS.res2(i).Nres2 = i;
+        end
+      end
       i = 0;
       P = ICOS_Model6.props;
       LTS = fields(P.LensTypes);
@@ -346,16 +351,28 @@ classdef ICOS_search < handle
               d_ds = -rx*div/(div^2+skew^2);
               ds = ds + d_ds;
               P.detector_spacing = ds;
-              res_a = res(i);
-              res_a.Lenses = P.Lenses;
-              res_a.Lens_Space = P.Lens_Space;
-              res_a.detector_spacing = ds;
-              res_a.theta = theta2;
-              res_a.r_d = s*r / tand(theta2);
-              res_a.Ltot = res_a.ORL + res_a.L + sum(res_a.Lens_Space) ...
-                + res_a.detector_spacing;
-              results = results+1;
-              res_b(results) = res_a;
+              if isempty(IS.res2)
+                IS.res2 = res(i);
+                IS.res2.Nres2 = 1;
+                results = 1;
+              else
+                results = length(IS.res2)+1;
+                IS.res2(results).Nres2 = results;
+                flds = fieldnames(res);
+                for fi=1:length(flds)
+                  fld = flds{fi};
+                  IS.res2(results).(fld) = res(i).(fld);
+                end
+              end
+              % res_a = res(i);
+              IS.res2(results).Lenses = P.Lenses;
+              IS.res2(results).Lens_Space = P.Lens_Space;
+              IS.res2(results).detector_spacing = ds;
+              IS.res2(results).theta = theta2;
+              IS.res2(results).r_d = s*r / tand(theta2);
+              IS.res2(results).Ltot = IS.res2(results).ORL ...
+                + IS.res2(results).L + sum(IS.res2(results).Lens_Space) ...
+                + IS.res2(results).detector_spacing;
               fprintf(1,'%d: (%d,%d) %s%s @ %.2f (%.1f deg)\n', results, i, j, Lens1, LTS{j}, x, theta);
             else
               warning('MATLAB:HUARP:BadAngle', 'Rejecting solution for bad angle');
@@ -363,7 +380,6 @@ classdef ICOS_search < handle
           end
         end
       end
-      IS.res2 = res_b;
       IS.savefile;
     end
     
@@ -374,6 +390,10 @@ classdef ICOS_search < handle
       % 'Nsample', n
       % 'opt_n', n
       % plus and ICOS_beam options.
+      if isempty(IS.res2)
+        error('MATLAB:HUARP:NoFocus', ...
+          'Must invoke IS.search_focus() before IS.analyze()');
+      end
       Opt.ICOS_passes = 50;
       Opt.Nsamples = 100;
       % Opt.Herriott_passes = 100;
@@ -393,24 +413,39 @@ classdef ICOS_search < handle
           IBopt{end+1} = varargin{i+1};
         end
       end
-      if isempty(Opt.select)
-        Opt.select = 1:length(IS.res2);
+      if ~isempty(IS.res2) && ~isfield(IS.res2,'Nres2')
+        for i=1:length(IS.res2)
+          IS.res2(i).Nres2 = i;
+        end
       end
+      % Use unique to map between IS.res2.Nres2 and indices
+      [NR2,INR2] = unique([IS.res2.Nres2]);
+      if isempty(Opt.select)
+        Opt.select = NR2;
+      end
+      NRi = interp1(NR2,INR2,Opt.select,'nearest');
+      NRi = NRi(~isnan(NRi));
       ff = [];
-      for i=Opt.select
-        ofile = sprintf('IS_%s.%d_%dx%d.mat', IS.ISopt.mnc, i, Opt.ICOS_passes,Opt.Nsamples);
+      if iscolumn(NRi)
+        NRi = NRi';
+      end
+      for i=NRi
+        ofile = sprintf('IS_%s.%d_%dx%d', IS.ISopt.mnc, ...
+          IS.res2(i).Nres2, Opt.ICOS_passes,Opt.Nsamples);
+        P = render_model(IS.res2(i));
+        n_optics = 4 + length(P.Lenses);
+        if ~isempty(Opt.opt_n)
+          opt_n = Opt.opt_n;
+          ofile = sprintf('%s_%d', ofile, opt_n);
+        else
+          opt_n = n_optics;
+        end
+        ofile = sprintf('%s.mat', ofile);
         if ~exist(ofile, 'file')
-          P = render_model(IS.res2(i));
           P.visible = 0;
           % P.HR = 0;
           P.focus = 1;
           P.evaluate_endpoints = -1;
-          n_optics = 4 + length(P.Lenses);
-          if ~isempty(Opt.opt_n)
-            opt_n = Opt.opt_n;
-          else
-            opt_n = n_optics;
-          end
           IB = ICOS_beam(@ICOS_Model6, P);
           IB.Sample('beam_samples', Opt.Nsamples, ...
             'ICOS_passes', Opt.ICOS_passes, 'opt_n', opt_n, ...
