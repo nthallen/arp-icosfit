@@ -60,9 +60,11 @@ classdef ICOS_Model6 < opt_model_p
       end
 
       % Overlap calculation
+      % Now ignores opt_n and always analyzes for optic #2,
+      % the first ICOS mirror.
       if ~P.skip.overlap
         n_opt = [PM.M.Rays(1:PM.M.n_rays).n_opt];
-        v = n_opt == opt_n;
+        v = n_opt == 2; % was opt_n
         vi = find(v);
         RIM_pass = zeros(length(vi),1);
         for i=1:length(vi)
@@ -78,8 +80,9 @@ classdef ICOS_Model6 < opt_model_p
             ji = ji(1:n_pts);
           end
           if n_pts > 1
-            for i=1:n_pts
-              d = xyz(i+1:n_pts,2:3) - ones(n_pts-i,1)*xyz(i,2:3);
+            P0 = PM.M.Rays(vi(ji(1))).ray.E(1,2:3);
+            for i=2:n_pts
+              d = PM.M.Rays(vi(ji(i))).ray.E(1,2:3) - P0;
               d = sqrt(sum(d.^2,2));
               overlap(j) = overlap(j) + ...
                 sum(max(0,P.beam_diameter-d))/P.beam_diameter;
@@ -334,12 +337,13 @@ classdef ICOS_Model6 < opt_model_p
         M.Optic{opt_n} = detector(P.D_l, [opt_X,P.D_dY,0],[1,0,0],P.visible && visibility(opt_n));
       end
       m = P.injection_scale;
-      Pincident = M.Optic{2}.O + [0, m*P.y0 + P.beam_dy, m*P.z0 + P.beam_dz];
+      APincident = M.Optic{2}.O + [0, m*P.y0, m*P.z0];
       Dincident = [1, -m*P.dy, m*P.dz];
-      Oincident = Pincident - (P.herriott_spacing+1)*Dincident;
-      Ap = Pincident - P.herriott_spacing*Dincident;
+      Ap = APincident - P.herriott_spacing*Dincident;
       M.Optic{1} = Herriott_Mirror('HM', P.Hr, P.HRC, P.HCT, P.HR, Ap, ...
         P.beam_diameter, [-P.herriott_spacing 0 0], [1 0 0], P.visible && visibility(1));
+      Pincident = M.Optic{2}.O + [0, m*P.y0 + P.beam_dy, m*P.z0 + P.beam_dz];
+      Oincident = Pincident - (P.herriott_spacing+1)*Dincident;
       M.push_ray(opt_ray(Oincident, Dincident), 0, 1, 2);
     end
     
