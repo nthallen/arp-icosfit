@@ -54,12 +54,46 @@ IS.analyze('select',[2:5]);
 %%
 % This is specifically looking at M2=ZC-PX-38-200, R2=-28.12
 IS = ICOS_search('R1', 75, 'Rw1', 0.25, 'mnc', 'w25_L50_R28', 'L', 50, ...
-  'R2_lim', [-29 -28]);
+  'R2_lim', [-29 -28], 'RL_lim', [2 50]);
 IS.search_ICOS_RIM;
 %%
-IS.search_focus('select', 5);
+IS.search_focus('select', 1);
 %%
-IS.analyze('select',[2:5]);
+IS.analyze('select',[1:2]);
+%%
+% 75/75 w30
+IS = ICOS_search('R1', 75, 'Rw1', 0.3, 'mnc', 'w30_L50', 'L', 50, ...
+  'RL_lim', [2 50]);
+IS.search_ICOS_RIM;
+%%
+IS.search_focus('select', [6 8]);
+%%
+IS.analyze('select',[3 8]);
+
+%% Play with exparam to see how w1 affects L, RL
+nonempty = {};
+for Rw1 = 26:29
+  mnc = sprintf('ex_R28_w%d_r24', Rw1); % 'ex_' prefix to indicate experimental
+  IS = ICOS_search('R1', 75, 'Rw1', Rw1/100, 'mnc', mnc, ...
+    'R2_lim', [-29 -28], 'r1', 2.4, ...
+    'RL_lim', [2 100]);
+  IS.search_ICOS_RIM;
+  if ~isempty(IS.res1)
+    nonempty{end+1,1} = mnc;
+  end
+end
+nonempty
+%%
+nonempty = {};
+for Rw1 = 26:29
+  ifile = sprintf('IS_R28_w%d_r24.mat', Rw1); % 'ex_' prefix to indicate experimental
+  load(ifile);
+  IS.search_focus;
+  if ~isempty(IS.res2)
+    nonempty{end+1,1} = mnc;
+  end
+end
+nonempty
 %%
 for i=1:190
   ofile = sprintf('AIM6b.2.%d_10000x100.mat', i);
