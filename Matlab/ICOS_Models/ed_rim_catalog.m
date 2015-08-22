@@ -140,6 +140,7 @@ Cat = [
   ed_rim_elt(12.5,125, 'UV Enhanced Alum., Spherical Mirror', 43571, 2695.00)
   ed_rim_elt(12.5, 125, 'Enhanced Alum., Spherical Mirror', 43572, 2695.00)
   ed_rim_elt(12.5, 125, 'Protected Gold, Spherical Mirror', 43355, 2845.00)
+  ed_rim_elt(7, 14, 'Possible Custom', 0, 10000)
   ];
 
 function ent = ed_rim_elt(dia_in, fl_in, desc, cat, price)
