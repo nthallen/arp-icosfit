@@ -9,17 +9,19 @@ classdef ICOS_search < handle
   end
   methods
     function IS = ICOS_search(varargin)
-      IS.ISP.RR1 = [];
+      IS.ISP.RR1 = []; % If not set, choices are search in ed_rim_catalog
       IS.ISP.Rw1 = [];
       IS.ISP.R1 = [];
       IS.ISP.r1 = [];
       IS.ISP.L = [];
-      IS.ISP.R2 = [];
+      IS.ISP.R2 = []; % If not set, choices are searched in ispcatalog
       IS.ISopt.mnc = '';
       IS.ISopt.R2_lim = [-inf inf];
       IS.ISopt.RR1_lim = [-inf inf];
       IS.ISopt.L_lim = [0 inf];
       IS.ISopt.RL_lim = [2 inf];
+      IS.ISopt.RD1_margin = 1; % cm. When RR1 is set, this is added to Rr1 to determine RD1
+      IS.ISopt.D2_margin = 1; % cm. When R2 is set, this is added to r2 to determine D2
       for i=1:2:length(varargin)-1
         fld = varargin{i};
         if isfield(IS.ISP, fld)
@@ -43,14 +45,24 @@ classdef ICOS_search < handle
           error('MATLAB:HUARP:badopt', 'Invalid option: "%s"', fld);
         end
       end
-      IM2 = ispcatalog;
-      IR2 = unique([IM2.R_cm]);
-      IR2 = IR2(IR2 > IS.ISopt.R2_lim(1) & IR2 < IS.ISopt.R2_lim(2));
+      if isempty(IS.ISP.R2)
+        IM2 = ispcatalog;
+        IR2 = unique([IM2.R_cm]);
+        IR2 = IR2(IR2 > IS.ISopt.R2_lim(1) & IR2 < IS.ISopt.R2_lim(2));
+      else
+        IM2 = [];
+        IR2 = IS.ISP.R2;
+      end
       nIR2 = length(IR2);
       
-      HM1 = ed_rim_catalog;
-      HR1 = unique([HM1.R_cm]);
-      HR1 = HR1(HR1 > IS.ISopt.RR1_lim(1) & HR1 < IS.ISopt.RR1_lim(2));
+      if isempty(IS.ISP.RR1)
+        HM1 = ed_rim_catalog;
+        HR1 = unique([HM1.R_cm]);
+        HR1 = HR1(HR1 > IS.ISopt.RR1_lim(1) & HR1 < IS.ISopt.RR1_lim(2));
+      else
+        HM1 = [];
+        HR1 = IS.ISP.RR1;
+      end
       nHR1 = length(HR1);
       ntrials = nIR2*nHR1;
       
@@ -75,32 +87,44 @@ classdef ICOS_search < handle
       res = [Res{:}]';
       nres = length(res);
       issane = ones(nres,1);
-      HM1Rcm = [HM1.R_cm];
-      HM1Din = [HM1.dia_in];
-      M2Rcm = [IM2.R_cm];
-      M2Din = [IM2.dia_in];
+      if ~isempty(HM1)
+        HM1Rcm = [HM1.R_cm];
+        HM1Din = [HM1.dia_in];
+      end
+      if ~isempty(IM2)
+        M2Rcm = [IM2.R_cm];
+        M2Din = [IM2.dia_in];
+      end
       for i = 1:nres
         % Now let's check for some sanity:
         % Is Rr1+0.3 < RD1? (spot radius less than mirror radius)
         % is RR1 < RD1? (radius of curvature less than mirror radius)
         Rr1 = res(i).Rr1;
         RR1 = res(i).RR1;
-        RD1 = HM1Din(HM1Rcm == RR1);
-        RD1a = min(RD1(Rr1+0.3 < RD1*2.54/2));
-        res(i).RD1 = RD1a;
-        if isempty(RD1a)
-          fprintf(1,'Discarding %d: Rr1 (%.1f) exceeds RD1/2 (%.1f)\n', i, Rr1, max(RD1)*2.54/2);
-          issane(i) = 0;
+        if ~isempty(HM1)
+          RD1 = HM1Din(HM1Rcm == RR1);
+          RD1a = min(RD1(Rr1+0.3 < RD1*2.54/2));
+          res(i).RD1 = RD1a;
+          if isempty(RD1a)
+            fprintf(1,'Discarding %d: Rr1 (%.1f) exceeds RD1/2 (%.1f)\n', i, Rr1, max(RD1)*2.54/2);
+            issane(i) = 0;
+          end
+        else
+          res(i).RD1 = (Rr1+IS.ISopt.RD1_margin)*2/2.54;
         end
         
         r2 = res(i).r2;
         R2 = res(i).R2;
-        D2 = M2Din(M2Rcm == R2);
-        D2a = min(D2(r2+0.3 < D2*2.54/2));
-        res(i).D2 = D2a;
-        if isempty(D2)
-          fprintf(1,'Discarding %d: r2 (%.1f) exceeds D2/2 (%.1f)\n', i, r2, max(D2)*2.54/2);
-          issane(i) = 0;
+        if ~isempty(IM2)
+          D2 = M2Din(M2Rcm == R2);
+          D2a = min(D2(r2+0.5 < D2*2.54/2));
+          res(i).D2 = D2a;
+          if isempty(D2)
+            fprintf(1,'Discarding %d: r2 (%.1f) exceeds D2/2 (%.1f)\n', i, r2, max(D2)*2.54/2);
+            issane(i) = 0;
+          end
+        else
+          res(i).D2 = (r2+IS.ISopt.D2_margin)*2/2.54;
         end
         
         r1 = res(i).r1;
@@ -125,6 +149,7 @@ classdef ICOS_search < handle
       res = res(issane > 0);
       % Need to propagate CT1 and CT2 through the catalog
       i = 0;
+      opt_OK = ones(length(res),1)>0;
       while i < length(res)
         %
         i = i+1;
@@ -183,44 +208,54 @@ classdef ICOS_search < handle
           [P.herriott_spacing,~,RIM_passes] = PM.identify_minimum('-RIM_passes');
           RIM_passes = abs(RIM_passes)+1;
           [P.herriott_spacing,~,~] = PM.identify_minimum(criteria);
-          delta = delta/10;
+          if isempty(P.herriott_spacing)
+            delta = 0;
+          else
+            delta = delta/10;
+          end
         end
-        P.stop_ICOS = 0;
-        P.ICOS_passes_per_injection = 20;
-        P.max_rays = ceil(RIM_passes+5)*5*P.ICOS_passes_per_injection;
-        P.plot_endpoints = 0;
-        P.evaluate_endpoints = 3;
-        delta = .1;
-        PM = ICOS_Model6(P,'herriott_spacing', ...
-          P.herriott_spacing + linspace(-delta,delta,11));
-        PM = PM.clean_results;
-        PM.Results.eccentricity(PM.Results.RIM_passes <= 1) = NaN;
-        [P.herriott_spacing,~,~] = PM.identify_minimum(criteria);
-        % Calculate overlap
-        P.evaluate_endpoints = 2;
-        P.skip.total_power = 1;
-        P.skip.eccentricity = 1;
-        P.skip.mean_angle = 1;
-        P.skip.overlap = 0;
-        P.skip.RIM_passes = 0;
-        P.visible = 0;
-        P.HR = 0.98; % restored from before
-        PM = ICOS_Model6(P);
-        overlap = PM.Results.overlap;
-        %
-        P.visible = 0;
-        P.visibility = [];
-        P.focus = 1;
-        P.evaluate_endpoints = -1;
-        res(i).ORd2 = -P.dy;
-        res(i).ORs2 = P.dz;
-        res(i).ORL = P.herriott_spacing;
-        res(i).overlap = overlap;
-        fprintf(1,'Completed %d/%d: RR1:%.1f RL:%.1f r1:%.1f R2:%.1f overlap:%.1f\n', ...
-          i, length(res), res(i).RR1, res(i).RL, res(i).r1, res(i).R2, ...
-          res(i).overlap);
+        if isempty(P.herriott_spacing)
+          fprintf(1,'Solution %d/%d could not optimize herriott_spacing\n', ...
+            i, length(res));
+          opt_OK(i) = false;
+        else
+          P.stop_ICOS = 0;
+          P.ICOS_passes_per_injection = 20;
+          P.max_rays = ceil(RIM_passes+5)*5*P.ICOS_passes_per_injection;
+          P.plot_endpoints = 0;
+          P.evaluate_endpoints = 3;
+          delta = .1;
+          PM = ICOS_Model6(P,'herriott_spacing', ...
+            P.herriott_spacing + linspace(-delta,delta,11));
+          PM = PM.clean_results;
+          PM.Results.eccentricity(PM.Results.RIM_passes <= 1) = NaN;
+          [P.herriott_spacing,~,~] = PM.identify_minimum(criteria);
+          % Calculate overlap
+          P.evaluate_endpoints = 2;
+          P.skip.total_power = 1;
+          P.skip.eccentricity = 1;
+          P.skip.mean_angle = 1;
+          P.skip.overlap = 0;
+          P.skip.RIM_passes = 0;
+          P.visible = 0;
+          P.HR = 0.98; % restored from before
+          PM = ICOS_Model6(P);
+          overlap = PM.Results.overlap;
+          %
+          P.visible = 0;
+          P.visibility = [];
+          P.focus = 1;
+          P.evaluate_endpoints = -1;
+          res(i).ORd2 = -P.dy;
+          res(i).ORs2 = P.dz;
+          res(i).ORL = P.herriott_spacing;
+          res(i).overlap = overlap;
+          fprintf(1,'Completed %d/%d: RR1:%.1f RL:%.1f r1:%.1f R2:%.1f overlap:%.1f\n', ...
+            i, length(res), res(i).RR1, res(i).RL, res(i).r1, res(i).R2, ...
+            res(i).overlap);
+        end
       end
-      IS.res1 = res;
+      IS.res1 = res(opt_OK);
       IS.savefile;
     end
     
@@ -434,8 +469,10 @@ classdef ICOS_search < handle
           IS.res2(i).Nres2, Opt.ICOS_passes,Opt.Nsamples);
         P = render_model(IS.res2(i));
         n_optics = 4 + length(P.Lenses);
+        Track_Power = 1;
         if ~isempty(Opt.opt_n)
           opt_n = Opt.opt_n;
+          Track_Power = 0;
           ofile = sprintf('%s_%d', ofile, opt_n);
         else
           opt_n = n_optics;
@@ -449,7 +486,7 @@ classdef ICOS_search < handle
           IB = ICOS_beam(@ICOS_Model6, P);
           IB.Sample('beam_samples', Opt.Nsamples, ...
             'ICOS_passes', Opt.ICOS_passes, 'opt_n', opt_n, ...
-            'n_optics', n_optics, 'Track_Power', 1, IBopt{:});
+            'n_optics', n_optics, 'Track_Power', Track_Power, IBopt{:});
           if opt_n == n_optics
             ff2 = IB.Integrate;
             if ~isempty(ff)
@@ -462,7 +499,11 @@ classdef ICOS_search < handle
           fprintf(1, 'ICOS_beam %d Saved result to %s\n', i, ofile);
           Pwr = IB.PowerSummary;
           IS.res2(i).NH = Pwr.NH;
-          IS.res2(i).max_pwr = Pwr.max_pwr;
+          if isfield(Pwr,'max_pwr')
+            IS.res2(i).max_pwr = Pwr.max_pwr;
+          elseif ~isfield(IS.res2,'max_pwr')
+            IS.res2(i).max_pwr = [];
+          end
           IS.savefile;
         else
           fprintf(1, 'Skipping result %d\n', i);
