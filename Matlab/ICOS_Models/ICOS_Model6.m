@@ -167,6 +167,7 @@ classdef ICOS_Model6 < opt_model_p
       P.skip.mean_angle = 0;
       P.skip.RIM_passes = 0;
       P.focus = 0;
+      P.propagate = 1;
       P.herriott_spacing = 10; % Before the first ICOS mirror
       P.HRC = 15*2.54; % Herriott radius of curvature
       P.HCT = 0.2;
@@ -344,7 +345,9 @@ classdef ICOS_Model6 < opt_model_p
         P.beam_diameter, [-P.herriott_spacing 0 0], [1 0 0], P.visible && visibility(1));
       Pincident = M.Optic{2}.O + [0, m*P.y0 + P.beam_dy, m*P.z0 + P.beam_dz];
       Oincident = Pincident - (P.herriott_spacing+1)*Dincident;
-      M.push_ray(opt_ray(Oincident, Dincident), 0, 1, 2);
+      if P.propagate
+        M.push_ray(opt_ray(Oincident, Dincident), 0, 1, 2);
+      end
     end
     
     function Res = results_struct
