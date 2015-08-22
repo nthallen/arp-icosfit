@@ -1,6 +1,5 @@
 function res = collect_results(varargin)
-% res = collect_results(files, params)
-% files is a cell array of the names of .mat files containing
+% res = collect_results(params);
 % ICOS_search objects named 'IS'.
 % params is a struct. The fields are the fields from the IS.res2
 % struct. The values, if present, identify which range of values
@@ -45,9 +44,9 @@ for i=1:length(files)
     for k=1:length(pflds)
       if OK
         fld = pflds{k};
-        if isempty(IS.res2(j).(fld)) % must be non-empty, so analyzed
+        if ~isfield(IS.res2(j), fld) || isempty(IS.res2(j).(fld)) % must be non-empty, so analyzed
           OK = 0;
-        elseif ~isempty(params.(fld))
+        elseif ~isempty(params.(fld)) % must be non-empty, so analyzed
           cons = params.(fld);
           if length(cons) == 1
             if IS.res2(j).(fld) ~= cons
@@ -100,6 +99,8 @@ for i=1:length(res)
   pat1 = sprintf('IS_%s.%d_*x*.mat', res(i).mnc, res(i).index);
   IBs = dir(pat1);
   IBs = { IBs.name };
+  IBsana = regexp(IBs,'\d+x\d+\.mat');
+  IBs = IBs(~isempty(IBsana));
   if isempty(IBs)
     fprintf(1,'No ICOS_beam analysis found for IS_%s.%d\n', ...
       res(i).mnc, res(i).index);
