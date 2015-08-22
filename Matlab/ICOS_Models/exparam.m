@@ -1,7 +1,9 @@
 function R = exparam(P)
 % R = exparam(P)
-% P is a struct defining R1, r1, r2 and L (and Rw1).
-% or P defines R1, R2, RR1, r1 and Rw1
+% P is a struct defining:
+%    R1, r1, r2, L, Rw1.
+% or R1, R2, RR1, r1, Rw1
+% or R1, R2, RR1, L, Rw1
 % One of these may be a vector.
 Res = cell(1,0);
 R.n = 2.4361;
