@@ -20,6 +20,18 @@ classdef Herriott_Mirror < HRmirror
       HM = HM@HRmirror(nm, r_in, RC_in, CT_in, 0, R_in, O_in, D_in, 1, 1, vis);
       HM.aperature_point = Ap;
       HM.aperature_radius = Ar;
+      % Surface{1} is spherical
+      % Surface{2} is planar
+      % Append Herriott aperature to the perimeter for Surface{1}
+      res = 20;
+      th = linspace(0,2*pi,res)';
+      col = ones(length(th),1);
+      Ap_peri = [col*Ap(1), Ap(2)+Ar*cos(th), Ap(3)+Ar*sin(th)];
+      HM.Surface{1}.perimeter = [
+        HM.Surface{1}.perimeter
+        NaN NaN NaN
+        Ap_peri
+        ];
     end
     
     function [Rincident, Rreflect, Rinternal, Rtransmit] = propagate(HM, Rincident)
@@ -38,6 +50,7 @@ classdef Herriott_Mirror < HRmirror
         if r < HM.aperature_radius
           d = dot(Rincident.E-Rincident.O,Rincident.D);
           Rincident.E = Rincident.O + (d+1)*Rincident.D;
+          Rincident.Inside = -1; % Not inside, but not "outside"
           if HM.visible
             Rincident.draw;
           end
