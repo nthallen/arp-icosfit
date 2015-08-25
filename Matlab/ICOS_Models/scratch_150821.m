@@ -40,8 +40,9 @@ RR1 = Rr1*RL/(Rr1-Rh2);
 % or R1, R2, RR1, L, Rw1
 IS = ICOS_search('mnc', 'sropt_b2', 'R1', R1, 'R2', R2, 'RR1', RR1, 'L', L, 'Rw1', Rw1, 'RD1_margin', 5);
 IS.search_ICOS_RIM;
-IS.search_focus;
-openvar(IS)
+%%
+IS.search_focus2;
+openvar('IS');
 %%
 IS.analyze('select',2);
 %%
