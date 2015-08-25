@@ -6,6 +6,7 @@ classdef optic
     Surface % two surface objects, perhaps cell array
     n_int % index of refraction of the optic
     n_ext % index of refraction of the air
+    max_passes % limits propagation
     visible % boolean
 %         If Ray direction dot optic direction < 0
 %         we can assume the ray will hit Surface(1) first
@@ -19,6 +20,7 @@ classdef optic
       opt.D = D_in;
       opt.n_int = ni_in;
       opt.n_ext = ne_in;
+      opt.max_passes = 0; % no limit
       opt.visible = vis;
       opt.Surface = cell(2,1);
     end
@@ -49,6 +51,9 @@ classdef optic
         opt.Surface{2}.draw;
         p1 = opt.Surface{1}.perimeter;
         p2 = flipud(opt.Surface{2}.perimeter);
+        if size(p1,1)>size(p2,1)
+          p1 = p1(1:size(p2,1),:);
+        end
         pm = (p1+p2)/2;
         X = [p1(:,1) pm(:,1) p2(:,1)];
         Y = [p1(:,2) pm(:,2) p2(:,2)];

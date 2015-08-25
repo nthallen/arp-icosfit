@@ -15,17 +15,42 @@ classdef ICOS_beam < handle
   
   methods
     function IB = ICOS_beam(om, P)
+      % IB = ICOS_beam(model, P)
+      % IB.IBP contains ICOS_beam options, including:
+      %   Herriott_passes: advisory on the maximum number
+      %    of passes expected in the Herriott cell. Used to
+      %    reserve space for the rays
+      %   n_optics: advisory on the number of optics in the model.
+      %    This will be tested after the model is run.
       IB.model = om;
       IB.P = P;
+      IB.IBP.Herriott_passes = 100;
       IB.IBP.ICOS_passes = 100;
-      IB.IBP.NPI = IB.IBP.ICOS_passes/2;
+      IB.IBP.n_optics = 5;
+      IB.IBP.NPI = IB.IBP.ICOS_passes;
       IB.IBP.beam_samples = 100;
       IB.IBP.dyz = 0.01;
       IB.IBP.Dyz = [0.01 0.2];
       IB.IBP.opt_n = 0;
       IB.IBP.Tinterval = 60;
       IB.IBP.Track_Power = 0;
+      IB.IBP.Npass_dim = 2; % The number of different pass counts (Herriott & ICOS)
+      IB.IBP.rng_state = [];
       IB.Res = [];
+      % IB.Res includes information about all rays incident on optic opt_n
+      % IB.Res.N: total number of rays recorded
+      % IB.Res.D: Nx3 direction vectors
+      % IB.Res.E: Nx3 endpoint vectors
+      % IB.Res.P: Nx1 power
+      % IB.Res.NPass: N x Npass_dim: which pass
+      % IB.Res.Sample: N x 1: which sample
+      % IB.Res.NPasses: beam_samples x 1: number of rays incident on optic opt_n for each sample
+      % IB.Res.perimeter: np x 3: outline of optic opt_n
+      % IB.Res.Int(length(Dyz)).img: image of power integration
+      % IB.Res.Dy, Dz: beam_samples: relative position of beam sample
+      % IB.Res.Pwr: Summary of power for each transition
+      % IB.Res.Ptotal: Total power (by some metric)
+      % IB.Res.Pexp: Expected power (by some possibly different metric)
     end
     
     function Sample(IB, varargin)
@@ -44,21 +69,27 @@ classdef ICOS_beam < handle
         end
         i = i+2;
       end
+      if ~isempty(IB.IBP.rng_state)
+        rng(IB.IBP.rng_state);
+      else
+        IB.IBP.rng_state = rng;
+      end
       IB.P.ICOS_passes_per_injection = IB.IBP.ICOS_passes;
-      IB.IBP.NPI = IB.P.ICOS_passes_per_injection/2;
-      IB.P.max_rays = floor(IB.P.ICOS_passes_per_injection*5);
+      IB.IBP.NPI = IB.P.ICOS_passes_per_injection;
+      IB.P.max_rays = floor(IB.P.ICOS_passes_per_injection* ...
+        IB.IBP.n_optics * IB.IBP.Herriott_passes);
       Nsamples = IB.IBP.beam_samples;
       X = rand(Nsamples,1);
       r = IB.P.beam_diameter*sqrt(-log(X))/2;
       th = 2*pi*rand(Nsamples,1);
       Dy = r.*cos(th);
       Dz = r.*sin(th);
-      ResLen = Nsamples*IB.IBP.NPI;
+      ResLen = Nsamples*IB.IBP.NPI*IB.IBP.Herriott_passes;
       IB.Res.N = 0;
       IB.Res.D = zeros(ResLen, 3);
       IB.Res.E = zeros(ResLen, 3);
       IB.Res.P = zeros(ResLen,1);
-      IB.Res.NPass = zeros(ResLen,1);
+      IB.Res.NPass = zeros(ResLen,IB.IBP.Npass_dim);
       IB.Res.Sample = zeros(ResLen,1);
       IB.Res.NPasses = zeros(Nsamples,1);
       IB.Res.perimeter = [];
@@ -73,36 +104,55 @@ classdef ICOS_beam < handle
       TStart = tic;
       Treport = 0;
       for i = 1:Nsamples
-        if ResLen > IB.Res.N
+        if ResLen <= IB.Res.N
+          warning('Matlab:HUARP:SampleSkip', ...
+            'Skipping at sample %d of %d: result array inadequate', ...
+            i, Nsamples);
+          break;
+        else
           P.beam_dy = Dy(i);
           P.beam_dz = Dz(i);
           PM = IB.model(P);
           if IB.IBP.opt_n < 1 || IB.IBP.opt_n > length(PM.M.Optic)
             error('MATLAB:HUARP:OpticOOR', 'Invalid Optic Number');
           end
+          if IB.IBP.n_optics ~= length(PM.M.Optic)
+            warning('Matlab:HUARP:n_optics', ...
+              'IB.IBP.n_optics (%d) does not match model (%d)', ...
+              IB.IBP.n_optics, length(PM.M.Optic));
+          end
+          if PM.M.n_rays >= PM.M.max_rays
+            warning('Matlab:HUARP:model_maxed', ...
+              'n_rays maxed out: accuracy will be limited');
+          end
           if isempty(IB.Res.perimeter)
             IB.Res.perimeter = PM.M.Optic{IB.IBP.opt_n}.Surface{1}.perimeter;
           end
-          Ri = 2:PM.M.n_rays;
-          pre_opt = [PM.M.Rays([PM.M.Rays(Ri).n_inc]).n_opt];
-          cur_opt = [PM.M.Rays(Ri).n_opt];
-          vo = pre_opt == 2 & cur_opt == 3;
-          pass = cumsum(vo);
-          % but reset the pass count 
-          vr = pre_opt == 1 & cur_opt == 2;
-          repass = vr .* pass;
-          vri = find(vr);
-          repass(vri(2:end)) = diff(repass(vri));
-          pass = cumsum(vo-repass)';
+          Ri = 1:PM.M.n_rays;
           
-          vf = find([PM.M.Rays(Ri).n_opt] == IB.IBP.opt_n)+1;
+          % ### This pass identification can be eliminated and extracted
+          % ### from the rays now.
+%           vo = pre_opt == 2 & cur_opt == 3;
+%           pass = cumsum(vo);
+%           % but reset the pass count 
+%           vr = pre_opt == 1 & cur_opt == 2;
+%           repass = vr .* pass;
+%           vri = find(vr);
+%           repass(vri(2:end)) = diff(repass(vri));
+%           pass = cumsum(vo-repass)';
+          
+          vf = find([PM.M.Rays(Ri).n_opt] == IB.IBP.opt_n);
           nvf = length(vf);
           IB.Res.NPasses(i) = nvf;
           if IB.Res.N+nvf > ResLen
+            warning('Matlab:HUARP:ResultOverflow', ...
+              'Result overflow in sample %d of %d', i, Nsamples);
             nvf = ResLen - IB.Res.N;
           end
-          if nvf > IB.IBP.NPI
-            nvf = IB.IBP.NPI;
+          if nvf > IB.IBP.NPI*IB.IBP.Herriott_passes
+            warning('Matlab:HUARP:ResultOverflow', ...
+              'nvf > NPI*HP in sample %d of %d', i, Nsamples);
+            % nvf = IB.IBP.NPI*IB.IBP.Herriott_passes;
           end
           for j=1:nvf
             IB.Res.N = IB.Res.N+1;
@@ -110,19 +160,22 @@ classdef ICOS_beam < handle
             IB.Res.E(IB.Res.N,:) = ray.E;
             IB.Res.D(IB.Res.N,:) = ray.D;
             IB.Res.P(IB.Res.N) = ray.P;
-            IB.Res.NPass(IB.Res.N) = pass(vf(j));
+            NPd = min(length(ray.pass),IB.IBP.Npass_dim);
+            IB.Res.NPass(IB.Res.N,1:NPd) = ray.pass(1:NPd);
             IB.Res.Sample(IB.Res.N) = i;
           end
           if IB.IBP.Track_Power
+            pre_opt = [0,PM.M.Rays([PM.M.Rays(Ri(2:end)).n_inc]).n_opt];
+            cur_opt = [PM.M.Rays(Ri).n_opt];
             A = [pre_opt' cur_opt'];
             [B,~,ib] = unique(A,'rows');
-            ib(pass > IB.IBP.NPI) = 0;
+            % ib(pass > IB.IBP.NPI) = 0;
             RP = zeros(size(Ri'));
             inside = zeros(size(Ri'));
             for Pi=1:length(Ri)
               ray = PM.M.Rays(Ri(Pi)).ray;
               RP(Pi) = ray.P;
-              inside(Pi) = ray.Inside;
+              inside(Pi) = ray.Inside > 0;
             end
             outside = ~inside;
             for Pi=1:length(B)
@@ -142,10 +195,10 @@ classdef ICOS_beam < handle
                   sum((ib == Pi) & icond);
               end
             end
-            if isfield(IB.Res.Pwr,'R2_3') && isfield(IB.Res.Pwr,'R3_4') ...
-                && IB.Res.Pwr.R2_3.NI ~= IB.Res.Pwr.R3_4.NI
-              fprintf(1, 'Sample %d: R2_3.NI ~= R3_4.NI\n', i);
-            end
+%             if isfield(IB.Res.Pwr,'R2_3') && isfield(IB.Res.Pwr,'R3_4') ...
+%                 && IB.Res.Pwr.R2_3.NI ~= IB.Res.Pwr.R3_4.NI
+%               fprintf(1, 'Sample %d: R2_3.NI ~= R3_4.NI\n', i);
+%             end
           end
         end
         TIter = toc(TStart);
@@ -155,28 +208,142 @@ classdef ICOS_beam < handle
           Treport = TIter;
         end
       end
-      T = P.T;
-      IB.Res.Ptotal = sum(IB.Res.P(1:IB.Res.N))/Nsamples;
-      Pin = T;
-      fprintf(1,'Total power is %.1f%% of injected power\n', ...
-        100*IB.Res.Ptotal/Pin);
-      IB.Res.Pexp = Pin/2 * (1-(1-T)^(IB.IBP.NPI*2));
-      fprintf(1,'Total power is %.1f%% of expected power\n', ...
-        100*IB.Res.Ptotal/IB.Res.Pexp);
-      fprintf(1,'Total power:    %.4g\n', IB.Res.Ptotal);
-      fprintf(1,'Expected power: %.4g\n', IB.Res.Pexp);
     end
     
-    function Animate(IB, runafter)
+    function Pwr = PowerSummary(IB)
+      % IB.PowerSummary
+      % Reports on how optical power propagates through the setup.
+      % The cumulative power loss figure is expected to be a better
+      % predictor of performance than the total power ratios.
+      % Total power as a percent of injected power is mostly an indication
+      % of how many ICOS passes were simulated.
+      % Total power as a percent of expected power normalizes for the
+      % number of ICOS passes, but yields a number somewhat higher
+      % than what we expect as the number of ICOS passes increases.
+      % This is because once the beams leave the ICOS cell, they no
+      % longer propagate.
+      if ~isstruct(IB.Res)
+        error('MATLAB:HUARP:Unsampled', ...
+          'Must run Sample before PowerSummary()');
+      end
+      T = IB.P.T;
+      Nsamples = IB.IBP.beam_samples;
+      IB.Res.Ptotal = sum(IB.Res.P(1:IB.Res.N))/Nsamples;
+      NH = max(IB.Res.NPass(1:IB.Res.N,1));
+      RH = IB.P.HR;
+      P2_Ideal = (1-RH^NH)/(1-RH); % normalized by Nsamples
+      Pin = T*P2_Ideal;
+      Pexp = Pin/2 * (1-(1-T)^(IB.IBP.NPI*2));
+      if nargout > 0
+        Pwr.NH = NH;
+      else
+        fprintf(1,'%d Herriott passes\n', NH);
+        fprintf(1,'%d ICOS passes\n', IB.IBP.NPI);
+        fprintf(1,'Total power is %.1f%% of injected power\n', ...
+          100*IB.Res.Ptotal/Pin);
+        fprintf(1,'Total power is %.1f%% of expected power\n', ...
+          100*IB.Res.Ptotal/Pexp);
+      end
+      if isfield(IB.Res,'Pwr')
+        P2_Actual = (IB.Res.Pwr.R0_2.I + IB.Res.Pwr.R1_2.I)/Nsamples;
+        P2_loss_pct = 100*(P2_Ideal-P2_Actual)/P2_Ideal;
+        cum_pwr = 1-P2_loss_pct/100;
+        Iin_Actual = P2_Actual * T;
+        I_loss_pct = 100*(IB.Res.Pwr.R2_3.O+IB.Res.Pwr.R3_2.O)/ ...
+          (Iin_Actual*Nsamples);
+        if nargout == 0
+          fprintf(1,'Herriott cell loss: %.1f%%\n', P2_loss_pct);
+          fprintf(1,'ICOS cell loss: %.1f%%\n', I_loss_pct);
+        end
+        cum_pwr = cum_pwr * (1-I_loss_pct/100);
+        n_focus_optics = length(IB.P.Lenses)+1;
+        focus_losses = ones(n_focus_optics,1);
+        for opt_n = 3+(0:n_focus_optics-1)
+          fld = sprintf('R%d_%d', opt_n, opt_n+1);
+          if isfield(IB.Res.Pwr, fld)
+            abs_loss = IB.Res.Pwr.(fld).O;
+            loss_pct = 100*abs_loss/(IB.Res.Pwr.(fld).I+abs_loss);
+            focus_losses(opt_n-2) = loss_pct;
+            if nargout == 0
+              fprintf(1,'Loss at optic %d: %.1f %%\n', opt_n+1, loss_pct);
+            end
+            det_pwr_summary = IB.Res.Pwr.(fld);
+            % cum_pwr = cum_pwr * (1-loss_pct/100);
+          else
+            warning('MATLAB:HUARP:NoPwr', 'Expected Power field "%s"', ...
+              fld);
+          end
+        end
+        for i = 1:n_focus_optics-1
+          cum_pwr = cum_pwr * (1-focus_losses(i)/100);
+        end
+        cum_pwr0 = cum_pwr * (1-focus_losses(end)/100);
+        cum_loss_pct0 = 100*(1-cum_pwr0);
+        eff_pwr0 = cum_pwr0 * P2_Ideal;
+        if nargout == 0
+          fprintf(1, 'Cumulative loss with detector centered: %.1f %%\n', cum_loss_pct0);
+          fprintf(1, 'Effective output with detector centered: %.1f\n', eff_pwr0);
+        end
+        if ~isempty(IB.Res.Int(end).img)
+          max_pwr = max(max(IB.Res.Int(end).img));
+          IntNorm = Nsamples*T*(1-(1-T)^(IB.IBP.NPI*2))/(2-T);
+          det_pwr = max_pwr * IntNorm;
+          eff = det_pwr/(det_pwr_summary.I+det_pwr_summary.O);
+          Dloss = 100*(1-eff);
+          cum_pwr1 = cum_pwr * (1-Dloss/100);
+          cum_loss_pct1 = 100*(1-cum_pwr1);
+          eff_pwr1 = cum_pwr1 * P2_Ideal;
+          if nargout == 0
+            fprintf(1, 'Output by moving detector: %.1f\n', max_pwr);
+            fprintf(1, 'Loss at detector after translation: %.1f %%\n', ...
+              Dloss);
+            fprintf(1, 'Cumulative loss after translation: %.1f %%\n', cum_loss_pct1);
+            fprintf(1, 'Effective output after translation: %.1f\n', eff_pwr1);
+          end
+        else
+          Dloss = focus_losses(end);
+          eff_pwr1 = eff_pwr0;
+          max_pwr = eff_pwr0;
+        end
+        if nargout > 0
+          Pwr.cum_loss_pct = cum_loss_pct1;
+          Pwr.H_loss = P2_loss_pct;
+          Pwr.I_loss = I_loss_pct;
+          Pwr.D_loss = Dloss;
+          Pwr.F_loss = focus_losses(1:end-1);
+          Pwr.eff_pwr = eff_pwr1;
+          Pwr.max_pwr = max_pwr;
+        end
+      end
+    end
+    
+    function Animate(IB, varargin)
+      % IB.Animate;
+      % IB.Animate('runafter', 15);
+      %  'IPass', 1
+      %  'HPass', 1
       if ~isstruct(IB.Res)
         error('MATLAB:HUARP:Unsampled', ...
           'Must run Sample before Animate()');
       end
-      if nargin < 2
-        runafter = 50;
+      opt.runafter = 50;
+      opt.HPass = 1:min(50,max(IB.Res.NPass(:,1)));
+      if IB.IBP.Npass_dim > 1
+        opt.IPass = 1:min(50,max(IB.Res.NPass(:,2)));
+      else
+        opt.IPass = 1;
+      end
+      i = 1;
+      while i < length(varargin)
+        if isfield(opt, varargin{i})
+          opt.(varargin{i}) = varargin{i+1};
+        else
+          error('MATLAB:HUARP:InvalidOption', ...
+            'Animate: Invalid option: "%s"', varargin{i});
+        end
+        i = i+2;
       end
       figure;
-      NPI = min(50, IB.IBP.NPI);
       Ei = 1:IB.Res.N;
       h = [];
       p = IB.Res.perimeter;
@@ -184,20 +351,27 @@ classdef ICOS_beam < handle
       Zr = minmax([IB.Res.E(Ei,3);p(:,3)]');
       plot(p(:,2),p(:,3),'k');
       hold on;
-      for j=1:NPI; % NPI
-        v = IB.Res.NPass(Ei) == j;
-        if ~isempty(h)
-          set(h,'MarkerEdgeColor',[0 1 0]);
-        end
-        h = plot(IB.Res.E(Ei(v),2), IB.Res.E(Ei(v),3), '.r');
-        set(gca,'xlim',Yr,'ylim',Zr,'DataAspectRatio',[1 1 1]);
-        title(sprintf('%d Passes', j));
-        if j > runafter
-          drawnow;
-          shg;
-          pause(0.1);
-        else
-          pause;
+      j = 1;
+      for Hi = opt.HPass
+        for Ii = opt.IPass
+          v = IB.Res.NPass(Ei,1) == Hi;
+          if IB.IBP.Npass_dim > 1
+            v = v & IB.Res.NPass(Ei,2) == Ii;
+          end
+          if ~isempty(h)
+            set(h,'MarkerEdgeColor',[0 1 0]);
+          end
+          h = plot(IB.Res.E(Ei(v),2), IB.Res.E(Ei(v),3), '.r');
+          set(gca,'xlim',Yr,'ylim',Zr,'DataAspectRatio',[1 1 1]);
+          title(sprintf('HPass: %d  IPass: %d', Hi, Ii));
+          if j > opt.runafter
+            drawnow;
+            shg;
+            pause(0.1);
+          else
+            pause;
+          end
+          j = j+1;
         end
       end
       hold off;
@@ -209,6 +383,10 @@ classdef ICOS_beam < handle
           'Must run Sample before Integrate()');
       end
       Nsamples = IB.IBP.beam_samples;
+      T = IB.P.T;
+      % Pexp is power from Nsamples beams propagated
+      % with IB.IBP.NPI ICOS passes
+      Pexp = Nsamples*T*(1-(1-T)^(IB.IBP.NPI*2))/(2-T);
       Tstart = tic;
       Treport = 0;
       dyz = IB.IBP.dyz; % spacing of detector centers
@@ -243,7 +421,7 @@ classdef ICOS_beam < handle
             for zi = 1:nZ
               dz = IB.Res.E(Ei,3)-Z(zi);
               vz = dz > -Dyz/2 & dz <= Dyz/2;
-              Pimg(yi,zi) = sum(IB.Res.P(Ei(vy & vz)))/(IB.Res.Pexp*Nsamples);
+              Pimg(yi,zi) = sum(IB.Res.P(Ei(vy & vz)))/Pexp;
             end
           end
           IB.Res.Int(Dyzi).img = Pimg;
@@ -264,7 +442,7 @@ classdef ICOS_beam < handle
         title(sprintf('%s: %.1fmm Detector %d passes %d samples', ...
           mname, Dyz*10, IB.IBP.ICOS_passes, ...
           IB.IBP.beam_samples ));
-        ylabel(ch,'Fraction of expected total power');
+        ylabel(ch,'Nomalized to single ICOS injection');
         xlabel('Y position of detector center, cm');
         ylabel('Z position of detector center, cm');
         drawnow; shg;

@@ -61,12 +61,25 @@ classdef opt_model < handle
           [Rincident, Rreflect, ~, Rtransmit] = ...
             M.Optic{RS.to_obj}.propagate(Rincident);
           inc_n = M.save_ray(Rincident, RS.n_inc, opt_n);
-          M.push_ray(Rreflect, inc_n, opt_n, RS.from_obj);
-          if RS.from_obj < RS.to_obj
+          max_passes = M.Optic{RS.to_obj}.max_passes;
+          if RS.from_obj < RS.to_obj % Forward transmission
             next_opt = RS.to_obj + 1;
-          else
+            if max_passes > 0
+              if ~isempty(Rreflect)
+                Rreflect.pass(end) = Rreflect.pass(end) + 1;
+                if Rreflect.pass(end) > max_passes
+                  Rreflect = [];
+                end
+              end
+              if ~isempty(Rtransmit)
+                Rtransmit.pass(end+1) = 1;
+              end
+            end
+          else % backwards transmission
             next_opt = RS.to_obj - 1;
+            Rtransmit = []; % suppress all backwards transmissions
           end
+          M.push_ray(Rreflect, inc_n, opt_n, RS.from_obj);
           M.push_ray(Rtransmit, inc_n, opt_n, next_opt);
         end
       end
@@ -153,7 +166,8 @@ classdef opt_model < handle
       M.Rays(M.n_rays).n_inc = inc_n;
       M.Rays(M.n_rays).n_opt = opt_n;
       M.Rays(M.n_rays).ray = R;
-      if ~R.Inside
+      if R.Inside == 0 % truly outside. Does not count exiting through
+        % herriott aperature
         M.Inside = false;
       end
       n = M.n_rays;
@@ -234,6 +248,21 @@ classdef opt_model < handle
         rsk = rsk(:,[2 3]);
         skew = sum(rsk.*dyz,2);
       end
+    end
+    
+    function [oxyz, r, div, skew] = extract_origin_skew(M, opt_n)
+      [xyz,oxyz] = M.extract_endpoints(opt_n);
+      dxyz = xyz - oxyz;
+      dxyz = diag(1./dxyz(:,1)) * dxyz;
+      yz = oxyz(:,[2 3]); % position at origin, not dest.
+      dyz = dxyz(:,[2 3]);
+      r = sqrt(sum(yz.^2,2));
+      ryz = diag(1./r) * yz; % unit vector in radial direction
+      div = sum(ryz .* dyz,2);
+      col = ones(size(ryz,1),1);
+      rsk = cross(col*[1 0 0], [0*col,ryz]);
+      rsk = rsk(:,[2 3]);
+      skew = sum(rsk.*dyz,2);
     end
     
     function d_angle = extract_angles(M, opt_n)

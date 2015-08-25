@@ -9,7 +9,7 @@ classdef opt_surface
     n_int
     n_ext
     visible
-    emission_threshold
+    % emission_threshold
   end
   
   properties (Abstract)
@@ -25,7 +25,7 @@ classdef opt_surface
       surf.n_int = n_int;
       surf.n_ext = n_ext;
       surf.visible = true;
-      surf.emission_threshold = 0;
+      % surf.emission_threshold = 0;
     end
     
     function [Rincident,Rref,Rtrans] = propagate(surf, Rincident)
@@ -36,7 +36,7 @@ classdef opt_surface
           Pintercept = surf.intercept_plane(Rincident);
           if ~isempty(Pintercept)
             Rincident.E = Pintercept;
-            Rincident.Inside = false;
+            Rincident.Inside = 0;
           end
           if surf.visible
             Rincident.draw;
@@ -50,16 +50,17 @@ classdef opt_surface
           Rincident.draw;
         end
         N = dot(Rincident.D,Vnormal);
-        if surf.R == 0 || Rincident.P < surf.emission_threshold
+        if surf.R == 0 % || Rincident.P < surf.emission_threshold
           Rref = [];
         else
           Rref = opt_ray(Rincident.E, Rincident.D - 2*N*Vnormal);
           Rref.P = Rincident.P * surf.R;
+          Rref.pass = Rincident.pass;
 %           if Rref.P < surf.emission_threshold
 %             Rref = [];
 %           end
         end
-        if surf.T == 0 || Rincident.P < surf.emission_threshold
+        if surf.T == 0 % || Rincident.P < surf.emission_threshold
           Rtrans = [];
         else
           % handle refraction
@@ -71,6 +72,7 @@ classdef opt_surface
           end
           Rtrans = opt_ray(Pintercept, N*Vnormal+sintrans);
           Rtrans.P = Rincident.P * surf.T;
+          Rtrans.pass = Rincident.pass;
 %           if Rtrans.P < surf.emission_threshold
 %             Rtrans = [];
 %           end

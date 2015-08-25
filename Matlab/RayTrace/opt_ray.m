@@ -4,6 +4,7 @@ classdef opt_ray
     D % direction (row)
     E % endpoint
     P % Power
+    pass % pass number
     Inside % boolean
   end
   methods
@@ -13,7 +14,8 @@ classdef opt_ray
       R.D = D/sqrt(sum(D.^2));
       R.E = O+D;
       R.P = 1;
-      R.Inside = true;
+      R.pass = 1;
+      R.Inside = 1;
     end
     
     function [h_out, th_out] = draw(R, varargin)
