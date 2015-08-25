@@ -259,6 +259,161 @@ classdef ICOS_search < handle
       IS.savefile;
     end
     
+    function search_focus2(IS, varargin)
+      function optimize_focus(IS, resn, P, d, s, r, th, dth, depth)
+        % optimize_focus(IS, resn, P, d, s, r, th, dth)
+        % IS ICOS_search object
+        % resn The res1 index we are working on
+        % P ICOS_Model6 properties
+        % d divergence at current last optic
+        % s skew at current last optic
+        % r beam radius at current last optic
+        % th target angle
+        % dth target angle tolerance
+        % depth is a limit on how many lenses we should allow
+        % Assumption is that we need to be converging.
+        if th < 0 || th > 90
+          error('MATLAB:HUARP:badangle', ...
+            'Angle th (%f) must be between 0 and 90', th);
+        end
+        if dth <= 0
+          error('MATLAB:HUARP:badangle', ...
+            'Angle dth (%f) must be >= 0', dth);
+        end
+        theta = atand(sqrt(d^2+s^2));
+        if d < 0 && theta > th-dth && theta < th+dth
+          result = length(IS.res2)+1;
+          if isempty(IS.res2)
+            IS.res2 = IS.res1(resn);
+            IS.res2.Nres2 = 1;
+          else
+            IS.res2(result).Nres2 = result;
+            flds = fieldnames(IS.res1);
+            for fi=1:length(flds)
+              fldnm = flds{fi};
+              IS.res2(result).(fldnm) = IS.res1(resn).(fldnm);
+            end
+          end
+          % res_a = res(i);
+          IS.res2(result).Lenses = P.Lenses;
+          IS.res2(result).Lens_Space = P.Lens_Space;
+          IS.res2(result).detector_spacing = P.detector_spacing;
+          IS.res2(result).theta = theta;
+          IS.res2(result).r_d = s*r / tand(theta);
+          IS.res2(result).Ltot = IS.res2(result).ORL ...
+            + IS.res2(result).L + sum(IS.res2(result).Lens_Space) ...
+            + IS.res2(result).detector_spacing;
+          fprintf(1,'%d: (%d) Focused\n', result, resn);
+          return;
+        end
+        if depth <= 0
+          fprintf(1,'Abandoning focus after %d lenses\n', ...
+            length(P.Lenses));
+          return; % No results
+        end
+        n_lenses = length(P.Lenses)+1;
+        LTS = fields(P.LensTypes);
+        for LTSi = 1:length(LTS)
+          P.Lenses{n_lenses} = LTS{LTSi};
+          Lens = P.LensTypes.(LTS{LTSi});
+          if strcmp(Lens.type,'positive_meniscus')
+            f = Lens.EFL;
+          else
+            f = -Lens.EFL;
+          end
+          [x,~,ds] = pick_lens_x2(r,d,s,f,th,Lens.r-0.3);
+          % pick_lens_x2 could have found
+          %   a: no solution -- just try the next lens
+          %   b: an incomplete solution (at xmin or xmax)
+          %   c: a good solution
+          % in cases b and c, we need to verify the angle in the
+          % full model. In b, we do not expect a good value, but
+          % with c, it is possible we might be a little bit off.
+          % In that case, we should try to optimize by binary
+          % search.
+          if ~isempty(x)
+            P.Lens_Space(n_lenses) = x(1);
+            P.detector_spacing = ds;
+            P.visible = 1;
+            P.evaluate_endpoints = -1;
+            PM = ICOS_Model6(P);
+            [~,~,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
+            theta2 = atand(sqrt(mean(div).^2 + mean(skew).^2));
+            % Now do we need to optimize further? Only if
+            % length(x) == 3 and theta2 is not close to th
+            if length(x) == 3 && (theta2 < th-dth || theta2 > th+dth)
+              xmin = x(2);
+              xmax = x(3);
+              while theta2 < th-dth || theta2 > th+dth
+                fprintf(1,'Optimizing: f=%f theta=%.2f x=[%.2f %.2f %.2f]\n', ...
+                  f, theta2, xmin, P.Lens_Space(n_lenses), xmax);
+                if (f > 0 && theta2 < th-dth) || (f < 0 && theta2 > th+dth)
+                  xmax = P.Lens_Space(n_lenses);
+                else
+                  xmin = P.Lens_Space(n_lenses);
+                end
+                P.Lens_Space(n_lenses) = mean([xmax, xmin]);
+                PM = ICOS_Model6(P);
+                [~,~,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
+                div = mean(div);
+                if div >= 0
+                  theta2 = -1;
+                else
+                  theta2 = atand(sqrt(div.^2 + mean(skew).^2));
+                end
+              end
+            end
+            [~,r2,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
+            r2 = mean(r2);
+            d2 = mean(div);
+            s2 = mean(skew);
+            optimize_focus(IS, resn, P, d2, s2, r2, th, dth, depth-1);
+          end
+        end
+      end
+      
+      SFopt.select = [];
+      SFopt.det_acc_limit = 14.9;
+      SFopt.det_acc_limit_tolerance = 0.05;
+      SFopt.max_lenses = 3;
+      for i=1:2:length(varargin)-1
+        fld = varargin{i};
+        if isfield(IS.ISopt,fld)
+          IS.ISopt.(fld) = varargin{i+1};
+        elseif isfield(SFopt, fld)
+          SFopt.(fld) = varargin{i+1};
+        else
+          error('MATLAB:HUARP:badopt', 'Invalid option: "%s"', fld);
+        end
+      end
+      if isempty(SFopt.select)
+        res = IS.res1;
+      else
+        res = IS.res1(SFopt.select);
+      end
+      if ~isempty(IS.res2) && ~isfield(IS.res2,'Nres2')
+        for i=1:length(IS.res2)
+          IS.res2(i).Nres2 = i;
+        end
+      end
+      i = 0;
+      P = ICOS_Model6.props;
+      results = 0;
+      while i < length(res)
+        i = i+1;
+        P = render_model(res(i), 'visibility', [0 0 0], ...
+          'focus', 1, 'ICOS_passes_per_injection', 100, ...
+          'max_rays', 3000);
+        n = res(i).n; % 2.4361
+        d = res(i).d2*n;
+        s = res(i).s2;
+        r = res(i).r2;
+        optimize_focus(IS, i, P, d, s, r, SFopt.det_acc_limit, ...
+          SFopt.det_acc_limit_tolerance, SFopt.max_lenses);
+      end
+      IS.savefile;
+    end
+    
     function search_focus(IS, varargin)
       SFopt.select = [];
       for i=1:2:length(varargin)-1
