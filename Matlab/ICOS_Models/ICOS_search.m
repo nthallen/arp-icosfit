@@ -1,6 +1,13 @@
 classdef ICOS_search < handle
   % ICOS_search object incorporates the parameter solvers
   % of exparam, autofocus, and ICOS_beam analysis
+  % See also:
+  %  ICOS_search.ICOS_search
+  %  ICOS_search.search_ICOS_RIM
+  %  ICOS_search.search_focus (deprecated)
+  %  ICOS_search.search_focus2
+  %  ICOS_search.analyze
+  %  ICOS_search.savefile
   properties
     ISP % Starting search parameters
     ISopt % Options
@@ -9,6 +16,29 @@ classdef ICOS_search < handle
   end
   methods
     function IS = ICOS_search(varargin)
+      % IS = ICOS_search(options)
+      % The options define the search parameters via keyword/value
+      % pairs.
+      %   mnc: required, used for filenames
+      %   Configuration constraints: RR1, Rw1, R1, r1, L, R2
+      %     5 of these need to be known to unambiguously define
+      %     an ICOS configuration. RR1 and R2, if not specified,
+      %     can be obtained by trying elements from their
+      %     respective catalogs. I believe this program currently requires
+      %     Rw1 and R1 be defined plus either r1 or L. Current research is
+      %     looking at defining other sets.
+      %   ICOS_search options: These control the catalog searches:
+      %     R2_lim: [min max] defines the range of values for R2
+      %     RR1_lim: [min max] same for RR1
+      %     L_lim: [min max] range for L
+      %     RL_lim: [min max] range for RL
+      %     RD1_margin: Additional radial distance beyond Rr1 required when
+      %          determining RD1. Defaults to 1 cm.
+      %     D2_margin: Additional radial distance beyond r2 required when
+      %          determining D2. Defaults to 1 cm.
+      %     focus_visible: Used in search_focus2. If 0, all visualizations
+      %          are suppressed. If 1, final focus visualizations are
+      %          shown. If 2, visualizations are displayed at each step.
       IS.ISP.RR1 = []; % If not set, choices are search in ed_rim_catalog
       IS.ISP.Rw1 = [];
       IS.ISP.R1 = [];
@@ -22,6 +52,7 @@ classdef ICOS_search < handle
       IS.ISopt.RL_lim = [2 inf];
       IS.ISopt.RD1_margin = 1; % cm. When RR1 is set, this is added to Rr1 to determine RD1
       IS.ISopt.D2_margin = 1; % cm. When R2 is set, this is added to r2 to determine D2
+      IS.ISopt.focus_visible = 1; % 0: don't draw any focus 1: just finished focus 2: each iteration
       for i=1:2:length(varargin)-1
         fld = varargin{i};
         if isfield(IS.ISP, fld)
@@ -37,6 +68,9 @@ classdef ICOS_search < handle
     end
     
     function search_ICOS_RIM(IS, varargin)
+      % IS.search_ICOS_RIM(options)
+      % Options can include any of the ICOS configuration options
+      % from ICOS_search.ICOS_search.
       for i=1:2:length(varargin)-1
         fld = varargin{i};
         if isfield(IS.ISP, fld)
@@ -260,6 +294,12 @@ classdef ICOS_search < handle
     end
     
     function search_focus2(IS, varargin)
+      % IS.search_focus2(options)
+      % The main relevant option is 'select', which takes a list of
+      % indices into the IS.res1 array to be analyzed.
+      %
+      % search_focus2 attempts to build configurations using lenses
+      % defined in the ICOS_Model6.props Lens_Types array.
       function optimize_focus(IS, resn, P, d, s, r, th, dth, depth)
         % optimize_focus(IS, resn, P, d, s, r, th, dth)
         % IS ICOS_search object
@@ -303,7 +343,21 @@ classdef ICOS_search < handle
           IS.res2(result).Ltot = IS.res2(result).ORL ...
             + IS.res2(result).L + sum(IS.res2(result).Lens_Space) ...
             + IS.res2(result).detector_spacing;
-          fprintf(1,'%d: (%d) Focused\n', result, resn);
+          fprintf(1,'%d: (%d) Focused: theta=%.2f', result, resn, theta);
+          for Li=1:length(P.Lenses)
+            fprintf(1, ' %s', P.Lenses{Li});
+          end
+          fprintf(1, '\n');
+          if IS.ISopt.focus_visible > 0
+            P.visible = 1;
+          else
+            P.visible = 0;
+          end
+          PM = ICOS_Model6(P);
+          if P.visible
+            title(sprintf('Focus %d', result));
+            drawnow;
+          end
           return;
         end
         if depth <= 0
@@ -334,27 +388,62 @@ classdef ICOS_search < handle
           if ~isempty(x)
             P.Lens_Space(n_lenses) = x(1);
             P.detector_spacing = ds;
-            P.visible = 1;
+            if IS.ISopt.focus_visible > 1
+              P.visible = 1;
+            else
+              P.visible = 0;
+            end
+            P.view = [0 0];
             P.evaluate_endpoints = -1;
             PM = ICOS_Model6(P);
-            [~,~,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
+            [oxyz,r2,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
             theta2 = atand(sqrt(mean(div).^2 + mean(skew).^2));
             % Now do we need to optimize further? Only if
             % length(x) == 3 and theta2 is not close to th
             if length(x) == 3 && (theta2 < th-dth || theta2 > th+dth)
               xmin = x(2);
               xmax = x(3);
+              xminok = false;
+              xmaxok = false;
+              thetamax = -1;
+              thetamin = -1;
               while theta2 < th-dth || theta2 > th+dth
                 fprintf(1,'Optimizing: f=%f theta=%.2f x=[%.2f %.2f %.2f]\n', ...
                   f, theta2, xmin, P.Lens_Space(n_lenses), xmax);
-                if (f > 0 && theta2 < th-dth) || (f < 0 && theta2 > th+dth)
+                if theta2 < 0 % try to backtrack toward an 'OK' limit
+                  if xminok
+                    xmax = P.Lens_Space(n_lenses);
+                    xmaxok = false;
+                    fprintf(1,'Retreating toward xmin\n');
+                  elseif xmaxok
+                    xmin = P.Lens_Space(n_lenses);
+                    xminok = false;
+                    fprintf(1,'Retreating toward xmax\n');
+                  else
+                    fprintf(1,'Abandoning this line: theta<0 and no ok limits\n');
+                    return;
+                  end
+                elseif (f > 0 && theta2 < th-dth) || (f < 0 && theta2 > th+dth)
                   xmax = P.Lens_Space(n_lenses);
+                  xmaxok = true;
+                  thetamax = theta2;
                 else
                   xmin = P.Lens_Space(n_lenses);
+                  xminok = true;
+                  thetamin = theta2;
                 end
-                P.Lens_Space(n_lenses) = mean([xmax, xmin]);
+                if xmaxok && xminok
+                  xnew = interp1([thetamin thetamax],[xmin xmax],th);
+                else
+                  xnew = mean([xmax, xmin]);
+                end
+                if abs(xnew-P.Lens_Space(n_lenses)) < .01
+                  fprintf(1,'Abandoning this line: dx < .01\n');
+                  return;
+                end
+                P.Lens_Space(n_lenses) = xnew;
                 PM = ICOS_Model6(P);
-                [~,~,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
+                [oxyz,r2,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
                 div = mean(div);
                 if div >= 0
                   theta2 = -1;
@@ -363,10 +452,12 @@ classdef ICOS_search < handle
                 end
               end
             end
-            [~,r2,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
+            % [oxyz,r2,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
             r2 = mean(r2);
             d2 = mean(div);
             s2 = mean(skew);
+            P.detector_spacing = mean(oxyz(:,1)) - PM.M.Optic{3+n_lenses}.O(1) - ...
+              PM.M.Optic{3+n_lenses}.CT - r2*d2/(d2^2+s2^2);
             optimize_focus(IS, resn, P, d2, s2, r2, th, dth, depth-1);
           end
         end
@@ -403,7 +494,7 @@ classdef ICOS_search < handle
         i = i+1;
         P = render_model(res(i), 'visibility', [0 0 0], ...
           'focus', 1, 'ICOS_passes_per_injection', 100, ...
-          'max_rays', 3000);
+          'max_rays', 3000, 'HR', 0);
         n = res(i).n; % 2.4361
         d = res(i).d2*n;
         s = res(i).s2;
@@ -415,6 +506,14 @@ classdef ICOS_search < handle
     end
     
     function search_focus(IS, varargin)
+      % IS.search_focus(options) (deprecated)
+      % The main relevant option is 'select', which takes a list of
+      % indices into the IS.res1 array to be analyzed.
+      %
+      % search_focus attempts to build configurations using lenses
+      % defined in the ICOS_Model6.props Lens_Types array. It does
+      % not optimize the result very well, which is why search_focus2 was
+      % created.
       SFopt.select = [];
       for i=1:2:length(varargin)-1
         fld = varargin{i};
@@ -574,12 +673,20 @@ classdef ICOS_search < handle
     end
     
     function analyze(IS, varargin)
-      % IS.analyze(opts);
-      % opts include:
-      % 'ICOS_passes', n
-      % 'Nsample', n
-      % 'opt_n', n
-      % plus and ICOS_beam options.
+      % IS.analyze(options);
+      % options include:
+      %   'ICOS_passes', n
+      %   'Nsamples', n
+      %   'opt_n', n
+      %   'select', array of Nres2 indexes to analyze
+      % plus any ICOS_beam options
+      %
+      % IS.analyze runs the ICOS_beam Sample and Integrate analyses for all
+      % the specified configurations and stores the result within the
+      % IS.res2 array. The IS object is saved after each ICOS_beam
+      % analysis, so the process can be interrupted without losing too much
+      % work. On restart, the existence of saved ICOS_beam objects will
+      % allow this process to skip ahead.
       if isempty(IS.res2)
         error('MATLAB:HUARP:NoFocus', ...
           'Must invoke IS.search_focus() before IS.analyze()');
@@ -667,6 +774,11 @@ classdef ICOS_search < handle
     end
     
     function savefile(IS)
+      % IS.savefile
+      % Writes the IS object to a .mat file with the name derived
+      % from the mnemonic in IS.ISopt.mnc. The filename is prefixed
+      % with 'IS_'.
+      % See also: ICOS_beam
       fname = sprintf('IS_%s.mat', IS.ISopt.mnc);
       save(fname, 'IS');
       fprintf(1, 'ICOS_search saved to %s\n', fname);

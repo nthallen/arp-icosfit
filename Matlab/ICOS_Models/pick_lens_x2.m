@@ -32,7 +32,8 @@ rts = rts(imag(rts)==0);
 rts = rts(rts > 0);
 rts = min(rts); % rts should be where the radius == rmax
 if isempty(rts)
-  error('MATLAB:HUARP:ExpectedRoot','Expected to find a root');
+  fprintf(1,'pick_lens_x2(%f,%f,%f,%f) no roots\n', r, d, s, rmax);
+  return;
 end
 if d >= 0
   xmin = 0.1;

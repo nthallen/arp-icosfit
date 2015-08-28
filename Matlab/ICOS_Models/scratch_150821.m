@@ -44,7 +44,7 @@ IS.search_ICOS_RIM;
 IS.search_focus2;
 openvar('IS');
 %%
-IS.analyze('select',2);
+IS.analyze();
 %%
 P = render_model(IS.res2(2));
 PM = ICOS_Model6(P);

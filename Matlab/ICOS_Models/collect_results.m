@@ -71,6 +71,10 @@ end
 % Now add up the number of results, allocate the array and fill it.
 %%
 nres = sum([col.ri]);
+if nres == 0
+  res = [];
+  return;
+end
 sargs = cell(1,2*(length(pflds)+2));
 sargs{1} = 'mnc';
 sargs{3} = 'index';
@@ -85,7 +89,7 @@ for i=1:length(files)
   end
   for j=ri
     res(result).mnc = col(i).IS.ISopt.mnc;
-    res(result).index = j;
+    res(result).index = col(i).IS.res2(j).Nres2;
     for k=1:length(pflds)
       fld = pflds{k};
       res(result).(fld) = col(i).IS.res2(j).(fld);
@@ -99,7 +103,7 @@ for i=1:length(res)
   pat1 = sprintf('IS_%s.%d_*x*.mat', res(i).mnc, res(i).index);
   IBs = dir(pat1);
   IBs = { IBs.name };
-  IBsana = regexp(IBs,'\d+x\d+\.mat');
+  IBsana = regexp(IBs,'\d+x\d+\.mat','all');
   IBs = IBs(~isempty(IBsana));
   if isempty(IBs)
     fprintf(1,'No ICOS_beam analysis found for IS_%s.%d\n', ...
@@ -116,5 +120,10 @@ for i=1:length(res)
     res(i).I_loss = Pwr.I_loss;
     res(i).F_loss = Pwr.F_loss;
     res(i).D_loss = Pwr.D_loss;
+    if res(i).max_pwr ~= Pwr.max_pwr
+      fprintf(1,'IS_%s.%d: max_pwr res2:%f Pwr:%f\n', ...
+        res(i).mnc, res(i).index, res(i).max_pwr, Pwr.max_pwr);
+      res(i).max_pwr = Pwr.max_pwr;
+    end
   end
 end

@@ -335,7 +335,7 @@ classdef ICOS_Model6 < opt_model_p
           opt_n = opt_n + 1;
         end
         opt_X = opt_X + P.detector_spacing;
-        M.Optic{opt_n} = detector(P.D_l, [opt_X,P.D_dY,0],[1,0,0],P.visible && visibility(opt_n));
+        M.Optic{opt_n} = detector(P.D_l, [opt_X,P.D_dY,0],[-1,0,0],P.visible && visibility(opt_n));
       end
       m = P.injection_scale;
       APincident = M.Optic{2}.O + [0, m*P.y0, m*P.z0];
