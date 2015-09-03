@@ -423,11 +423,14 @@ classdef ICOS_search < handle
                     fprintf(1,'Abandoning this line: theta<0 and no ok limits\n');
                     return;
                   end
-                elseif (f > 0 && theta2 < th-dth) || (f < 0 && theta2 > th+dth)
+                % elseif (f > 0 && theta2 < th-dth) || (f < 0 && theta2 > th+dth)
+                elseif xor(d > 0, xor(f > 0, theta2 > th+dth))
+                  % move in
                   xmax = P.Lens_Space(n_lenses);
                   xmaxok = true;
                   thetamax = theta2;
                 else
+                  % move out
                   xmin = P.Lens_Space(n_lenses);
                   xminok = true;
                   thetamin = theta2;
@@ -720,8 +723,16 @@ classdef ICOS_search < handle
       if isempty(Opt.select)
         Opt.select = NR2;
       end
-      NRi = interp1(NR2,INR2,Opt.select,'nearest');
-      NRi = NRi(~isnan(NRi));
+      if length(NR2) > 1
+        NRi = interp1(NR2,INR2,Opt.select,'nearest');
+        NRi = NRi(~isnan(NRi));
+      elseif ~isempty(NR2) && Opt.select(1) == NR2
+        Opt.select = NR2;
+        NRi = INR2;
+      else
+        Opt.select = [];
+        NRi = [];
+      end
       ff = [];
       if iscolumn(NRi)
         NRi = NRi';
