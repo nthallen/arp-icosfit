@@ -1,4 +1,4 @@
-%%
+%% Studies related to auto focus
 d = -.2;
 s = .02;
 r = 3;
