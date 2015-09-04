@@ -1,5 +1,5 @@
 function P_o = render_model(res, varargin)
-% render_model(res);
+% render_model(res, options ...);
 %   Invokes ICOS_Model6
 % P = render_model(res);
 %   Just returns the parameter structures.
