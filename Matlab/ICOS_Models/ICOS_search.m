@@ -53,6 +53,7 @@ classdef ICOS_search < handle
       IS.ISopt.RD1_margin = 1; % cm. When RR1 is set, this is added to Rr1 to determine RD1
       IS.ISopt.D2_margin = 1; % cm. When R2 is set, this is added to r2 to determine D2
       IS.ISopt.focus_visible = 1; % 0: don't draw any focus 1: just finished focus 2: each iteration
+      IS.ISopt.max_focus_length = 20; % abandon is sum of lens space exceeds
       for i=1:2:length(varargin)-1
         fld = varargin{i};
         if isfield(IS.ISP, fld)
@@ -295,8 +296,12 @@ classdef ICOS_search < handle
     
     function search_focus2(IS, varargin)
       % IS.search_focus2(options)
-      % The main relevant option is 'select', which takes a list of
-      % indices into the IS.res1 array to be analyzed.
+      % The main relevant options are:
+      %   select: takes a list of indices into the IS.res1 array to
+      %     be analyzed.
+      %   focus_visible: 0 suppresses plots, 1 plots accepted focuses,
+      %     2 shows all attempts.
+      %   max_lenses: defaults to 3
       %
       % search_focus2 attempts to build configurations using lenses
       % defined in the ICOS_Model6.props Lens_Types array.
@@ -319,6 +324,10 @@ classdef ICOS_search < handle
         if dth <= 0
           error('MATLAB:HUARP:badangle', ...
             'Angle dth (%f) must be >= 0', dth);
+        end
+        if sum(P.Lens_Space) + P.detector_spacing > IS.ISopt.max_focus_length
+          fprintf(1,'Abandoning focus for excessive length\n');
+          return;
         end
         theta = atand(sqrt(d^2+s^2));
         if d < 0 && theta > th-dth && theta < th+dth
@@ -370,10 +379,11 @@ classdef ICOS_search < handle
         for LTSi = 1:length(LTS)
           P.Lenses{n_lenses} = LTS{LTSi};
           Lens = P.LensTypes.(LTS{LTSi});
-          if strcmp(Lens.type,'positive_meniscus')
-            f = Lens.EFL;
-          else
-            f = -Lens.EFL;
+          f = Lens.EFL;
+          if strcmp(Lens.type,'negative_meniscus') && f > 0
+            f = -f;
+            warning('MATLAB:HUARP:negnotneg', ...
+              'Negative meniscus %s has positive EFL', LTS{LTSi});
           end
           [x,~,ds] = pick_lens_x2(r,d,s,f,th,Lens.r-0.3);
           % pick_lens_x2 could have found
@@ -386,84 +396,104 @@ classdef ICOS_search < handle
           % In that case, we should try to optimize by binary
           % search.
           if ~isempty(x)
-            P.Lens_Space(n_lenses) = x(1);
-            P.detector_spacing = ds;
-            if IS.ISopt.focus_visible > 1
-              P.visible = 1;
-            else
-              P.visible = 0;
+            optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth);
+            if length(x) == 3 && x(1) > 5
+              % Try for a shorter focus by using minimum
+              optimize_rays(IS, P, x(2), d, ds, th, dth, f, resn, depth);
             end
-            P.view = [0 0];
-            P.evaluate_endpoints = -1;
-            PM = ICOS_Model6(P);
-            [oxyz,r2,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
-            theta2 = atand(sqrt(mean(div).^2 + mean(skew).^2));
-            % Now do we need to optimize further? Only if
-            % length(x) == 3 and theta2 is not close to th
-            if length(x) == 3 && (theta2 < th-dth || theta2 > th+dth)
-              xmin = x(2);
-              xmax = x(3);
-              xminok = false;
-              xmaxok = false;
-              thetamax = -1;
-              thetamin = -1;
-              while theta2 < th-dth || theta2 > th+dth
-                fprintf(1,'Optimizing: f=%f theta=%.2f x=[%.2f %.2f %.2f]\n', ...
-                  f, theta2, xmin, P.Lens_Space(n_lenses), xmax);
-                if theta2 < 0 % try to backtrack toward an 'OK' limit
-                  if xminok
-                    xmax = P.Lens_Space(n_lenses);
-                    xmaxok = false;
-                    fprintf(1,'Retreating toward xmin\n');
-                  elseif xmaxok
-                    xmin = P.Lens_Space(n_lenses);
-                    xminok = false;
-                    fprintf(1,'Retreating toward xmax\n');
-                  else
-                    fprintf(1,'Abandoning this line: theta<0 and no ok limits\n');
-                    return;
-                  end
-                % elseif (f > 0 && theta2 < th-dth) || (f < 0 && theta2 > th+dth)
-                elseif xor(d > 0, xor(f > 0, theta2 > th+dth))
-                  % move in
-                  xmax = P.Lens_Space(n_lenses);
-                  xmaxok = true;
-                  thetamax = theta2;
-                else
-                  % move out
-                  xmin = P.Lens_Space(n_lenses);
-                  xminok = true;
-                  thetamin = theta2;
-                end
-                if xmaxok && xminok
-                  xnew = interp1([thetamin thetamax],[xmin xmax],th);
-                else
-                  xnew = mean([xmax, xmin]);
-                end
-                if abs(xnew-P.Lens_Space(n_lenses)) < .01
-                  fprintf(1,'Abandoning this line: dx < .01\n');
-                  return;
-                end
-                P.Lens_Space(n_lenses) = xnew;
-                PM = ICOS_Model6(P);
-                [oxyz,r2,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
-                div = mean(div);
-                if div >= 0
-                  theta2 = -1;
-                else
-                  theta2 = atand(sqrt(div.^2 + mean(skew).^2));
-                end
-              end
-            end
-            % [oxyz,r2,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
-            r2 = mean(r2);
-            d2 = mean(div);
-            s2 = mean(skew);
-            P.detector_spacing = mean(oxyz(:,1)) - PM.M.Optic{3+n_lenses}.O(1) - ...
-              PM.M.Optic{3+n_lenses}.CT - r2*d2/(d2^2+s2^2);
-            optimize_focus(IS, resn, P, d2, s2, r2, th, dth, depth-1);
           end
         end
+      end
+      
+      function optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth)
+        n_lenses = length(P.Lenses);
+        P.Lens_Space(n_lenses) = x(1);
+        P.detector_spacing = ds;
+        if IS.ISopt.focus_visible > 1
+          P.visible = 1;
+        else
+          P.visible = 0;
+        end
+        P.view = [0 0];
+        P.evaluate_endpoints = -1;
+        PM = ICOS_Model6(P);
+        [oxyz,r2,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
+        theta2 = atand(sqrt(mean(div).^2 + mean(skew).^2));
+        % Now do we need to optimize further? Only if
+        % length(x) == 3 and theta2 is not close to th
+        if length(x) == 3 && (theta2 < th-dth || theta2 > th+dth)
+          xmin = x(2);
+          xmax = x(3);
+          xminok = false;
+          xmaxok = false;
+          thetamax = -1;
+          thetamin = -1;
+          while theta2 < th-dth || theta2 > th+dth
+            fprintf(1,'Optimizing: f=%f theta=%.2f x=[%.2f %.2f %.2f]\n', ...
+              f, theta2, xmin, P.Lens_Space(n_lenses), xmax);
+            if theta2 < 0 % try to backtrack toward an 'OK' limit
+              if xminok
+                xmax = P.Lens_Space(n_lenses);
+                xmaxok = false;
+                fprintf(1,'Retreating toward xmin\n');
+              elseif xmaxok
+                xmin = P.Lens_Space(n_lenses);
+                xminok = false;
+                fprintf(1,'Retreating toward xmax\n');
+              else
+                fprintf(1,'Abandoning this line: theta<0 and no ok limits\n');
+                return;
+              end
+              % elseif (f > 0 && theta2 < th-dth) || (f < 0 && theta2 > th+dth)
+            elseif xor(d > 0, xor(f > 0, theta2 > th+dth))
+              % move in
+              xmax = P.Lens_Space(n_lenses);
+              xmaxok = true;
+              thetamax = theta2;
+            else
+              % move out
+              xmin = P.Lens_Space(n_lenses);
+              xminok = true;
+              thetamin = theta2;
+            end
+            if xmaxok && xminok
+              xnew = interp1([thetamin thetamax],[xmin xmax],th);
+            else
+              xnew = mean([xmax, xmin]);
+            end
+            if abs(xnew-P.Lens_Space(n_lenses)) < .01
+              fprintf(1,'Abandoning this line: dx < .01\n');
+              return;
+            end
+            P.Lens_Space(n_lenses) = xnew;
+            PM = ICOS_Model6(P);
+            [oxyz,r2,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
+            div = mean(div);
+            if div >= 0
+              theta2 = -1;
+            else
+              theta2 = atand(sqrt(div.^2 + mean(skew).^2));
+            end
+          end
+%         elseif length(x) == 2
+%           % Fairly crude attempt at finding more optimal solutions.
+%           r2 = mean(r2);
+%           d2 = mean(div);
+%           s2 = mean(skew);
+%           P.detector_spacing = mean(oxyz(:,1)) - PM.M.Optic{3+n_lenses}.O(1) - ...
+%             PM.M.Optic{3+n_lenses}.CT - r2*d2/(d2^2+s2^2);
+%           optimize_focus(IS, resn, P, d2, s2, r2, th, dth, depth-1);
+%           P.Lens_Space(n_lenses) = x(2);
+%           PM = ICOS_Model6(P);
+%           [oxyz,r2,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
+        end
+        % [oxyz,r2,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
+        r2 = mean(r2);
+        d2 = mean(div);
+        s2 = mean(skew);
+        P.detector_spacing = mean(oxyz(:,1)) - PM.M.Optic{3+n_lenses}.O(1) - ...
+          PM.M.Optic{3+n_lenses}.CT - r2*d2/(d2^2+s2^2);
+        optimize_focus(IS, resn, P, d2, s2, r2, th, dth, depth-1);
       end
       
       SFopt.select = [];
