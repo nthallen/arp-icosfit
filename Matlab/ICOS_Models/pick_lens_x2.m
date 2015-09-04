@@ -8,7 +8,11 @@ function [x,theta_o,ds_o] = pick_lens_x2(r, d, s, f, theta, lens_r)
 %   margin.
 % Returns:
 % x: empty if no solution. Scalar if only a boundary solution
-%    [x0 xmin xmax] if a good solution is found
+%    [x0 x1] if only a boundary condition. In this case x0
+%      is the closest to the desired focus, but values between
+%      x0 and x1 are possible.
+%    [x0 xmin xmax] if a good solution is found. x0 is pretty close
+%      to the desired focus and lies between xmin and xmax.
 %-----
 % Add a lens radius parameter, lens_r. If r > lens_r, set xmin
 % to the point where rx < lens_r-.3
@@ -36,8 +40,8 @@ if isempty(rts)
   return;
 end
 if d >= 0
-  xmin = 0.1;
-  xmax = rts;
+  xmin = 0.1; % Since we can assume f>0, xmin represents the minimal correction
+  xmax = rts; % and xmax will be the maximal correction.
 else
   th0 = atand(sqrt(d^2+s^2));
   if ( th0 < theta && f < 0 ) || (th0 > theta && f > 0)
@@ -96,21 +100,21 @@ catch
   %   xmax: smallest correction
   %   if both overshoot (la0 < theta), take xmax
   %   else take xmin
-  x = xmin;
+  x = [xmin xmax];
   [la0,ds] = lens_angle(r,d,s,f,xmin);
   if d > 0
     if la0 < theta
       [la0,ds] = lens_angle(r,d,s,f,xmax);
-      x = xmax;
+      x = [xmax xmin];
     end
   elseif f > 0
     if la0 > theta
       [la0,ds] = lens_angle(r,d,s,f,xmax);
-      x = xmax;
+      x = [xmax xmin];
     end
   elseif la0 < theta
     [la0,ds] = lens_angle(r,d,s,f,xmax);
-    x = xmax;
+    x = [xmax xmin];
   end
   if nargout > 1
     theta_o = la0;
