@@ -6,6 +6,9 @@ classdef ICOS_beam < handle
   % for the model must include:
   %   y0, z0, dy, dz, beam_dy, beam_dz, beam_diameter
   %   T (trasmittance)
+  % See also: ICOS_beam.ICOS_beam, ICOS_beam.Sample,
+  % ICOS_beam.PowerSummary, ICOS_beam.Animate, ICOS_beam.Integrate,
+  % ICOS_beam.display, ICOS_beam.draw, ICOS_beam.png
   properties
     model % function pointer to the opt_model_p
     P % base properties
@@ -54,6 +57,14 @@ classdef ICOS_beam < handle
     end
     
     function Sample(IB, varargin)
+      % IB.Sample(options)
+      % options are pairs of arguments as keyword, value. These may include
+      % any fields in the IB.IBP structure or any fields in the model
+      % parameter structure IB.P.
+      % IB.Sample generates a random sample of rays to represent the
+      % physical dimensions of a real laser beam and propagates the optical
+      % model for each, saving the results within the IB object.
+      % See also: ICOS_beam, ICOS_beam.Integrate
       if isstruct(IB.Res)
         error('MATLAB:HUARP:Sampled', 'Sample has already been run');
       end
@@ -222,6 +233,8 @@ classdef ICOS_beam < handle
       % than what we expect as the number of ICOS passes increases.
       % This is because once the beams leave the ICOS cell, they no
       % longer propagate.
+      % See also: ICOS_beam, ICOS_beam.display, ICOS_beam.draw,
+      % ICOS_beam.png
       if ~isstruct(IB.Res)
         error('MATLAB:HUARP:Unsampled', ...
           'Must run Sample before PowerSummary()');
@@ -453,6 +466,9 @@ classdef ICOS_beam < handle
     end
     
     function display(IB)
+      % IB.display
+      % Overrides how ICOS_beam object is displayed. This is probably not
+      % the right way to do this, but it seems to work.
       fprintf(1,'ICOS_beam:\n');
       fprintf(1,'  model: %s\n', func2str(IB.model));
       fprintf(1,'  ICOS_passes: %d\n', IB.IBP.ICOS_passes);
@@ -472,7 +488,10 @@ classdef ICOS_beam < handle
       end
     end
     
-    function draw(IB, varargin)
+    function PM_o = draw(IB, varargin)
+      % PM = IB.draw(options)
+      % Renders the underlying optical model. Options can adjust any of the
+      % parameters in the IB.P model definition structure.
       P = IB.P;
       P.visible = 1;
       % P.visibility = [];
@@ -487,6 +506,9 @@ classdef ICOS_beam < handle
         i = i+2;
       end
       PM = IB.model(P);
+      if nargout > 0
+        PM_o = PM;
+      end
     end
     
     function png(IB, bn)
