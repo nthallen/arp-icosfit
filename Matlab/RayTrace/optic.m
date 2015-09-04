@@ -8,6 +8,7 @@ classdef optic
     n_ext % index of refraction of the air
     max_passes % limits propagation
     visible % boolean
+    edges_visible % boolean
 %         If Ray direction dot optic direction < 0
 %         we can assume the ray will hit Surface(1) first
 %         Hence optic.Direction can be considered the
@@ -22,6 +23,7 @@ classdef optic
       opt.n_ext = ne_in;
       opt.max_passes = 0; % no limit
       opt.visible = vis;
+      opt.edges_visible = vis;
       opt.Surface = cell(2,1);
     end
     
@@ -49,16 +51,18 @@ classdef optic
         opt.Surface{1}.draw;
         hold on;
         opt.Surface{2}.draw;
-        p1 = opt.Surface{1}.perimeter;
-        p2 = flipud(opt.Surface{2}.perimeter);
-        if size(p1,1)>size(p2,1)
-          p1 = p1(1:size(p2,1),:);
+        if (opt.edges_visible)
+          p1 = opt.Surface{1}.perimeter;
+          p2 = flipud(opt.Surface{2}.perimeter);
+          if size(p1,1)>size(p2,1)
+            p1 = p1(1:size(p2,1),:);
+          end
+          pm = (p1+p2)/2;
+          X = [p1(:,1) pm(:,1) p2(:,1)];
+          Y = [p1(:,2) pm(:,2) p2(:,2)];
+          Z = [p1(:,3) pm(:,3) p2(:,3)];
+          surfl(X,Y,Z);
         end
-        pm = (p1+p2)/2;
-        X = [p1(:,1) pm(:,1) p2(:,1)];
-        Y = [p1(:,2) pm(:,2) p2(:,2)];
-        Z = [p1(:,3) pm(:,3) p2(:,3)];
-        surfl(X,Y,Z);
         shading flat;
       end
     end

@@ -115,6 +115,9 @@ classdef opt_model_p
     end
     
     function record_visualization(PM, P)
+      if isfield(P, 'view') && ~isempty(P.view)
+        view(P.view);
+      end
       if isfield(P, 'avifile')
         if isempty(PM.writerObj)
           PM.writerObj = VideoWriter(P.avifile);
