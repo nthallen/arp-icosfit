@@ -1,7 +1,8 @@
 %%
 % Look at engineering an ideal cell without restriction to existing parts
 % This version is proposing an interleaved spot pattern in the ICOS cell
-% sropt_c
+% sropt_e: Trying r1 > sqrt(srL/sin(phi))
+mnc = 'sropt_e';
 W = .4; % 4 mm beam diameter
 C = 3000; % 30 m coherence length
 L = 50; % 50 cm cell length
@@ -9,8 +10,8 @@ r_d = 0.08; % detector radius 1 mm, reduced for optimal fill
 th_d = 14.9; % detector acceptance angle 15 degrees
 sr = r_d*tand(th_d);
 m = ceil(C/(4*L)-1/2);
-phi = 4*pi/(2*m+1);
-r1 = sqrt(sr*L/sin(phi)); % actually r1 > sqrt(...)
+phi = 2*pi/(2*m+1);
+r1 = sqrt(sr*L/sin(phi))*1.2; % actually r1 > sqrt(...)
 w1 = r1*sin(phi);
 s1 = sr/r1;
 w2 = s1*L;
@@ -40,14 +41,14 @@ Rh2 = Rh1*Rr2/Rr1;
 RR1 = Rr1*RL/(Rr1-Rh2);
 %%
 % or R1, R2, RR1, L, Rw1
-IS = ICOS_search('mnc', 'sropt_c', 'R1', R1, 'R2', R2, 'RR1', RR1, ...
+IS = ICOS_search('mnc', mnc, 'R1', R1, 'R2', R2, 'RR1', RR1, ...
   'L', L, 'Rw1', Rw1, 'RD1_margin', 5);
 IS.search_ICOS_RIM;
 %%
-IS.search_focus2('select',1);
+IS.search_focus2('select',1,'focus_visible',2,'max_lenses',2);
 openvar('IS');
 %%
-IS.analyze('select',10);
+IS.analyze;
 %%
 P = render_model(IS.res2(1));
 PM = ICOS_Model6(P);
@@ -59,10 +60,11 @@ PM = ICOS_Model6(P);
 % P.Rw1 = Rw1;
 % res = exparam(P);
 %%
-for i=1:length(IS.res2)
-  figure;
-  render_model(IS.res2(i),'visibility',[0 0 0],'view',[0 0]);
-  title(sprintf('%s: Focus %d', IS.ISopt.mnc, i));
+mnc = strrep(IS.ISopt.mnc,'_','\_');
+
+for i=1:5
+  render_model(IS.res2(i),'view',[0 0],'ICOS_passes_per_injection',31,'max_rays',20000);
+  title(sprintf('%s: Nres2: %d', mnc, IS.res2(i).Nres2));
 end
 %%
 % Want Nres2 == 10 here
