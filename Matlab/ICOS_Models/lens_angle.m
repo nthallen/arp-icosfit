@@ -10,13 +10,13 @@ function [theta,ds] = lens_angle(r, d, s, f, x)
 rx = sqrt((r+d.*x).^2 + s.^2.*x.^2);
 dx = (d.*r + (d.^2+s.^2).*x)./rx - rx./f;
 sx = s.*r./rx;
+theta = rad2deg(atan(sqrt(sx.^2 + dx.^2)));
 if dx > 0
-  theta = -1;
+  theta = -theta;
   if nargout > 1
     ds = 0;
   end
 else
-  theta = rad2deg(atan(sqrt(sx.^2 + dx.^2)));
   if nargout > 1
     ds = -rx*dx/(dx^2+sx^2);
   end
