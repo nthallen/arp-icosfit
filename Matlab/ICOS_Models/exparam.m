@@ -4,6 +4,7 @@ function R = exparam(P)
 %    R1, r1, r2, L, Rw1.
 % or R1, R2, RR1, r1, Rw1
 % or R1, R2, RR1, L, Rw1
+% or R1, R2, RL, L, Rw1
 % One of these may be a vector.
 Res = cell(1,0);
 R.n = 2.4361;

@@ -54,6 +54,7 @@ classdef ICOS_search < handle
       IS.ISopt.D2_margin = 1; % cm. When R2 is set, this is added to r2 to determine D2
       IS.ISopt.focus_visible = 1; % 0: don't draw any focus 1: just finished focus 2: each iteration
       IS.ISopt.max_focus_length = 20; % abandon is sum of lens space exceeds
+      IS.ISopt.allow_negative_focus = 0;
       for i=1:2:length(varargin)-1
         fld = varargin{i};
         if isfield(IS.ISP, fld)
@@ -385,21 +386,23 @@ classdef ICOS_search < handle
             warning('MATLAB:HUARP:negnotneg', ...
               'Negative meniscus %s has positive EFL', LTS{LTSi});
           end
-          [x,~,ds] = pick_lens_x2(r,d,s,f,th,Lens.r-0.3);
-          % pick_lens_x2 could have found
-          %   a: no solution -- just try the next lens
-          %   b: an incomplete solution (at xmin or xmax)
-          %   c: a good solution
-          % in cases b and c, we need to verify the angle in the
-          % full model. In b, we do not expect a good value, but
-          % with c, it is possible we might be a little bit off.
-          % In that case, we should try to optimize by binary
-          % search.
-          if ~isempty(x)
-            optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth);
-            if length(x) == 3 && x(1) > 5
-              % Try for a shorter focus by using minimum
-              optimize_rays(IS, P, x(2), d, ds, th, dth, f, resn, depth);
+          if IS.ISopt.allow_negative_focus || f > 0
+            [x,~,ds] = pick_lens_x2(r,d,s,f,th,Lens.r-0.3);
+            % pick_lens_x2 could have found
+            %   a: no solution -- just try the next lens
+            %   b: an incomplete solution (at xmin or xmax)
+            %   c: a good solution
+            % in cases b and c, we need to verify the angle in the
+            % full model. In b, we do not expect a good value, but
+            % with c, it is possible we might be a little bit off.
+            % In that case, we should try to optimize by binary
+            % search.
+            if ~isempty(x)
+              optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth);
+              if length(x) == 3 && x(1) > 5
+                % Try for a shorter focus by using minimum
+                optimize_rays(IS, P, x(2), d, ds, th, dth, f, resn, depth);
+              end
             end
           end
         end

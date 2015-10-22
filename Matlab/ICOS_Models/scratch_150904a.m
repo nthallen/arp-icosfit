@@ -1,8 +1,10 @@
 %%
+% Interleave 2, r1 > r2
+%
 % Look at engineering an ideal cell without restriction to existing parts
 % This version is proposing an interleaved spot pattern in the ICOS cell
-% sropt_e: Trying r1 > sqrt(srL/sin(phi))
-mnc = 'sropt_e';
+% sropt_e1: Trying r1 > sqrt(srL/sin(phi))
+mnc = 'sropt_f';
 W = .4; % 4 mm beam diameter
 C = 3000; % 30 m coherence length
 L = 50; % 50 cm cell length
@@ -54,24 +56,42 @@ for i = 1:length(scales)
   Res.RL(i) = RL;
   Res.Rr1(i) = Rr1;
 end
+%%
 plot(scales,Res.R1,'.-',scales,Res.R2,'.-');
 legend('R1','R2'); shg
 %%
 plot(scales,Res.r1,scales,Res.r2); legend('r1','r2');
 %%
+plot(Res.R1, Res.R2,'.-'); xlabel('R1'); ylabel('R2');
+%%
 plot(scales,Res.RR1); legend('RR1'); shg;
 %%
 plot(scales,Res.RL); legend('RL'); shg;
 %%
+opt_scale = interp1(Res.R1, scales, 150);
+%%
+% Pick a selection to try
+i = interp1(scales, 1:length(scales), 1.143, 'nearest');
+%%
 % or R1, R2, RR1, L, Rw1
-IS = ICOS_search('mnc', mnc, 'R1', R1, 'R2', R2, 'RR1', RR1, ...
+IS = ICOS_search('mnc', mnc, 'R1', Res.R1(i), 'R2', Res.R2(i), 'RR1', Res.RR1(i), ...
   'L', L, 'Rw1', Rw1, 'RD1_margin', 5);
 IS.search_ICOS_RIM;
 %%
 IS.search_focus2('select',1,'focus_visible',2,'max_lenses',2);
 openvar('IS');
 %%
-IS.analyze;
+%%
+NM = zeros(length(IS.res2),1);
+for i=1:length(NM)
+  re = regexp(IS.res2(i).Lenses, '_NM_');
+  re = [ re{:} ];
+  if ~isempty(re)
+    NM(i) = 1;
+  end
+end
+%%
+IS.analyze('select', [40 45 66]);
 %%
 P = render_model(IS.res2(1));
 PM = ICOS_Model6(P);

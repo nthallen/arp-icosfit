@@ -4,14 +4,7 @@ function res = collect_results(varargin)
 % params is a struct. The fields are the fields from the IS.res2
 % struct. The values, if present, identify which range of values
 % to include in the results collection.
-%%
-files = dir('IS_*.mat'); % { 'IS_w30_L50.mat', 'IS_w35_L50.mat' };
-files = { files.name };
-isIB = regexp(files,'(\dx\d)|(_save)');
-cellisempty = @(x) isempty(x{1});
-isIB2 = arrayfun(cellisempty, isIB);
-files = files(isIB2)';
-%%
+opts.files = 'IS_*.mat';
 params.RR1 = [];
 params.RD1 = [];
 params.Rw1 = [];
@@ -27,9 +20,20 @@ params.NH = [];
 params.max_pwr = [];
 %%
 for i=1:2:length(varargin)-1
-  fld= varargin{i};
-  params.(fld) = varargin{i+1};
+  if isfield(opts,varargin{i})
+    opts.(varargin{i}) = varargin{i+1};
+  else
+    fld= varargin{i};
+    params.(fld) = varargin{i+1};
+  end
 end
+%%
+files = dir(opts.files); % { 'IS_w30_L50.mat', 'IS_w35_L50.mat' };
+files = { files.name };
+isIB = regexp(files,'(\dx\d)|(_save)');
+cellisempty = @(x) isempty(x{1});
+isIB2 = arrayfun(cellisempty, isIB);
+files = files(isIB2)';
 
 pflds = fieldnames(params);
 nfiles = length(files);

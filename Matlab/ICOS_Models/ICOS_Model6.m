@@ -185,10 +185,20 @@ classdef ICOS_Model6 < opt_model_p
       
       % Injection angle
       P.injection_scale = 1; % Scales y0, dy and dz
+      % P.y0,z0 are the y and z position of the
+      % entrance beam at the back of the first
+      % ICOS mirror.
       P.y0 = P.Hr-0.54; % Location of Herriott hole
       P.z0 = 0;
+      % P.beam_dy,dz are positional offsets from y0,z0
+      % used by ICOS_beam to simulate a beam of finite
+      % width;
       P.beam_dy = 0;
       P.beam_dz = 0;
+      % P.dy,dz are the direction components of the
+      % entrance beam that intersects the first
+      % ICOS mirror at P.y0,z0. Assumint P.z0=0,
+      % P.dy is the divergence and P.dz is the skew.
       P.dy = .04;
       P.dz = .03;
       
