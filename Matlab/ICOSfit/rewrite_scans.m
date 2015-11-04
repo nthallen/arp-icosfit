@@ -15,11 +15,11 @@ end
 index = 1;
 while 1
   pi = mlf_path(ibase,index);
-  fi = loadbin(pi);
+  [fi,hdr] = loadbin(pi);
   if isempty(fi); break; end
   po = mlf_path(obase,index);
   fo = fi * M;
   mlf_mkdir(obase,index);
-  writebin( po, fo );
+  writebin( po, fo, hdr );
   index = index+1;
 end

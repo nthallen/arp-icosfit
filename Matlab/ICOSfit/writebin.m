@@ -1,4 +1,4 @@
-function writebin(ofile, fe, hdr);
+function writebin(ofile, fe, hdr)
 % writebin( ofile, fe );
 % Writes the matrix fe to the file ofile in the
 % standard binary format for ICOSfit.
@@ -9,13 +9,14 @@ function writebin(ofile, fe, hdr);
 %     r 4 value
 %   }
 % }
+%
 % writebin(ofile, fe, hdr);
 % Writes the matrix with the full SSP header info, where hdr
 % is a struct containing the fields:
 %  NF, NCoadd, NAvg, NSkL, NSkP, SerialNum, T_HtSink, T_FPGA, Status
 fid = fopen(ofile, 'w');
 if fid > 0
-    if nargin < 3
+    if nargin < 3 || isempty(hdr)
         fwrite(fid, size(fe), 'integer*4' );
     else
         u16hdr = [ 6 1 size(fe,2)+hdr.NF*256 size(fe,1) ...
