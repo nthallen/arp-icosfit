@@ -23,7 +23,7 @@ format = -1;
 hdr_out = [];
 if fid > 0
   try
-    [ data, count ] = fread(fid,2,'uint32','l');
+    [ data, count ] = fread(fid,2,'uint32',0,'l');
     if count ~= 2
         error('MATLAB:huarp:readerr','Unable to read header');
     end
@@ -38,7 +38,7 @@ if fid > 0
           [ bitand(data(2),hex2dec('FFFF0000'))/hex2dec('10000') ...
               bitand(data(2),255) ];
         hdr_out.NF = bitand(data(2),hex2dec('FF00'))/256;
-        [data, count] = fread(fid,10,'uint16','l');
+        [data, count] = fread(fid,10,'uint16',0,'l');
         if count ~= 10
             error('MATLAB:huarp:readerr','Unable to read header');
         end
@@ -55,7 +55,7 @@ if fid > 0
     else
         datadim = data';
     end
-    fe = fread(fid,datadim,'float32','l');
+    fe = fread(fid,datadim,'float32',0,'l');
   catch
     fe = [];
   end
