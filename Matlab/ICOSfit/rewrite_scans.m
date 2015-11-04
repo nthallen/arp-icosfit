@@ -8,20 +8,17 @@ end
 if nargin < 2 || isempty(obase)
    obase = 'SSPo';
 end
-if nargin < 2 || isempty(M)
-    M = [ 1 0 0; 0 1 0; 0 0 1];
+if nargin < 3 || isempty(M)
+    M = [ 0 0 1; 0 1 0; 1 0 0];
 end
     
-index = 100;
+index = 1;
 while 1
   pi = mlf_path(ibase,index);
   fi = loadbin(pi);
   if isempty(fi); break; end
   po = mlf_path(obase,index);
   fo = fi * M;
-  temp=fo(:,1);
-  fo(:,1)=fo(:,3);
-  fo(:,3)=temp;
   mlf_mkdir(obase,index);
   writebin( po, fo );
   index = index+1;
