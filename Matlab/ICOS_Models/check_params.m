@@ -1,6 +1,9 @@
 function check_params(sol_num, res)
 % check_params(sol_num, res)
 % Checks basic parameters against the ICOS equations
+% sol_num: arbitraty integer to identify diagnostic messages
+% res: output from exparam.
+% See also: exparam
 n = 2.4361;
 run_check(sol_num, 'ICOS eq 1', check_eq1(res.h1, res.r2, res.R2, res.L));
 run_check(sol_num, 'ICOS eq 2', check_eq1(res.h2, res.r1, res.R1, res.L));

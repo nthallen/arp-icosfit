@@ -1,6 +1,9 @@
 classdef ICOS_search < handle
   % ICOS_search object incorporates the parameter solvers
-  % of exparam, autofocus, and ICOS_beam analysis
+  % of exparam, autofocus, and ICOS_beam analysis. The basic concept is to
+  % search through standard elements from an optical catalog to find useful
+  % configurations.
+  %
   % See also:
   %  ICOS_search.ICOS_search
   %  ICOS_search.search_ICOS_RIM
@@ -51,6 +54,7 @@ classdef ICOS_search < handle
       IS.ISopt.L_lim = [0 inf];
       IS.ISopt.RL_lim = [2 inf];
       IS.ISopt.RD1_margin = 1; % cm. When RR1 is set, this is added to Rr1 to determine RD1
+      IS.ISopt.D1_margin = 1; % cm. When R1 is set, this is added to r1 to determine D1
       IS.ISopt.D2_margin = 1; % cm. When R2 is set, this is added to r2 to determine D2
       IS.ISopt.focus_visible = 1; % 0: don't draw any focus 1: just finished focus 2: each iteration
       IS.ISopt.max_focus_length = 20; % abandon is sum of lens space exceeds

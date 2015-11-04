@@ -6,6 +6,7 @@ function R = exparam(P)
 % or R1, R2, RR1, L, Rw1
 % or R1, R2, RL, L, Rw1
 % One of these may be a vector.
+% See also: check_params, render_model
 Res = cell(1,0);
 R.n = 2.4361;
 

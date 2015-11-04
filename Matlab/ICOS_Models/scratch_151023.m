@@ -2,11 +2,14 @@
 % Exploration of interleave options with R1!=R2, fixing L and determining
 % realistic tolerances while adhering to the focusing and overlap
 % criteria.
-L = 50;
+%
+% This investigation qualifies as part of the sropt series, since it's
+% working back to engineering a specific design from the constraints.
+L = 35;
 B = 0.4; % Beam width, formerly known as 'W'
 rd = .1;
 th = 15;
-C = 3000;
+C = 1000;
 rdtanth = rd*tand(th);
 mmin = ceil(C/(2*L));
 plotnum = 2;
@@ -48,12 +51,23 @@ for k=1:ceil(mmin/2)
     Lh = wh1./s;
     Lh(sr > rdtanth) = NaN;
     
+    figure(1);
     mesh(X,Y,Lh);
     %   image(minmax(R1),minmax(rvals),Lh,'CDataMapping','scaled');
     %   set(gca,'YDir','Normal');
     xlabel('R_1 cm'); ylabel('r cm'); zlabel('Lh');
     zlim([0 L]);
-    title(sprintf('Interleave %d/%d: min(Lh)=%.1f', k, m, nanmin(nanmin(Lh))));
+    title(sprintf('L=%.0f Interleave %d/%d: min(Lh)=%.1f', L, k, m, ...
+      nanmin(nanmin(Lh))));
+    
+    figure(2);
+    v = any(~isnan(Lh));
+    plot(R1(v), R2(v));
+    xlabel('R_1 cm');
+    ylabel('R_2 cm');
+    ylim([-400 400]);
+    title(sprintf('L=%.0f Interleave %d/%d: min(Lh)=%.1f', L, k, m, ...
+      nanmin(nanmin(Lh))));
   end
   pause;
   

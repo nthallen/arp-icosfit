@@ -1,8 +1,10 @@
 function P_o = render_model(res, varargin)
 % render_model(res, options ...);
-%   Invokes ICOS_Model6
+%   Invokes ICOS_Model6 using parameters that are consistent with
+%   exparam and ICOS_search.
 % P = render_model(res);
 %   Just returns the parameter structures.
+% See also: exparam, ICOS_search
 P = ICOS_Model6.props;
 if nargout > 0
   P_o(length(res)) = P;
@@ -10,7 +12,11 @@ end
 for i=1:length(res)
   P.R1 = res(i).R1;
   P.R2 = res(i).R2;
-  P.r1 = 3*2.54/2;
+  if isfield(res(i),'D1')
+    P.r1 = res(i).D1*2.54/2;
+  else
+    P.r1 = 3*2.54/2;
+  end
   P.r2 = res(i).D2*2.54/2;
   P.mirror_spacing = res(i).L;
   P.y0 = res(i).Rr2;
