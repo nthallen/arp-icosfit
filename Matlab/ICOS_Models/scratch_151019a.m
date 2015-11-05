@@ -2,7 +2,7 @@
 % Exploration of interleave options with R1=R2, fixing L and determining
 % realistic tolerances while adhering to the focusing and overlap
 % criteria.
-L = 50;
+L = 35;
 W = 0.4;
 rd = .1;
 th = 15;

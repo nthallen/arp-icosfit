@@ -46,7 +46,7 @@ P.max_rays = 2000;
 P.visible = 1;
 P.focus = 1;
 P.detector_spacing = 10;
-PM = ICOS_Model6(P);
+% PM = ICOS_Model6(P);
 %%
 IS = ICOS_search('mnc', 'sp1', 'RR1', Res.RR1, 'Rw1', Res.Rw1, ...
   'R1', Res.R1, 'L', Res.L, 'R2', Res.R2);
@@ -54,7 +54,12 @@ IS.search_ICOS_RIM;
 %%
 IS.search_focus2('select', 1, 'max_lenses', 1, 'focus_visible', 2);
 %%
+IS.analyze('select', 1, 'ICOS_passes', 30);
+%%
 P = render_model(IS.res2(1),'max_rays',3000,'ICOS_passes_per_injection', ceil(C/(2*L)));
 PM = ICOS_Model6(P);
+% %%
+% IB = ICOS_beam(@ICOS_Model6, P);
+% %%
+% IB.Sample('Track_Power',1,'opt_n', 5);
 %%
-IB = ICOS_beam(@ICOS_Model6, P);

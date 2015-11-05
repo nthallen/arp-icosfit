@@ -1,13 +1,16 @@
 %%
 % Testing equations for R1==R2 portion of the paper
-L = 50;
+L = 35;
 r = 1;
 W = .4;
 rd = .1;
 th = 15;
-C = 3000;
+C = 2000;
 %%
 % R as a function of r over 0:3.8 cm (3" diameter)
+% (It makes more sense to treat r as a function of R, which we
+%  do in later cases, but this works). The r we are determining
+% here is the upper limit for focusing.
 r0 = sqrt(L*rd*tand(th));
 r = r0:0.01:3.8;
 r4 = r.^4;
