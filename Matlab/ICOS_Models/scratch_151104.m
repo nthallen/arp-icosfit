@@ -7,7 +7,7 @@ C = 3000;
 B = .4;
 rd = .1;
 th = 15;
-L = 35;
+L = 50;
 r_limit = (1.55*2.54 - B); % 2.5" diameter with beam margin
 m_min = ceil(C/(2*L)); % This spot can overlap
 m_max = floor(pi/asin(B/(2*r_limit)));
@@ -17,7 +17,7 @@ RawSols = SolInc;
 NSol = 0;
 Summary(RawSols) = ...
   struct('RLmin',[],'r_max',[],'R1',[],'R2',[],'m',[],'k',[],'Phi',[], ...
-    'Phi_n', [], 'Phi_p', [], 'Phi_N', [], 'Phi_P', [], 'Phi_OK', []);
+    'Phi_n', [], 'Phi_p', [], 'Phi_N', [], 'Phi_P', [], 'Phi_OK', [], 'dL', []);
 %%
 rdtanth = rd*tand(th);
 figure;
@@ -77,9 +77,9 @@ for m=m_min:m_max
     
     Summary(NSol).RLmin = nanmin(RLok);
     mi = find(RLok == Summary(NSol).RLmin);
-    phi_min = asin(B./r_max(mi));
-    Phi_n = Phi + (k*phi_min-Phi)/dN(2);
-    Phi_p = Phi + (k*phi_min-Phi)/dN(1);
+    phi_min = asin(B./(2*r_max(mi)));
+    Phi_n = Phi + (k*phi_min-phi)/dN(2);
+    Phi_p = Phi + (k*phi_min-phi)/dN(1);
     Summary(NSol).R1 = R1(mi);
     Summary(NSol).R2 = R2(mi);
     Summary(NSol).r_max = r_max(mi);
@@ -133,10 +133,35 @@ for i=1:length(Summary)
   Summary(i).Phi_OK = false;
   Phi_a = L.*(R1+R2-L)./(R1.*R2);
   if all(Phi_a >= 0 & Phi_a <= 1)
-    Phi = asin(sqrt(Phi_a));
+    Phi_b = asin(sqrt(Phi_a));
+    Phi = minmax(Phi_b);
     Summary(i).Phi_N = Phi(1);
     Summary(i).Phi_P = Phi(2);
-    Summary(i).Phi_OK = Phi(1)>= Summary(i).Phi_n & Phi(2) <= Summary(i).Phi_p;
+    if Phi(1)>= Summary(i).Phi_n && Phi(2) <= Summary(i).Phi_p
+      Summary(i).Phi_OK = true;
+      Summary(i).dL = [0;0];
+    else
+      v = Phi_b > Summary(i).Phi_p;
+      if any(v)
+        % L necessary to reach Phi_p with R1(v), R2(v)
+        det = (R1(v)+R2(v)).^2 - 4*R1(v).*R2(v).*sin(Summary(i).Phi_p)^2;
+        Lp = ([1;1]*(R1(v)+R2(v)) + [-1;1]*sqrt(det))/2;
+        Lpr = Lp([1;1]*det > 0 & Lp > 0)';
+      else
+        Lpr = [];
+      end
+      v = Phi_b < Summary(i).Phi_n;
+      if any(v)
+        det = (R1(v)+R2(v)).^2 - 4*R1(v).*R2(v).*sin(Summary(i).Phi_n)^2;
+        Ln = ([1;1]*(R1(v)+R2(v)) + [-1;1]*sqrt(det))/2;
+        Lnr = Ln([1;1]*det > 0 & Ln > 0)';
+      else
+        Lnr = [];
+      end
+      Summary(i).dL = minmax([L Lpr Lnr])' - L;
+    end
+  else
+    Summary(i).dL = [-2000;2000];
   end
 end
 %%
