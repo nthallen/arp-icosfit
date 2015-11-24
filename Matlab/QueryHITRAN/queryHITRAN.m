@@ -5,10 +5,13 @@ function queryHITRAN( varargin )
 %username and password.
 %In order to use this program the HITRAN database needs to be in MyQSL
 %database. 
-%Typically you would load the database as mysql --username 'sayres'
-%--password < HITRAN.sql
-%where HITRAN.sql is the sql command to load the HITRAN tables and
-%associated databases. 
+%From the command line
+%$ gzip -d HITRAN.sql.gz
+%$ mysql --username 'sayres' --password < HITRAN.sql
+%
+%Depending on your platform you may need to tell matlab where the mysql
+%driver is. For example on linux: javaaddpath /usr/share/java/mysql-connector-java.jar
+%add to file. Search matlab help on mysql and adding JDBC driver. 
 
 DB='HITRAN';
 HITRAN_Table='HITRAN2012';
