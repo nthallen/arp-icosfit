@@ -1,12 +1,20 @@
 function queryHITRAN( varargin )
 
 %queryHITRAN; start up the gui
+%You should edit this file and replace user and pword with your MySQL
+%username and password.
+%In order to use this program the HITRAN database needs to be in MyQSL
+%database. 
+%Typically you would load the database as mysql --username 'sayres'
+%--password < HITRAN.sql
+%where HITRAN.sql is the sql command to load the HITRAN tables and
+%associated databases. 
 
 DB='HITRAN';
 HITRAN_Table='HITRAN2012';
 MOLEC_INFO_Table='HITRAN_Molecules';
-user='sayres';
-pword='mysqlpw';
+user='sayres'; %change this to your MyQSL user name
+pword='mysqlpw'; %change this to your MyQSL passowrd
 
 if nargin == 0
 line_obj.DB=DB;
@@ -18,13 +26,15 @@ line_obj.pword=pword;
 if isempty(line_obj.user)
     mysql('open');
 else
-    mysql('open','localhost',line_obj.user,line_obj.pword);
+    conn=database('HITRAN',user,pword,'Vendor','MySQL');
 end
-mysql(['use ' DB])
-[fields,~,~,~,~,~]=mysql(['SHOW FIELDS FROM ' HITRAN_Table]);
-[line_obj.tables]=mysql('SHOW TABLES');
-[line_obj.HITRAN.molec,line_obj.HITRAN.iso,line_obj.HITRAN.isotopologue,line_obj.HITRAN.weight,line_obj.HITRAN.frac,line_obj.HITRAN.name,line_obj.HITRAN.texname]=mysql(['select molec,iso,isotopologue,weight,frac_abun,name,texname from ' MOLEC_INFO_Table]);
-mysql('close')
+setdbprefs('DataReturnFormat','cellarray')
+[fields]=fetch(conn,['SHOW FIELDS FROM ' HITRAN_Table]);
+fields=fields(:,1);
+[line_obj.tables]=fetch(conn,'SHOW TABLES');
+setdbprefs('DataReturnFormat','structure')
+[line_obj.HITRAN]=fetch(conn,['select molec,iso,isotopologue,weight,frac_abun,name,texname from ' MOLEC_INFO_Table]);
+close(conn);
 line_obj.fields=fields;
 line_obj.sel_fig = 0;
 line_obj.query_results = [];
@@ -385,7 +395,7 @@ elseif strcmp(varargin{1},'select_iso')
     height=10;
     for i=length(iso_num):-1:1
        h=uicontrol('Style', 'checkbox','tag',num2str(i),...
-           'String',sprintf('%s \t\t %f',cell2mat(line_obj.HITRAN.name(iso_num(i))),line_obj.HITRAN.frac(iso_num(i))));
+           'String',sprintf('%s \t\t %f',cell2mat(line_obj.HITRAN.name(iso_num(i))),line_obj.HITRAN.frac_abun(iso_num(i))));
        set(h,'Value',eval(['line_obj.select.m' num2str(molec_num) '.i' num2str(i)]));
        pos2=get(h,'extent');
        set(h,'Position',[10 height pos2(3)+20 pos2(4)]);
@@ -458,14 +468,16 @@ elseif strcmp(varargin{1},'run_query')
   sel_molec=sprintf('%i,',sel_molec);
   msgbox('Running Query...','Database Query','replace');
   if isempty(line_obj.user)
-    mysql('open');
+    conn=database(line_obj.DB);
   else
-    mysql('open','localhost',line_obj.user,line_obj.pword);
+    %mysql('open','localhost',line_obj.user,line_obj.pword);
+    conn=database(line_obj.DB,line_obj.user,line_obj.pword,'Vendor','MySQL');
   end
-  mysql(['use ' line_obj.DB])
+  setdbprefs('DataReturnFormat','structure')
+  %mysql(['use ' line_obj.DB])
   tic;
-  eval(['[' params1(1:end-1) ']=mysql(''select ' params2(1:end-1) ' from ' line_obj.HITRAN_Table ' where CONCAT(molec,iso) IN (' sel_molec(1:end-1) ') AND wavenumber BETWEEN ' line_obj.min_wn ' AND ' line_obj.max_wn ' AND intensity >= ' line_obj.cutoff ''');']);
-  %[molec,iso,wavenumber,intensity]=mysql('select molec,iso,wavenumber,intensity from HITRAN04 where CONCAT(molec,iso) IN (61,63) AND wavenumber BETWEEN 1200 AND 1300 AND intensity > 1e-24');
+  %eval(['[' params1(1:end-1) ']=mysql(''select ' params2(1:end-1) ' from ' line_obj.HITRAN_Table ' where CONCAT(molec,iso) IN (' sel_molec(1:end-1) ') AND wavenumber BETWEEN ' line_obj.min_wn ' AND ' line_obj.max_wn ' AND intensity >= ' line_obj.cutoff ''');']);
+  eval(['line_obj.query_results=fetch(conn,''select ' params2(1:end-1) ' from ' line_obj.HITRAN_Table ' where CONCAT(molec,iso) IN (' sel_molec(1:end-1) ') AND wavenumber BETWEEN ' line_obj.min_wn ' AND ' line_obj.max_wn ' AND intensity >= ' line_obj.cutoff ''');']);
   query_time=toc;
   lines_selected=length(line_obj.query_results.molec);
   fprintf('\nQuery Took %.2f seconds.\n Number of line retrieved: %i\n',query_time,lines_selected)
@@ -487,7 +499,11 @@ elseif strcmp(varargin{1},'save_queryHITRAN')
   fid=fopen(filename,'w');
   for i=1:size(results{1},1);
       for j=1:size(results,1);
-          fprintf(fid,'%s ',num2str(results{j}(i)));
+          if isnumeric(results{j}(i))
+            fprintf(fid,'%s ',num2str(results{j}(i)));
+          else
+            fprintf(fid,'%s',cell2mat(results{j}(i)));
+          end
       end
       fprintf(fid,'\n');
   end
@@ -631,8 +647,8 @@ elseif strcmp(varargin{1},'plot_transmission')
   v=[floor(min(v0)):dv:ceil(max(v0))];
   Power=ones(1,length(v))*50000;
   M=ones(length(v0),1);
-  for i=unique(molec*10+iso)'
-      M(molec*10+iso==i)=line_obj.HITRAN.weight(line_obj.HITRAN.molec*10+line_obj.HITRAN.iso==i);
+  for i=unique(molec*100+iso)'
+      M(molec*100+iso==i)=line_obj.HITRAN.weight(line_obj.HITRAN.molec*100+line_obj.HITRAN.iso==i);
   end
   ppm=line_obj.mixing_ratios(molec,profile);
   
@@ -655,7 +671,7 @@ elseif strcmp(varargin{1},'plot_transmission')
     delta=1e-6;  %maximum fractional error in skew
     c=2.99792458e10;
     Ts=50e-6;
-    tuningrate=200;
+    tuningrate=50;
     dt=(mean(diff(v))/tuningrate)^-1;
     % calculate number of interations
     N = c/(2*L*dt);
