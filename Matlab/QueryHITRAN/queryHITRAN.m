@@ -485,8 +485,9 @@ elseif strcmp(varargin{1},'run_query')
   lines_selected=length(line_obj.query_results.molec);
   fprintf('\nQuery Took %.2f seconds.\n Number of line retrieved: %i\n',query_time,lines_selected)
   msgbox(sprintf('Running Query...\nQuery Finished\nQuery Took %.2f seconds.\n Number of line retrieved: %i\n\n',query_time,lines_selected),'Database Query','replace');
-  mysql('close')
-  set(f,'UserData',line_obj);
+%  mysql('close')
+    close(conn)
+    set(f,'UserData',line_obj);
   return
 
 elseif strcmp(varargin{1},'save_queryHITRAN')
