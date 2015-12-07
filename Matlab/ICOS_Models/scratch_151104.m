@@ -3,16 +3,23 @@
 % design criteria:
 %   r_min = r1_min (min pattern radius to avoid overlap)
 %   r_max = r1_max (max pattern radius to achieve focus)
+%
+% The overall strategy is to investigate all possible interleave options
+% between r_min and r_max
 C = 3000;
 B = .4;
-rd = .1;
-th = 15;
+rd = .09;
+th = 14.5;
 L = 50;
-r_limit = (1.55*2.54 - B); % 2.5" diameter with beam margin
+Rtolerance = 0.01; % .00001; tolerance factor on radius of curvature
+r_limit = (2.5*2.54/2 - B); % 2.5" diameter with beam margin
+Rw1 = 1.1*B/2;
+draw_all = false; % controls drawing of some figures
+
+% Derived parameters
 m_min = ceil(C/(2*L)); % This spot can overlap
 m_max = floor(pi/asin(B/(2*r_limit)));
-draw_all = false;
-SolInc = 40;
+SolInc = 40; % Just a preallocation parameter
 RawSols = SolInc;
 NSol = 0;
 Summary(RawSols) = ...
@@ -20,7 +27,6 @@ Summary(RawSols) = ...
     'Phi_n', [], 'Phi_p', [], 'Phi_N', [], 'Phi_P', [], 'Phi_OK', [], 'dL', []);
 %%
 rdtanth = rd*tand(th);
-figure;
 for m=m_min:m_max
   for k = 1:floor(m/2);
     if gcd(m,k) ~= 1
@@ -57,7 +63,7 @@ for m=m_min:m_max
     w2 = abs(r_max*sin(Phi)*cos(Phi).*R2./(R2-L));
     s1 = w2/L;
     
-    Rw1 = 1.1*B/2;
+    % Rw1 = 1.1*B/2;
     RL = abs(Rw1./s1);
     rRL = interp1(R1,RL,RR,'linear','extrap');
     vok = r_max > r_min & r_max >= r2;
@@ -78,8 +84,8 @@ for m=m_min:m_max
     Summary(NSol).RLmin = nanmin(RLok);
     mi = find(RLok == Summary(NSol).RLmin);
     phi_min = asin(B./(2*r_max(mi)));
-    Phi_n = Phi + (k*phi_min-phi)/dN(2);
-    Phi_p = Phi + (k*phi_min-phi)/dN(1);
+    Phi_n = Phi + (phi_min-phi)/dN(2);
+    Phi_p = Phi + (phi_min-phi)/dN(1);
     Summary(NSol).R1 = R1(mi);
     Summary(NSol).R2 = R2(mi);
     Summary(NSol).r_max = r_max(mi);
@@ -128,8 +134,8 @@ end
 Summary = Summary(1:NSol);
 %%
 for i=1:length(Summary)
-  R1 = Summary(i).R1 * (1+.01*[-1,1,-1,1]);
-  R2 = Summary(i).R2 * (1+.01*[-1,-1,1,1]);
+  R1 = Summary(i).R1 * (1+Rtolerance*[-1,1,-1,1]);
+  R2 = Summary(i).R2 * (1+Rtolerance*[-1,-1,1,1]);
   Summary(i).Phi_OK = false;
   Phi_a = L.*(R1+R2-L)./(R1.*R2);
   if all(Phi_a >= 0 & Phi_a <= 1)
@@ -165,7 +171,7 @@ for i=1:length(Summary)
   end
 end
 %%
-clf;
+figure;
 ax = [ nsubplot(3,1,1), nsubplot(3,1,2), nsubplot(3,1,3)];
 Phi = [Summary.Phi];
 RLmin = [Summary.RLmin];

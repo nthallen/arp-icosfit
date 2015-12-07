@@ -9,6 +9,7 @@ classdef ICOS_search < handle
   %  ICOS_search.search_ICOS_RIM
   %  ICOS_search.search_focus (deprecated)
   %  ICOS_search.search_focus2
+  %  ICOS_search.explore_focus
   %  ICOS_search.analyze
   %  ICOS_search.savefile
   properties
@@ -60,6 +61,7 @@ classdef ICOS_search < handle
       IS.ISopt.focus_visible = 1; % 0: don't draw any focus 1: just finished focus 2: each iteration
       IS.ISopt.max_focus_length = 20; % abandon is sum of lens space exceeds
       IS.ISopt.allow_negative_focus = 0;
+      IS.ISopt.allow_nondecreasing_focus = 0; % Allow big focus lenses after small ones
       for i=1:2:length(varargin)-1
         fld = varargin{i};
         if isfield(IS.ISP, fld)
@@ -312,7 +314,7 @@ classdef ICOS_search < handle
       %   max_lenses: defaults to 3
       %
       % search_focus2 attempts to build configurations using lenses
-      % defined in the ICOS_Model6.props Lens_Types array.
+      % defined in the ICOS_Model6.props LensTypes array.
       function optimize_focus(IS, resn, P, d, s, r, th, dth, depth)
         % optimize_focus(IS, resn, P, d, s, r, th, dth)
         % IS ICOS_search object
@@ -360,6 +362,7 @@ classdef ICOS_search < handle
           IS.res2(result).Ltot = IS.res2(result).ORL ...
             + IS.res2(result).L + sum(IS.res2(result).Lens_Space) ...
             + IS.res2(result).detector_spacing;
+          IS.res2(result).sel = 0;
           fprintf(1,'%d: (%d) Focused: theta=%.2f', result, resn, theta);
           for Li=1:length(P.Lenses)
             fprintf(1, ' %s', P.Lenses{Li});
@@ -384,6 +387,11 @@ classdef ICOS_search < handle
         end
         n_lenses = length(P.Lenses)+1;
         LTS = fields(P.LensTypes);
+        if n_lenses == 1
+          Prev_lens_r = P.r2;
+        else
+          Prev_lens_r = P.LensTypes.(P.Lenses{n_lenses-1}).r;
+        end
         for LTSi = 1:length(LTS)
           P.Lenses{n_lenses} = LTS{LTSi};
           Lens = P.LensTypes.(LTS{LTSi});
@@ -393,7 +401,8 @@ classdef ICOS_search < handle
             warning('MATLAB:HUARP:negnotneg', ...
               'Negative meniscus %s has positive EFL', LTS{LTSi});
           end
-          if IS.ISopt.allow_negative_focus || f > 0
+          if (IS.ISopt.allow_negative_focus || f > 0) && ...
+              (IS.ISopt.allow_nondecreasing_focus || Lens.r <= Prev_lens_r)
             [x,~,ds] = pick_lens_x2(r,d,s,f,th,Lens.r-0.3);
             % pick_lens_x2 could have found
             %   a: no solution -- just try the next lens
@@ -554,7 +563,7 @@ classdef ICOS_search < handle
       % indices into the IS.res1 array to be analyzed.
       %
       % search_focus attempts to build configurations using lenses
-      % defined in the ICOS_Model6.props Lens_Types array. It does
+      % defined in the ICOS_Model6.props LensTypes array. It does
       % not optimize the result very well, which is why search_focus2 was
       % created.
       SFopt.select = [];
@@ -715,6 +724,51 @@ classdef ICOS_search < handle
       IS.savefile;
     end
     
+    function explore_focus(IS, plotnum)
+      if isempty(IS.res2)
+        error('MATLAB:HUARP:NoFocus', ...
+          'Must invoke IS.search_focus2() before IS.explore_focus()');
+      end
+      if ~isfield(IS.res2,'sel')
+        for i=1:length(IS.res2)
+          IS.res2(i).sel = 0;
+        end
+      end
+      DS = [IS.res2.detector_spacing];
+      LS = zeros(size(DS));
+      for i=1:length(LS)
+        LS(i) = IS.res2(i).Lens_Space(end);
+      end
+      Lpos = LS ./ (LS+DS);
+      Ltot = [IS.res2.Ltot];
+      
+      L1EFL = ones(length(IS.res2),1);
+      L2r = ones(length(IS.res2),1);
+      P = ICOS_Model6.props;
+      for i=1:length(IS.res2)
+        Ltype = IS.res2(i).Lenses{1};
+        L1EFL(i) = P.LensTypes.(Ltype).EFL;
+        Ltype = IS.res2(i).Lenses{end};
+        L2r(i) = P.LensTypes.(Ltype).r;
+      end
+      
+      sel = [IS.res2.sel];
+      v = sel ~= 0;
+      
+      if nargin < 2 || plotnum == 1
+        h = plot(Ltot,Lpos,'.',Ltot(v),Lpos(v),'or');
+        xlabel('L_{total} cm');
+        ylabel('Relative lens position');
+        title(sprintf('%s Focus Analysis', strrep(IS.ISopt.mnc,'_','\_')));
+        hdt = datacursormode;
+        set(hdt,'UpdateFcn', ...
+          {@ICOS_search.data_cursor_text_func,Ltot,Lpos,Ltot,Lpos,L1EFL,L2r});
+        set(h,'buttondownfcn', @(s,e) ICOS_search.ex_bdf(s,e,IS,Ltot,Lpos));
+        set(gca, 'buttondownfcn', @(s,e) ICOS_search.ex_bdf(s,e,IS,Ltot,Lpos));
+      elseif plotnum == 2
+      end
+    end
+    
     function analyze(IS, varargin)
       % IS.analyze(options);
       % options include:
@@ -741,6 +795,13 @@ classdef ICOS_search < handle
       % Opt.rng_state = [];
       Opt.opt_n = [];
       Opt.select = [];
+      if isfield(IS.res2,'sel')
+        seli = find([IS.res2.sel]);
+        for i=1:length(seli)
+          seli(i) = IS.res2(seli(i)).Nres2;
+        end
+        Opt.select = seli;
+      end
       IBopt = {};
       for i=1:2:length(varargin)-1
         fld = varargin{i};
@@ -833,6 +894,78 @@ classdef ICOS_search < handle
       fname = sprintf('IS_%s.mat', IS.ISopt.mnc);
       save(fname, 'IS');
       fprintf(1, 'ICOS_search saved to %s\n', fname);
+    end
+  end
+  
+  methods(Static)
+    function output_txt = data_cursor_text_func(~,event_obj,...
+        x,y,Ltot,Lpos,L1EFL,L2r)
+      % Display the position of the data cursor
+      % obj          Currently not used (empty)
+      % event_obj    Handle to event object
+      % output_txt   Data cursor text string (string or cell array of strings).
+      
+      pos = get(event_obj,'Position');
+      % output_txt = {['X: ',num2str(pos(1),4)],...
+      %    ['Y: ',num2str(pos(2),4)]};
+
+      % If there is a Z-coordinate in the position, display it as well
+      % if length(pos) > 2
+      %   output_txt{end+1} = ['Z: ',num2str(pos(3),4)];
+      % end
+      
+      output_txt = {};
+      i = find(pos(1)==x & pos(2)==y,1);
+      if isempty(i)
+        output_txt = {'<no text>'};
+      else
+        output_txt{end+1} = sprintf('Ltot = %.2f cm', Ltot(i));
+        output_txt{end+1} = sprintf('Lpos = %.2f', Lpos(i));
+        output_txt{end+1} = sprintf('L1EFL = %.2f cm', L1EFL(i));
+        output_txt{end+1} = sprintf('L2r = %.2f cm', L2r(i));
+      end
+    end
+    
+    function ex_bdf(src,~,IS,X,Y)
+      % Button Down Function for explore scripts
+      srctype = get(src,'type');
+      while ~strcmp(srctype,'axes')
+        src = get(src,'parent');
+        if isempty(src)
+          fprintf(1,'No axes found\n');
+          return;
+        end
+        srctype = get(src,'type');
+      end
+      set(gcf,'units','normalized');
+      axesHandle  = get(src,'Parent');
+      coordinates = get(axesHandle,'CurrentPoint');
+      coordinates = coordinates(1,1:2);
+      % fprintf(1,'Click at coordinates: %f, %f\n', coordinates(1), coordinates(2));
+      rect = rbbox([coordinates 0 0]);
+      % fprintf(1,'Final rect: [%.2f %.2f %.2f %.2f]\n', rect);
+      xl = get(gca,'xlim');
+      yl = get(gca,'ylim');
+      ap = get(gca,'position');
+      XL = interp1([ap(1) ap(1)+ap(3)],xl,[rect(1),rect(1)+rect(3)],'linear','extrap');
+      YL = interp1([ap(2) ap(2)+ap(4)],yl,[rect(2),rect(2)+rect(4)],'linear','extrap');
+      % fprintf(1,'Final rect: X: [%.2f, %.2f] Y: [%.2f, %.2f]\n', ...
+      %   XL, YL);
+      v = find(X >= XL(1) & X <= XL(2) & Y >= YL(1) & Y <= YL(2));
+      for i=1:length(v)
+        IS.res2(v(i)).sel = ~IS.res2(v(i)).sel;
+      end
+      sel = find([IS.res2.sel]);
+      h = get(gca,'children');
+      if length(h) == 2
+        m = get(h,'marker');
+        hi = find(strcmp(m, 'o'));
+        set(h(hi),'XData',X(sel),'YData',Y(sel));
+      else
+        hold on;
+        plot(X(sel),Y(sel),'or');
+        hold off;
+      end
     end
   end
 end
