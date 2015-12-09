@@ -76,60 +76,65 @@ classdef ICOS_sr_search < handle
       % Identifies all interleave patterns that meet both the focus and
       % overlap criteria.
       Summary(SR.RawSols) = ...
-        struct('RLmin',[],'r_max',[],'R1',[],'R2',[],'m',[],'k',[], ...
-        'Phi',[], 'Phi_n', [], 'Phi_p', [], 'Phi_N', [], 'Phi_P', [], ...
-        'Phi_OK', [], 'dL', [], 'dBL', [], 'sel', []);
+        struct('RLmin',[],'r_max',[],'r_min',[],'r1',[],'r2',[],'R1',[],'R2',[], ...
+        'm',[],'k',[],'Phi',[], 'Phi_n', [], 'Phi_p', [], 'Phi_N', [], ...
+        'Phi_P', [],'Phi_OK', [], 'dL', [], 'dBL', [], 'sel', []);
+      SR.NSol = 0;
       for m=SR.m_min:SR.m_max
         for k = 1:floor(m/2);
           dN = evaluate_interleave(m,k);
           if isempty(dN)
             continue;
           end
-          phi = pi/m;
-          Phi = k*phi;
-          R1pole = SR.SRopt.L/sin(Phi)^2;
-          if R1pole > 2000
-            R1 = interp1([0 2000],[SR.SRopt.L 2000],1:2000)';
-            R2 = SR.SRopt.L*(R1-SR.SRopt.L)./(sin(Phi)^2*R1-SR.SRopt.L);
-            RR = []; % L/(1+cos(Phi));
-            SR.Rmax = 2000;
-          else
-            R1a = interp1([0 1001],[SR.SRopt.L R1pole],1:1000)';
-            R1b = interp1([0 1000],[R1pole 2000],1:1000)';
-            R1 = [R1a;R1pole;R1b];
-            R2 = [ ...
-              SR.SRopt.L*(R1a-SR.SRopt.L)./(sin(Phi)^2*R1a-SR.SRopt.L); ...
-              NaN; ...
-              SR.SRopt.L*(R1b-SR.SRopt.L)./(sin(Phi)^2*R1b-SR.SRopt.L)];
-            RR = SR.SRopt.L./(1+cos(Phi)*(-1));
-            SR.Rmax = min(RR*1.1,2000);
-            RR = RR(RR<2000);
-          end
-          R2(R2 > 2000 | R2 < -2000) = NaN;
-          % fprintf(1,'Break at R1 = %.1f\n', L/sin(Phi)^2);
-          r_min = SR.SRopt.B/(2*sin(pi/m));
-          r_max = sqrt(SR.rdtanth* ...
-            sqrt(((R2-SR.SRopt.L).*R1.^2*SR.SRopt.L)./ ...
-              ((R1-SR.SRopt.L).*(R1+R2-SR.SRopt.L))));
-          r_max(~isnan(r_max)) = min(r_max(~isnan(r_max)),SR.SRopt.r_limit);
-          rRR = interp1(R1,r_max,RR,'linear','extrap');
-          % This (commented) calculation is wrong, but I haven't figured out why yet
-          %   k2 = ((R1-L).*(R1.*R2-L))./((R2-L).*R1.^2.*L);
-          %   k2(k2<0) = NaN;
-          %   s1 = r_max.*sqrt(k2);
-          r2 = abs(r_max.*cos(Phi).*R2./(R2-SR.SRopt.L));
-          w2 = abs(r_max*sin(Phi)*cos(Phi).*R2./(R2-SR.SRopt.L));
-          s1 = w2/SR.SRopt.L;
-          
-          % Rw1 = 1.1*B/2;
-          RL = abs(SR.SRopt.Rw1./s1);
-          rRL = interp1(R1,RL,RR,'linear','extrap');
-          vok = r_max > r_min & r_max >= r2;
-          vnok = ~vok;
+          [phi,Phi,R1,R2,RL,vok,Rmax,r_max,r_min,r2,w2,s1,Phi_n,Phi_p,dBL] ...
+            = select_R1R2(SR,m,k);
+%           phi = pi/m;
+%           Phi = k*phi;
+%           R1pole = SR.SRopt.L/sin(Phi)^2;
+%           if R1pole > 2000
+%             R1 = interp1([0 2000],[SR.SRopt.L 2000],1:2000)';
+%             R2 = SR.SRopt.L*(R1-SR.SRopt.L)./(sin(Phi)^2*R1-SR.SRopt.L);
+%             RR = []; % L/(1+cos(Phi));
+%             SR.Rmax = 2000;
+%           else
+%             R1a = interp1([0 1001],[SR.SRopt.L R1pole],1:1000)';
+%             R1b = interp1([0 1000],[R1pole 2000],1:1000)';
+%             R1 = [R1a;R1pole;R1b];
+%             R2 = [ ...
+%               SR.SRopt.L*(R1a-SR.SRopt.L)./(sin(Phi)^2*R1a-SR.SRopt.L); ...
+%               NaN; ...
+%               SR.SRopt.L*(R1b-SR.SRopt.L)./(sin(Phi)^2*R1b-SR.SRopt.L)];
+%             RR = SR.SRopt.L./(1+cos(Phi)*(-1));
+%             SR.Rmax = min(RR*1.1,2000);
+%             RR = RR(RR<2000);
+%           end
+%           R2(R2 > 2000 | R2 < -2000) = NaN;
+%           % fprintf(1,'Break at R1 = %.1f\n', L/sin(Phi)^2);
+%           r_min = SR.SRopt.B/(2*sin(pi/m));
+%           r_max = sqrt(SR.rdtanth* ...
+%             sqrt(((R2-SR.SRopt.L).*R1.^2*SR.SRopt.L)./ ...
+%               ((R1-SR.SRopt.L).*(R1+R2-SR.SRopt.L))));
+%           r_max(~isnan(r_max)) = min(r_max(~isnan(r_max)),SR.SRopt.r_limit);
+%           rRR = interp1(R1,r_max,RR,'linear','extrap');
+%           % This (commented) calculation is wrong, but I haven't figured out why yet
+%           %   k2 = ((R1-L).*(R1.*R2-L))./((R2-L).*R1.^2.*L);
+%           %   k2(k2<0) = NaN;
+%           %   s1 = r_max.*sqrt(k2);
+%           r2 = abs(r_max.*cos(Phi).*R2./(R2-SR.SRopt.L));
+%           w2 = abs(r_max*sin(Phi)*cos(Phi).*R2./(R2-SR.SRopt.L));
+%           s1 = w2/SR.SRopt.L;
+%           
+%           % Rw1 = 1.1*B/2;
+%           RL = abs(SR.SRopt.Rw1./s1);
+%           rRL = interp1(R1,RL,RR,'linear','extrap');
+%           vok = r_max > r_min & r_max >= r2;
+%           vnok = ~vok;
+%           RLok = RL;
+%           RLok(vnok) = NaN;
+%           RLnok = RL;
+%           RLnok(vok) = NaN;
           RLok = RL;
-          RLok(vnok) = NaN;
-          RLnok = RL;
-          RLnok(vok) = NaN;
+          RLok(~vok) = NaN;
           
           SR.NSol = SR.NSol+1;
           if SR.NSol > SR.RawSols
@@ -139,18 +144,9 @@ classdef ICOS_sr_search < handle
           
           Summary(SR.NSol).RLmin = nanmin(RLok);
           mi = find(RLok == Summary(SR.NSol).RLmin);
-          phi_min = asin(SR.SRopt.B./(2*r_max(mi)));
-          Phi_n = Phi + (phi_min-phi)/dN(2);
-          Phi_p = Phi + (phi_min-phi)/dN(1);
-          Summary(SR.NSol).R1 = R1(mi);
-          Summary(SR.NSol).R2 = R2(mi);
-          Summary(SR.NSol).r_max = r_max(mi);
-          Summary(SR.NSol).m = m;
-          Summary(SR.NSol).k = k;
-          Summary(SR.NSol).Phi = Phi;
-          Summary(SR.NSol).Phi_n = Phi_n;
-          Summary(SR.NSol).Phi_p = Phi_p;
-          Summary(SR.NSol).sel = 0;
+          %phi_min = asin(SR.SRopt.B./(2*r_max(mi)));
+          %Phi_n = Phi + (phi_min-phi)/dN(2);
+          %Phi_p = Phi + (phi_min-phi)/dN(1);
           SP.R1 = R1(mi);
           SP.R2 = R2(mi);
           SP.L = SR.SRopt.L;
@@ -158,10 +154,87 @@ classdef ICOS_sr_search < handle
           SP.RL = SP.Rw1/s1(mi);
           Res = exparam(SP);
           check_params(SR.NSol, Res);
+          Summary(SR.NSol).R1 = R1(mi);
+          Summary(SR.NSol).R2 = R2(mi);
+          Summary(SR.NSol).r_max = r_max(mi);
+          Summary(SR.NSol).r_min = r_min;
+          Summary(SR.NSol).r1 = Res(1).r1;
+          Summary(SR.NSol).r2 = Res(1).r2;
+          Summary(SR.NSol).m = m;
+          Summary(SR.NSol).k = k;
+          Summary(SR.NSol).Phi = Phi;
+          Summary(SR.NSol).Phi_n = Phi_n(mi);
+          Summary(SR.NSol).Phi_p = Phi_p(mi);
+          Summary(SR.NSol).dBL = dBL(mi,:);
+          Summary(SR.NSol).sel = 0;
         end
       end
       %
       SR.Summary = Summary(1:SR.NSol);
+    end
+    
+    function [phi,Phi,R1,R2,RL,vok,Rmax,r_max,r_min,r2,w2,s1,Phi_n,Phi_p,dBL] = select_R1R2(SR,m,k)
+      % [phi, Phi, R1, R2, RL, vok, Rmax, r_max, r_min, r2, w2, s1] = SR.select_R1R2(m,k);
+      % Performs the calculation of possible R1, R2 values
+      dN = evaluate_interleave(m,k);
+      phi = pi/m;
+      Phi = k*phi;
+      R1pole = SR.SRopt.L/sin(Phi)^2;
+      if R1pole > 2000
+        R1 = interp1([0 2000],[SR.SRopt.L 2000],1:2000)';
+        R2 = SR.SRopt.L*(R1-SR.SRopt.L)./(sin(Phi)^2*R1-SR.SRopt.L);
+        RR = []; % L/(1+cos(Phi));
+        Rmax = 2000;
+      else
+        R1a = interp1([0 1001],[SR.SRopt.L R1pole],1:1000)';
+        R1b = interp1([0 1000],[R1pole 2000],1:1000)';
+        R1 = [R1a;R1pole;R1b];
+        R2 = [ ...
+          SR.SRopt.L*(R1a-SR.SRopt.L)./(sin(Phi)^2*R1a-SR.SRopt.L); ...
+          NaN; ...
+          SR.SRopt.L*(R1b-SR.SRopt.L)./(sin(Phi)^2*R1b-SR.SRopt.L)];
+        RR = SR.SRopt.L./(1+cos(Phi)*(-1)); % Where R1==R2
+        Rmax = min(RR*1.1,2000);
+        RR = RR(RR<2000);
+      end
+      R2(R2 > 2000 | R2 < -2000) = NaN;
+      % fprintf(1,'Break at R1 = %.1f\n', L/sin(Phi)^2);
+      r_min = SR.SRopt.B/(2*sin(pi/m));
+      r_max = sqrt(SR.rdtanth* ...
+        sqrt(((R2-SR.SRopt.L).*R1.^2*SR.SRopt.L)./ ...
+        ((R1-SR.SRopt.L).*(R1+R2-SR.SRopt.L))));
+      r_max(~isnan(r_max)) = min(r_max(~isnan(r_max)),SR.SRopt.r_limit);
+      % rRR = interp1(R1,r_max,RR,'linear','extrap');
+      % This (commented) calculation is wrong, but I haven't figured out why yet
+      %   k2 = ((R1-L).*(R1.*R2-L))./((R2-L).*R1.^2.*L);
+      %   k2(k2<0) = NaN;
+      %   s1 = r_max.*sqrt(k2);
+      r2 = abs(r_max.*cos(Phi).*R2./(R2-SR.SRopt.L));
+      w2 = abs(r_max*sin(Phi)*cos(Phi).*R2./(R2-SR.SRopt.L));
+      s1 = w2/SR.SRopt.L;
+      
+      % Rw1 = 1.1*B/2;
+      RL = abs(SR.SRopt.Rw1./s1);
+      % rRL = interp1(R1,RL,RR,'linear','extrap');
+      vok = ~isnan(R2) & r_max > r_min & r_max >= r2;
+      Rmax = min(nanmax(R1(vok))*1.1, 2000);
+      % vnok = ~vok;
+      % RLok = RL;
+      % RLok(vnok) = NaN;
+      % RLnok = RL;
+      % RLnok(vok) = NaN;
+      phi_min = asin(SR.SRopt.B./(2*r_max));
+      Phi_n = Phi + (phi_min-phi)/dN(2);
+      Phi_p = Phi + (phi_min-phi)/dN(1);
+      det = ((R1+R2).^2)*[1 1] - (4*R1.*R2*[1 1]).*sin([Phi_n Phi_p]).^2;
+      if all(all(isnan(det) | det > 0))
+        Lp = ((R1+R2)*[1,1,1,1]+sqrt(det)*[1,0,0,-1;0,1,-1,0])/2;
+        Lps = sign(Lp-SR.SRopt.L);
+        Lp2 = Lps(:,3)==-1&Lps(:,4)==1;
+        dBL = Lp(:,[1 2]);
+        dBL(Lp2,:) = Lp(Lp2,[3,4]);
+        dBL = dBL - SR.SRopt.L;
+      end
     end
     
     function design_tolerance(SR)
@@ -280,7 +353,7 @@ classdef ICOS_sr_search < handle
           {@ICOS_sr_search.data_cursor_text_func,RLmin,ddBL,m,k,ddL,ddBL,RLmin});
         set(h,'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,RLmin,ddBL));
         set(gca, 'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,RLmin,ddBL));
-      else
+      elseif plot_num == 2
         figure;
         h = plot(ddL(v), ddBL(v),'.', ddL(v1), ddBL(v1), 'or');
         xlabel('Design \Delta{L} cm');
@@ -291,6 +364,33 @@ classdef ICOS_sr_search < handle
           {@ICOS_sr_search.data_cursor_text_func,ddL,ddBL,m,k,ddL,ddBL,RLmin});
         set(h,'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,ddL,ddBL));
         set(gca, 'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,ddL,ddBL));
+      elseif plot_num == 3
+        r1 = [SR.Summary.r1];
+        r2 = [SR.Summary.r2];
+        r2_r1 = r2./r1;
+        figure;
+        h = plot(r2_r1(v), ddBL(v), '.', r2_r1(v1),ddBL(v1),'or');
+        xlabel('r_2/r_1');
+        ylabel('Build \Delta{L} cm');
+        title(sprintf('%s: Build Tolerance', SR.SRopt.mnc));
+        hdt = datacursormode;
+        set(hdt,'UpdateFcn', ...
+          {@ICOS_sr_search.data_cursor_text_func,r2_r1,ddBL,m,k,ddL,ddBL,RLmin});
+        set(h,'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,r2_r1,ddBL));
+        set(gca, 'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,r2_r1,ddBL));
+      else % plot_num == 4
+        R1 = [SR.Summary.R1];
+        R2 = [SR.Summary.R2];
+        figure;
+        h = plot(R1(v), R2(v), '.', R1(v1),R2(v1),'or');
+        xlabel('R_1 cm');
+        ylabel('R_2 cm');
+        title(sprintf('%s: Radii of curvature', SR.SRopt.mnc));
+        hdt = datacursormode;
+        set(hdt,'UpdateFcn', ...
+          {@ICOS_sr_search.data_cursor_text_func,R1,R2,m,k,ddL,ddBL,RLmin});
+        set(h,'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,R1,R2));
+        set(gca, 'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,R1,R2));
       end
     end
     
@@ -308,6 +408,42 @@ classdef ICOS_sr_search < handle
         shg;
         pause;
       end
+    end
+    
+    function validate_R1_R2(SR,m,k)
+      [phi,Phi,R1,R2,RL,vok,Rmax,r_max,r_min,r2,w2,s1,Phi_n,Phi_p,dBL] = ...
+        SR.select_R1R2(m,k);
+      figure;
+      N = 4;
+      ax = zeros(N,1);
+      for i=1:N
+        ax(i) = nsubplot(N,1,i);
+      end
+      plot(ax(1),R1(~vok),RL(~vok),'.b',R1(vok),RL(vok),'.r');
+      ylabel(ax(1),'RL cm');
+      plot(ax(2),R1(~vok),R2(~vok),'.b',R1(vok),R2(vok),'.r');
+      ylabel(ax(2),'R_2 cm');
+      r_minv = r_min * ones(size(r_max));
+      plot(ax(3),...
+        R1(vok),r_max(vok),'.b',...
+        R1(vok),r_minv(vok),'.g',...
+        R1(vok),r2(vok),'.r');
+      legend(ax(3),'r_{max}', 'r_{min}', 'r_2');
+      ylabel(ax(3),'r_{min}, r_{max}, r_1');
+      
+      ddBL = diff(dBL')';
+      plot(ax(4),R1(vok),ddBL(vok),'.');
+      ylabel(ax(4),'ddBL cm');
+      
+      % Cleanup
+      set(ax(1:end-1),'XTickLabel',[]);
+      for i=1:2:N
+        set(ax(i),'YAxisLocation','Right');
+      end
+      title(ax(1),sprintf('%s (%d,%d)',SR.SRopt.mnc,m,k));
+      xlabel(ax(N),'R_1 cm');
+      linkaxes(ax,'x');
+      set(ax(3),'xlim',[SR.SRopt.L/2, Rmax]);
     end
     
     function validate_build_tolerance(SR,m,k)
