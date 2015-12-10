@@ -1,6 +1,6 @@
 %% scratch_151120
 % Developing ICOS_sr_search
-SR = ICOS_sr_search('mnc','sr.L50.B3.Rw4','B',0.3,'Rw1',0.4);
+SR = ICOS_sr_search('mnc','sr.L50t','B',0.4,'Rw1',0.2);
 SR.enumerate;
 %%
 SR.design_tolerance;
@@ -14,11 +14,9 @@ SR.explore_build_tolerance(3);
 %%
 SR.explore_build_tolerance(4);
 %%
-SR.explore_build_tolerance(5);
-%%
 SR.savefile;
 %%
-SR.focus;
+SR.focus('focus_visible',0);
 %% Try the same parameters, but push Rw1 wider to see if we can cut down
 % on H loss
 SR = ICOS_sr_search('mnc','sr.L50.Rw1.5','B',0.4,'Rw1',0.6);
