@@ -38,6 +38,7 @@ set(gca,'DataAspectRatio',[1 1 1],'XTick',[],'YTick',[]);
 ylim([-B/2 h+3*B/2]);
 xlim((w+3*B/2)*[-1 1]);
 shg;
+print_figure(gca,'figure_variables', [3 3], [H1;H2;H3;H4;H5]);
 
 function draw_circle(O, r, c)
 sth = linspace(0,2*pi,21);
@@ -56,3 +57,55 @@ if nargin >= 5
     varargin{:});
   % set(h,'FontUnits','Normalized');
 end
+
+function print_figure(ax, fname, target_dim, t)
+  target_width=target_dim(1);
+  target_height=target_dim(2);
+  
+  target_aspect_ratio = target_height/target_width;
+  set(ax,'units','inches');
+  P = get(ax,'position');
+  source_aspect_ratio = P(4)/P(3);
+  if source_aspect_ratio >= target_aspect_ratio
+    % fit to target height
+    height = target_height;
+    width = height/source_aspect_ratio;
+    print_scale = height/P(4);
+  else
+    width = target_width;
+    height = width * source_aspect_ratio;
+    print_scale = width/P(3);
+  end
+  
+  set(gcf,'InvertHardcopy','on');
+  set(gcf,'PaperUnits', 'inches');
+  papersize = get(gcf, 'PaperSize');
+  % Center the image on the page:
+  left = (papersize(1)- width)/2;
+  bottom = (papersize(2)- height)/2;
+  myfiguresize = [left, bottom, width, height];
+  set(gcf,'PaperPosition', myfiguresize);
+  
+  % Now change the font size to map the size we will be scaled to
+  tpixels = zeros(size(t));
+  for i=1:length(t)
+    set(t(i),'fontunits','pixels');
+    tpixels(i) = get(t(i),'fontsize');
+    set(t(i),'fontsize', tpixels(i)*print_scale);
+  end
+  
+%   h12w = get(h12,'linewidth');
+%   set(h12,'linewidth',h12w*print_scale);
+%   
+%   h23w = get(h23,'linewidth');
+%   set(h23,'linewidth',h23w*print_scale);
+  
+  set(ax,'xlimmode','manual','ylimmode','manual','zlimmode','manual');
+  
+  print(fname,'-dpng','-r300');
+  
+  for i=1:length(t)
+    set(t(i),'fontsize', tpixels(i));
+  end
+  % set(h12,'linewidth',h12w);
+  % set(h23,'linewidth',h23w);

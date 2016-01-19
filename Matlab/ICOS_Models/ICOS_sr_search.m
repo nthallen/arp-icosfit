@@ -53,6 +53,11 @@ classdef ICOS_sr_search < handle
       SR.SRopt.r_limit = (2.5*2.54/2 - SR.SRopt.B); % Maximum r1, cm (based on mirror diameter)
       SR.SRopt.Rw1 = 1.1*SR.SRopt.B/2; % Target Rw1, cm
       SR.SRopt.mnc = 'sr';
+      % mk is an Nx2 matrix of m,k values to search instead of the usual
+      % exhaustive search
+      SR.SRopt.mk = [];
+      % SolScale if set causes a different selection criteria
+      SR.SRopt.SolScale = []; % Value from 0 to 1 weighing where to select
       for i=1:2:length(varargin)-1
         fld = varargin{i};
         if isfield(SR.SRopt, fld)
@@ -66,70 +71,102 @@ classdef ICOS_sr_search < handle
       SR.m_min = ceil(SR.SRopt.C/(2*SR.SRopt.L)); % This spot can overlap
       SR.m_max = floor(pi/asin(SR.SRopt.B/(2*SR.SRopt.r_limit)));
       SR.SolInc = 40; % Just a preallocation parameter
-      SR.RawSols = SR.SolInc;
+      SR.RawSols = 0;
       SR.NSol = 0;
       SR.rdtanth = SR.SRopt.rd*tand(SR.SRopt.th);
+      SR.Summary = [];
     end
     
     function enumerate(SR)
       % SR.enumerate
       % Identifies all interleave patterns that meet both the focus and
       % overlap criteria.
-      Smmry(SR.RawSols) = ...
-        struct('RLmin',[],'r_max',[],'r_min',[],'r1',[],'r2',[],'R1',[],'R2',[], ...
-        'm',[],'k',[],'Phi',[], 'Phi_n', [], 'Phi_p', [], 'Phi_N', [], ...
-        'Phi_P', [],'Phi_OK', [], 'dL', [], 'dBL', [], 'sel', []);
-      SR.NSol = 0;
-      for m=SR.m_min:SR.m_max
-        for k = 1:floor(m/2);
-          dN = evaluate_interleave(m,k);
-          if isempty(dN)
-            continue;
-          end
-          [~,Phi,R1,R2,RL,vok,~,r_max,r_min,~,~,s1,Phi_n,Phi_p,dBL] ...
-            = select_R1R2(SR,m,k);
-          RLok = RL;
-          RLok(~vok) = NaN;
-          
-          SR.NSol = SR.NSol+1;
-          if SR.NSol > SR.RawSols
+      function enumerate_mk(SR,m,k)
+        dN = evaluate_interleave(m,k);
+        if isempty(dN)
+          return;
+        end
+        [~,Phi,R1,R2,RL,vok,~,r_max,r_min,~,~,s1,Phi_n,Phi_p,dBL] ...
+          = select_R1R2(SR,m,k);
+        RLok = RL;
+        RLok(~vok) = NaN;
+        
+        SR.NSol = SR.NSol+1;
+        if SR.NSol > SR.RawSols
+          S = ...
+            struct('RLmin',[],'r_max',[],'r_min',[],'r1',[],'r2',[],'R1',[],'R2',[], ...
+            'm',[],'k',[],'Phi',[], 'Phi_n', [], 'Phi_p', [], 'Phi_N', [], ...
+            'Phi_P', [],'Phi_OK', [], 'dL', [], 'dBL', [], 'sel', []);
+          if SR.RawSols == 0
+            SR.RawSols = 1;
+            SR.Summary = S;
+          else
             SR.RawSols = SR.RawSols + SR.SolInc;
-            Smmry(SR.RawSols).RLmin = [];
+            SR.Summary(SR.RawSols) = S;
           end
-          
-          % This is where we select which R1/R2 pair is best.
-          % The old criteria was minimum RL, but this allowed for
-          % unbuildable configurations. I will try going for maximum
-          % ddBL instead:
-          % Smmry(SR.NSol).RLmin = nanmin(RLok);
-          % mi = find(RLok == Smmry(SR.NSol).RLmin);
+        end
+        
+        % This is where we select which R1/R2 pair is best.
+        % The old criteria was minimum RL, but this allowed for
+        % unbuildable configurations. I will try going for maximum
+        % ddBL instead:
+        % Smmry(SR.NSol).RLmin = nanmin(RLok);
+        % mi = find(RLok == Smmry(SR.NSol).RLmin);
+        if isempty(SR.SRopt.SolScale)
           ddBL = diff(dBL')';
           mi = find(~isnan(ddBL) & (ddBL == nanmax(ddBL(vok))));
-          Smmry(SR.NSol).RLmin = RLok(mi);
-          SP.R1 = R1(mi);
-          SP.R2 = R2(mi);
-          SP.L = SR.SRopt.L;
-          SP.Rw1 = SR.SRopt.Rw1;
-          SP.RL = SP.Rw1/s1(mi);
-          Res = exparam(SP);
-          check_params(SR.NSol, Res);
-          Smmry(SR.NSol).R1 = R1(mi);
-          Smmry(SR.NSol).R2 = R2(mi);
-          Smmry(SR.NSol).r_max = r_max(mi);
-          Smmry(SR.NSol).r_min = r_min;
-          Smmry(SR.NSol).r1 = Res(1).r1;
-          Smmry(SR.NSol).r2 = Res(1).r2;
-          Smmry(SR.NSol).m = m;
-          Smmry(SR.NSol).k = k;
-          Smmry(SR.NSol).Phi = Phi;
-          Smmry(SR.NSol).Phi_n = Phi_n(mi);
-          Smmry(SR.NSol).Phi_p = Phi_p(mi);
-          Smmry(SR.NSol).dBL = dBL(mi,:);
-          Smmry(SR.NSol).sel = 0;
+          SR.Summary(SR.NSol).sel = 0;
+        else
+          mii = find(vok);
+          n_mii = length(mii);
+          mi_n = (0:n_mii-1)/(n_mii-1);
+          mi = interp1(mi_n,mii,SR.SRopt.SolScale,'nearest');
+          SR.Summary(SR.NSol).sel = 1; % Probably only one, so select
+        end
+        SR.Summary(SR.NSol).RLmin = RLok(mi);
+        SP.R1 = R1(mi);
+        SP.R2 = R2(mi);
+        SP.L = SR.SRopt.L;
+        SP.Rw1 = SR.SRopt.Rw1;
+        SP.RL = SP.Rw1/s1(mi);
+        Res = exparam(SP);
+        check_params(SR.NSol, Res);
+        SR.Summary(SR.NSol).R1 = R1(mi);
+        SR.Summary(SR.NSol).R2 = R2(mi);
+        SR.Summary(SR.NSol).r_max = r_max(mi);
+        SR.Summary(SR.NSol).r_min = r_min;
+        SR.Summary(SR.NSol).r1 = Res(1).r1;
+        SR.Summary(SR.NSol).r2 = Res(1).r2;
+        SR.Summary(SR.NSol).m = m;
+        SR.Summary(SR.NSol).k = k;
+        SR.Summary(SR.NSol).Phi = Phi;
+        SR.Summary(SR.NSol).Phi_n = Phi_n(mi);
+        SR.Summary(SR.NSol).Phi_p = Phi_p(mi);
+        SR.Summary(SR.NSol).dBL = dBL(mi,:);
+      end
+      
+%       SR.Summary(SR.RawSols) = ...
+%         struct('RLmin',[],'r_max',[],'r_min',[],'r1',[],'r2',[],'R1',[],'R2',[], ...
+%         'm',[],'k',[],'Phi',[], 'Phi_n', [], 'Phi_p', [], 'Phi_N', [], ...
+%         'Phi_P', [],'Phi_OK', [], 'dL', [], 'dBL', [], 'sel', []);
+      SR.NSol = 0;
+      if ~isempty(SR.SRopt.mk)
+        for i=1:size(SR.SRopt.mk,1)
+          m = SR.SRopt.mk(i,1);
+          k = SR.SRopt.mk(i,2);
+          if m >= SR.m_min && m <= SR.m_max && k >= 1 && k <= floor(m/2)
+            enumerate_mk(SR,m,k);
+          end
+        end
+      else
+        for m=SR.m_min:SR.m_max
+          for k = 1:floor(m/2);
+            enumerate_mk(SR,m,k);
+          end
         end
       end
-      %
-      SR.Summary = Smmry(1:SR.NSol);
+      SR.Summary = SR.Summary(1:SR.NSol);
+      SR.RawSols = SR.NSol;
     end
     
     function [phi,Phi,R1,R2,RL,vok,Rmax,r_max,r_min,r2,w2,s1,Phi_n,Phi_p,dBL] = select_R1R2(SR,m,k)
@@ -291,6 +328,7 @@ classdef ICOS_sr_search < handle
       % SR.explore_build_tolerance([plot_num]);
       % plot_num 1 (default) is build tolerance vs RLmin
       % plot_num 2 is build tolerance vs design tolerance
+      % plot_num 3 is build tolerance vs r2/r1
       RLmin = [SR.Summary.RLmin];
       dL = [SR.Summary.dL];
       ddL = diff(dL);

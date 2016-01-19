@@ -839,19 +839,21 @@ classdef ICOS_search < handle
         NRi = NRi';
       end
       for i=NRi
-        ofile = sprintf('IS_%s.%d_%dx%d', IS.ISopt.mnc, ...
+        IBmnc = sprintf('%s.%d_%dx%d', IS.ISopt.mnc, ...
           IS.res2(i).Nres2, Opt.ICOS_passes,Opt.Nsamples);
+%         ofile = sprintf('IB_%s.%d_%dx%d', IS.ISopt.mnc, ...
+%           IS.res2(i).Nres2, Opt.ICOS_passes,Opt.Nsamples);
         P = render_model(IS.res2(i));
         n_optics = 4 + length(P.Lenses);
         Track_Power = 1;
         if ~isempty(Opt.opt_n)
           opt_n = Opt.opt_n;
           Track_Power = 0;
-          ofile = sprintf('%s_%d', ofile, opt_n);
+          IBmnc = sprintf('%s_%d', IBmnc, opt_n);
         else
           opt_n = n_optics;
         end
-        ofile = sprintf('%s.mat', ofile);
+        ofile = sprintf('IB_%s.mat', IBmnc);
         if ~exist(ofile, 'file')
           P.visible = 0;
           % P.HR = 0;
@@ -860,7 +862,8 @@ classdef ICOS_search < handle
           IB = ICOS_beam(@ICOS_Model6, P);
           IB.Sample('beam_samples', Opt.Nsamples, ...
             'ICOS_passes', Opt.ICOS_passes, 'opt_n', opt_n, ...
-            'n_optics', n_optics, 'Track_Power', Track_Power, IBopt{:});
+            'n_optics', n_optics, 'Track_Power', Track_Power, ...
+            'mnc', IBmnc, IBopt{:});
           if opt_n == n_optics
             ff2 = IB.Integrate;
             if ~isempty(ff)
@@ -869,8 +872,9 @@ classdef ICOS_search < handle
             end
             ff = ff2;
           end
-          save(ofile, 'IB');
-          fprintf(1, 'ICOS_beam %d Saved result to %s\n', i, ofile);
+          IB.savefile;
+          % save(ofile, 'IB');
+          % fprintf(1, 'ICOS_beam %d Saved result to %s\n', i, ofile);
           Pwr = IB.PowerSummary;
           IS.res2(i).NH = Pwr.NH;
           if isfield(Pwr,'max_pwr')

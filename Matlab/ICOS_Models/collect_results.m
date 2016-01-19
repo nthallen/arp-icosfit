@@ -124,11 +124,11 @@ end
 %%
 for i=1:length(res)
   %%
-  pat1 = sprintf('IS_%s.%d_*x*.mat', res(i).mnc, res(i).index);
+  pat1 = sprintf('IB_%s.%d_*x*.mat', res(i).mnc, res(i).index);
   IBs = dir(pat1);
   IBs = { IBs.name };
   IBsana = regexp(IBs,'\d+x\d+\.mat','all');
-  IBs = IBs(~isempty(IBsana));
+  IBs = IBs(~cellfun(@isempty,IBsana));
   if isempty(IBs)
     fprintf(1,'No ICOS_beam analysis found for IS_%s.%d\n', ...
       res(i).mnc, res(i).index);
