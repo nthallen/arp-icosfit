@@ -147,7 +147,7 @@ classdef opt_model_p
       else
         try
           clf;
-          mesh(PM.Results.(PM.p1),PM.Results.(PM.p2),PM.Results.(meshz));
+          mesh(PM.Results.(PM.p1),PM.Results.(PM.p2),double(PM.Results.(meshz)));
           xlabel(strrep(PM.p1,'_','\_'));
           ylabel(strrep(PM.p2,'_','\_'));
           zlabel(strrep(meshz,'_','\_'));
