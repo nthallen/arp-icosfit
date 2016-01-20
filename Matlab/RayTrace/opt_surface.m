@@ -70,7 +70,8 @@ classdef opt_surface
           else
             sintrans = sininc * surf.n_ext / surf.n_int;
           end
-          Rtrans = opt_ray(Pintercept, N*Vnormal+sintrans);
+          % Rtrans = opt_ray(Pintercept, N*Vnormal+sintrans);
+          Rtrans = opt_ray(Pintercept, sign(N)*sqrt(1-sum(sintrans.^2))*Vnormal+sintrans);
           Rtrans.P = Rincident.P * surf.T;
           Rtrans.pass = Rincident.pass;
 %           if Rtrans.P < surf.emission_threshold
