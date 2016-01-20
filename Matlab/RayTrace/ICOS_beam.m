@@ -27,6 +27,7 @@ classdef ICOS_beam < handle
       %    This will be tested after the model is run.
       IB.model = om;
       IB.P = P;
+      IB.IBP.mnc = 'ib.def';
       IB.IBP.Herriott_passes = 100;
       IB.IBP.ICOS_passes = 100;
       IB.IBP.n_optics = 5;
@@ -61,6 +62,13 @@ classdef ICOS_beam < handle
       % options are pairs of arguments as keyword, value. These may include
       % any fields in the IB.IBP structure or any fields in the model
       % parameter structure IB.P.
+      %
+      % IB.IBP options:
+      %   opt_n: The index of the optic whose rays we want to track
+      %   Track_Power: boolean: default is 0
+      %   ICOS_Passes: The number of ICOS passes to track. Default is 100
+      %   beam_samples: The number of random beams. Default is 100
+      %
       % IB.Sample generates a random sample of rays to represent the
       % physical dimensions of a real laser beam and propagates the optical
       % model for each, saving the results within the IB object.
@@ -134,7 +142,7 @@ classdef ICOS_beam < handle
           end
           if PM.M.n_rays >= PM.M.max_rays
             warning('Matlab:HUARP:model_maxed', ...
-              'n_rays maxed out: accuracy will be limited');
+              'n_rays >= max_rays (maxed out): accuracy will be limited');
           end
           if isempty(IB.Res.perimeter)
             IB.Res.perimeter = PM.M.Optic{IB.IBP.opt_n}.Surface{1}.perimeter;
@@ -258,7 +266,11 @@ classdef ICOS_beam < handle
           100*IB.Res.Ptotal/Pexp);
       end
       if isfield(IB.Res,'Pwr')
-        P2_Actual = (IB.Res.Pwr.R0_2.I + IB.Res.Pwr.R1_2.I)/Nsamples;
+        if isfield(IB.Res.Pwr,'R1_2')
+          P2_Actual = (IB.Res.Pwr.R0_2.I + IB.Res.Pwr.R1_2.I)/Nsamples;
+        else
+          P2_Actual = IB.Res.Pwr.R0_2.I/Nsamples;
+        end
         P2_loss_pct = 100*(P2_Ideal-P2_Actual)/P2_Ideal;
         cum_pwr = 1-P2_loss_pct/100;
         Iin_Actual = P2_Actual * T;
@@ -391,9 +403,17 @@ classdef ICOS_beam < handle
     end
     
     function ff = Integrate(IB)
+      % IB.Integrate;
+      % Analyzes rays from the Sample operation to generate heat
+      % maps in the plane of a particular optical element, usually
+      % the detector.
+      % All options are set during the Sample phase.
       if ~isstruct(IB.Res)
         error('MATLAB:HUARP:Unsampled', ...
           'Must run Sample before Integrate()');
+      end
+      if ~isfield(IB.IBP,'mnc')
+        IB.IBP.mnc = 'ib.def';
       end
       Nsamples = IB.IBP.beam_samples;
       T = IB.P.T;
@@ -450,7 +470,7 @@ classdef ICOS_beam < handle
         set(figs(Dyzi),'position',pos);
         set(gca,'DataAspectRatio',[1 1 1],'Ydir','normal');
         ch = colorbar;
-        mname = strrep(func2str(IB.model),'_','\_');
+        mname = strrep(IB.IBP.mnc,'_','\_');
         
         title(sprintf('%s: %.1fmm Detector %d passes %d samples', ...
           mname, Dyz*10, IB.IBP.ICOS_passes, ...
@@ -526,6 +546,17 @@ classdef ICOS_beam < handle
         delete(figs(Dyzi));
         fprintf(1,'Output written to %s\n', fname);
       end
+    end
+    
+    function savefile(IB)
+      % IB.savefile
+      % Writes the IB object to a .mat file with the name derived
+      % from the mnemonic in IB.IBP.mnc. The filename is prefixed
+      % with 'IS_'.
+      % See also: ICOS_beam
+      fname = sprintf('IB_%s.mat', IB.IBP.mnc);
+      save(fname, 'IB');
+      fprintf(1, 'ICOS_beam saved to %s\n', fname);
     end
   end
 end
