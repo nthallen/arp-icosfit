@@ -33,5 +33,19 @@ classdef opt_ray
         end
       end
     end
+    
+    function [srO,srE] = sr(R)
+      srO = (-R.O(3)*R.D(2)+R.O(2)*R.D(3))/R.D(1);
+      if nargout > 1
+        srE = (-R.E(3)*R.D(2)+R.E(2)*R.D(3))/R.D(1);
+      end
+    end
+    
+    function [DL,L] = len(R)
+      DL = sqrt(sum(R.D.^2));
+      if nargout > 1
+        L = sqrt(sum((R.E-R.O).^2));
+      end
+    end
   end
 end
