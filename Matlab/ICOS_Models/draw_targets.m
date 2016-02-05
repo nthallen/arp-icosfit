@@ -1,12 +1,18 @@
 function draw_targets(P,scale)
-% draw_targets(P)
+% draw_targets(P,scale)
 % draws two targets, one for the Herriott mirror and one
 % for the first ICOS mirror.
+% This was originally written for ICOS_Model5.
 if nargin < 2
   scale = 1;
 end
-r0 = .472*2.54;
-rs = .098*2.54;
+r0 = .472*2.54; %?
+rs = .098*2.54; %?
+if isfield(P,'r1')
+  target_radius = P.r1; % ICOS_Model6
+else
+  target_radius = P.r; % ICOS_Model5
+end
 m = P.injection_scale;
 clf;
 HP = [-P.herriott_spacing, m*P.y0, 0];
@@ -14,11 +20,11 @@ D = [1,-P.dy*m,P.dz*m];
 IP = HP+P.herriott_spacing*D;
 txt = sprintf('Herriott Spacing %.2f cm', P.herriott_spacing);
 
-Ioffset = P.r * 2 + 0.5;
+Ioffset = target_radius * 2 + 0.5;
 % Ioffset = 0;
-draw_target('ICOS', txt, IP, P.r, Ioffset, 0, scale);
-draw_target('RIM', txt, HP, P.r, 0, rs, scale);
-draw_slot(r0, rs, P.r, scale);
+draw_target('ICOS', txt, IP, target_radius, Ioffset, 0, scale);
+draw_target('RIM', txt, HP, target_radius, 0, rs, scale);
+draw_slot(r0, rs, target_radius, scale);
 hold off;
 shg;
 set(gca,'xtick',[],'ytick',[]);

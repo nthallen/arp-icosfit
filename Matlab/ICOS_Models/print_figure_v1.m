@@ -1,10 +1,20 @@
 function print_figure_v1(ax, fname, target_dim, t)
+  % print_figure_v1(ax, fname, target_dim, t);
+  % ax: axes or figure to print
+  % fname: name of output png file
+  % dim: 1x2, [w,h] in inches
+  % t: vector of text objects to be scaled for printing
   target_width=target_dim(1);
   target_height=target_dim(2);
   
   target_aspect_ratio = target_height/target_width;
-  set(ax,'units','inches');
-  P = get(ax,'position');
+  if strcmp(get(ax,'type'),'figure')
+    fig = ax;
+  else
+    fig = get(ax,'parent');
+  end
+  set(fig,'units','inches');
+  P = get(fig,'position');
   source_aspect_ratio = P(4)/P(3);
   if source_aspect_ratio >= target_aspect_ratio
     % fit to target height
@@ -17,7 +27,6 @@ function print_figure_v1(ax, fname, target_dim, t)
     print_scale = width/P(3);
   end
   
-  fig = get(ax,'parent');
   set(fig,'InvertHardcopy','on');
   set(fig,'PaperUnits', 'inches');
   papersize = get(fig, 'PaperSize');
@@ -30,7 +39,9 @@ function print_figure_v1(ax, fname, target_dim, t)
   % Now change the font size to map the size we will be scaled to
   tpixels = zeros(size(t));
   for i=1:length(t)
-    set(t(i),'fontunits','pixels');
+    if ~strcmp(get(t(i),'type'),'colorbar')
+      set(t(i),'fontunits','pixels');
+    end
     tpixels(i) = get(t(i),'fontsize');
     set(t(i),'fontsize', tpixels(i)*print_scale);
   end
@@ -42,7 +53,8 @@ function print_figure_v1(ax, fname, target_dim, t)
   %   set(h23,'linewidth',h23w*print_scale);
   drawnow;
   
-  set(ax,'xlimmode','manual','ylimmode','manual','zlimmode','manual');
+  axs = findobj(fig,'type','axes');
+  set(axs,'xlimmode','manual','ylimmode','manual','zlimmode','manual');
   
   print(fig, '-dpng','-r300',fname);
   

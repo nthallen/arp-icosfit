@@ -275,29 +275,35 @@ classdef ICOS_search < handle
           PM = PM.clean_results;
           PM.Results.eccentricity(PM.Results.RIM_passes <= 1) = NaN;
           [P.herriott_spacing,~,~] = PM.identify_minimum(criteria);
-          % Calculate overlap
-          P.evaluate_endpoints = 2;
-          P.skip.total_power = 1;
-          P.skip.eccentricity = 1;
-          P.skip.mean_angle = 1;
-          P.skip.overlap = 0;
-          P.skip.RIM_passes = 0;
-          P.visible = 0;
-          P.HR = 0.98; % restored from before
-          PM = ICOS_Model6(P);
-          overlap = PM.Results.overlap;
-          %
-          P.visible = 0;
-          P.visibility = [];
-          P.focus = 1;
-          P.evaluate_endpoints = -1;
-          res(i).ORd2 = -P.dy;
-          res(i).ORs2 = P.dz;
-          res(i).ORL = P.herriott_spacing;
-          res(i).overlap = overlap;
-          fprintf(1,'Completed %d/%d: RR1:%.1f RL:%.1f r1:%.1f R2:%.1f overlap:%.1f\n', ...
-            i, length(res), res(i).RR1, res(i).RL, res(i).r1, res(i).R2, ...
-            res(i).overlap);
+          if isempty(P.herriott_spacing)
+            fprintf(1,'Solution %d/%d could not optimize herriott_spacing with ICOS\n', ...
+              i, length(res));
+            opt_OK(i) = false;
+          else
+            % Calculate overlap
+            P.evaluate_endpoints = 2;
+            P.skip.total_power = 1;
+            P.skip.eccentricity = 1;
+            P.skip.mean_angle = 1;
+            P.skip.overlap = 0;
+            P.skip.RIM_passes = 0;
+            P.visible = 0;
+            P.HR = 0.98; % restored from before
+            PM = ICOS_Model6(P);
+            overlap = PM.Results.overlap;
+            %
+            P.visible = 0;
+            P.visibility = [];
+            P.focus = 1;
+            P.evaluate_endpoints = -1;
+            res(i).ORd2 = -P.dy;
+            res(i).ORs2 = P.dz;
+            res(i).ORL = P.herriott_spacing;
+            res(i).overlap = overlap;
+            fprintf(1,'Completed %d/%d: RR1:%.1f RL:%.1f r1:%.1f R2:%.1f overlap:%.1f\n', ...
+              i, length(res), res(i).RR1, res(i).RL, res(i).r1, res(i).R2, ...
+              res(i).overlap);
+          end
         end
       end
       IS.res1 = res(opt_OK);
@@ -312,11 +318,12 @@ classdef ICOS_search < handle
       %   focus_visible: 0 suppresses plots, 1 plots accepted focuses,
       %     2 shows all attempts.
       %   max_lenses: defaults to 3
+      %   fix_lenses: cell array of specific lenses to use
       %
       % search_focus2 attempts to build configurations using lenses
       % defined in the ICOS_Model6.props LensTypes array.
-      function optimize_focus(IS, resn, P, d, s, r, th, dth, depth)
-        % optimize_focus(IS, resn, P, d, s, r, th, dth)
+      function optimize_focus(IS, resn, P, d, s, r, th, dth, depth, fix)
+        % optimize_focus(IS, resn, P, d, s, r, th, dth, fix)
         % IS ICOS_search object
         % resn The res1 index we are working on
         % P ICOS_Model6 properties
@@ -326,6 +333,7 @@ classdef ICOS_search < handle
         % th target angle
         % dth target angle tolerance
         % depth is a limit on how many lenses we should allow
+        % fix cell array if non-empty, defines specific lenses to use
         % Assumption is that we need to be converging.
         if th < 0 || th > 90
           error('MATLAB:HUARP:badangle', ...
@@ -386,7 +394,15 @@ classdef ICOS_search < handle
           return; % No results
         end
         n_lenses = length(P.Lenses)+1;
-        LTS = fields(P.LensTypes);
+        if ~isempty(fix)
+          if n_lenses <= length(fix)
+            LTS = { fix{n_lenses} };
+          else
+            LTS = {};
+          end
+        else
+          LTS = fields(P.LensTypes);
+        end
         if n_lenses == 1
           Prev_lens_r = P.r2;
         else
@@ -414,17 +430,17 @@ classdef ICOS_search < handle
             % In that case, we should try to optimize by binary
             % search.
             if ~isempty(x)
-              optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth);
+              optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth, fix);
               if length(x) == 3 && x(1) > 5
                 % Try for a shorter focus by using minimum
-                optimize_rays(IS, P, x(2), d, ds, th, dth, f, resn, depth);
+                optimize_rays(IS, P, x(2), d, ds, th, dth, f, resn, depth, fix);
               end
             end
           end
         end
       end
       
-      function optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth)
+      function optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth, fix)
         n_lenses = length(P.Lenses);
         P.Lens_Space(n_lenses) = x(1);
         P.detector_spacing = ds;
@@ -494,17 +510,6 @@ classdef ICOS_search < handle
               theta2 = atand(sqrt(div.^2 + mean(skew).^2));
             end
           end
-%         elseif length(x) == 2
-%           % Fairly crude attempt at finding more optimal solutions.
-%           r2 = mean(r2);
-%           d2 = mean(div);
-%           s2 = mean(skew);
-%           P.detector_spacing = mean(oxyz(:,1)) - PM.M.Optic{3+n_lenses}.O(1) - ...
-%             PM.M.Optic{3+n_lenses}.CT - r2*d2/(d2^2+s2^2);
-%           optimize_focus(IS, resn, P, d2, s2, r2, th, dth, depth-1);
-%           P.Lens_Space(n_lenses) = x(2);
-%           PM = ICOS_Model6(P);
-%           [oxyz,r2,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
         end
         % [oxyz,r2,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
         r2 = mean(r2);
@@ -512,13 +517,14 @@ classdef ICOS_search < handle
         s2 = mean(skew);
         P.detector_spacing = mean(oxyz(:,1)) - PM.M.Optic{3+n_lenses}.O(1) - ...
           PM.M.Optic{3+n_lenses}.CT - r2*d2/(d2^2+s2^2);
-        optimize_focus(IS, resn, P, d2, s2, r2, th, dth, depth-1);
+        optimize_focus(IS, resn, P, d2, s2, r2, th, dth, depth-1, fix);
       end
       
       SFopt.select = [];
       SFopt.det_acc_limit = 14.9;
       SFopt.det_acc_limit_tolerance = 0.05;
       SFopt.max_lenses = 3;
+      SFopt.fix_lenses = {};
       for i=1:2:length(varargin)-1
         fld = varargin{i};
         if isfield(IS.ISopt,fld)
@@ -552,7 +558,8 @@ classdef ICOS_search < handle
         s = res(i).s2;
         r = res(i).r2;
         optimize_focus(IS, i, P, d, s, r, SFopt.det_acc_limit, ...
-          SFopt.det_acc_limit_tolerance, SFopt.max_lenses);
+          SFopt.det_acc_limit_tolerance, SFopt.max_lenses, ...
+          SFopt.fix_lenses);
       end
       IS.savefile;
     end
@@ -755,6 +762,7 @@ classdef ICOS_search < handle
       sel = [IS.res2.sel];
       v = sel ~= 0;
       
+      f = figure;
       if nargin < 2 || plotnum == 1
         h = plot(Ltot,Lpos,'.',Ltot(v),Lpos(v),'or');
         xlabel('L_{total} cm');
@@ -767,6 +775,7 @@ classdef ICOS_search < handle
         set(gca, 'buttondownfcn', @(s,e) ICOS_search.ex_bdf(s,e,IS,Ltot,Lpos));
       elseif plotnum == 2
       end
+      waitfor(f);
     end
     
     function analyze(IS, varargin)
@@ -774,6 +783,8 @@ classdef ICOS_search < handle
       % options include:
       %   'ICOS_passes', n
       %   'Nsamples', n
+      %   'HR', Herriott mirror reflectivity (0.98)
+      %   'T', ICOS mirror transmission (250ppm)
       %   'opt_n', n
       %   'select', array of Nres2 indexes to analyze
       % plus any ICOS_beam options
@@ -790,9 +801,9 @@ classdef ICOS_search < handle
       end
       Opt.ICOS_passes = 50;
       Opt.Nsamples = 100;
-      % Opt.Herriott_passes = 100;
-      % Opt.n_optics = 5;
-      % Opt.rng_state = [];
+      Opt.HR = 0.98;
+      Opt.T = 250e-6;
+      Opt.Herriott_passes = 100;
       Opt.opt_n = [];
       Opt.select = [];
       if isfield(IS.res2,'sel')
@@ -844,6 +855,11 @@ classdef ICOS_search < handle
 %         ofile = sprintf('IB_%s.%d_%dx%d', IS.ISopt.mnc, ...
 %           IS.res2(i).Nres2, Opt.ICOS_passes,Opt.Nsamples);
         P = render_model(IS.res2(i));
+        P.HR = Opt.HR;
+        if Opt.HR == 0
+          Opt.Herriott_passes = 1;
+        end
+        P.T = Opt.T;
         n_optics = 4 + length(P.Lenses);
         Track_Power = 1;
         if ~isempty(Opt.opt_n)
@@ -863,6 +879,7 @@ classdef ICOS_search < handle
           IB.Sample('beam_samples', Opt.Nsamples, ...
             'ICOS_passes', Opt.ICOS_passes, 'opt_n', opt_n, ...
             'n_optics', n_optics, 'Track_Power', Track_Power, ...
+            'Herriott_passes', Opt.Herriot_passes, ...
             'mnc', IBmnc, IBopt{:});
           if opt_n == n_optics
             ff2 = IB.Integrate;

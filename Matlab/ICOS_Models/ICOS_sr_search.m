@@ -339,8 +339,8 @@ classdef ICOS_sr_search < handle
       v1 = ddL < 2000 & sel;
       m = [SR.Summary.m];
       k = [SR.Summary.k];
+      f = figure;
       if nargin < 2 || plot_num == 1
-        figure;
         h = plot(RLmin(v),ddBL(v),'.', RLmin(v1),ddBL(v1),'or');
         xlabel('RLmin cm');
         ylabel('Build \Delta{L} cm');
@@ -351,7 +351,6 @@ classdef ICOS_sr_search < handle
         set(h,'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,RLmin,ddBL));
         set(gca, 'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,RLmin,ddBL));
       elseif plot_num == 2
-        figure;
         h = plot(ddL(v), ddBL(v),'.', ddL(v1), ddBL(v1), 'or');
         xlabel('Design \Delta{L} cm');
         ylabel('Build \Delta{L} cm');
@@ -365,7 +364,6 @@ classdef ICOS_sr_search < handle
         r1 = [SR.Summary.r1];
         r2 = [SR.Summary.r2];
         r2_r1 = r2./r1;
-        figure;
         h = plot(r2_r1(v), ddBL(v), '.', r2_r1(v1),ddBL(v1),'or');
         xlabel('r_2/r_1');
         ylabel('Build \Delta{L} cm');
@@ -378,7 +376,6 @@ classdef ICOS_sr_search < handle
       else % plot_num == 4
         R1 = [SR.Summary.R1];
         R2 = [SR.Summary.R2];
-        figure;
         h = plot(R1(v), R2(v), '.', R1(v1),R2(v1),'or');
         xlabel('R_1 cm');
         ylabel('R_2 cm');
@@ -389,6 +386,7 @@ classdef ICOS_sr_search < handle
         set(h,'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,R1,R2));
         set(gca, 'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,R1,R2));
       end
+      waitfor(f);
     end
     
     function validate_interleave_tolerance(SR,m,k)
@@ -534,7 +532,7 @@ classdef ICOS_sr_search < handle
           ISok = ISRL > .95 & ISRL < 1.05 & ISr1 > .95 & ISr1 < 1.05;
           %%
           if any(ISok)
-            IS.search_focus2('max_lenses',2,'select',find(ISok));
+            IS.search_focus2('max_lenses',2,'det_acc_limit',SR.SRopt.th,'select',find(ISok));
           end
         else
           fprintf('%s already exists, skipping\n', IS_fname);
