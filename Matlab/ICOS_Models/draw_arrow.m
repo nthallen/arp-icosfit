@@ -1,10 +1,11 @@
-function draw_arrow(ax, O, D, headlen, limrange)
-% draw_arrow(ax, O, D, scale);
+function H = draw_arrow(ax, O, D, headlen, limrange)
+% H = draw_arrow(ax, O, D, headlen[, limrange]);
 % ax Axes on which to draw
 % O origin x,y
 % D destination x,y (where the arrowhead goes)
 % headlen: arrowhead size. Defaults to 0.1 * the length
 % limrange: if specified, draws a limit line perpendicular to the arrowhead
+% Returns handle to the line objects created
 if iscolumn(O)
   O = O';
 end
@@ -26,7 +27,7 @@ P = [x' y'];
 M = [X; Y];
 Pr = P*M + ones(length(x),1)*D;
 hold(ax,'on');
-plot(ax, Pr(:,1), Pr(:,2), 'k');
+h1 = plot(ax, Pr(:,1), Pr(:,2), 'k');
 if nargin >= 5 && ~isempty(limrange)
   if iscolumn(limrange)
     limrange = limrange';
@@ -35,6 +36,9 @@ if nargin >= 5 && ~isempty(limrange)
   y = limrange;
   P = [x' y'];
   Pr = P*M + ones(length(x),1)*D;
-  plot(ax, Pr(:,1), Pr(:,2), 'k');
+  h2 = plot(ax, Pr(:,1), Pr(:,2), 'k');
 end
 hold(ax,'off');
+if nargout > 0
+  H = [h1;h2];
+end
