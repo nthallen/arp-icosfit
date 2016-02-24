@@ -344,7 +344,7 @@ classdef ICOS_sr_search < handle
         h = plot(RLmin(v),ddBL(v),'.', RLmin(v1),ddBL(v1),'or');
         xlabel('RLmin cm');
         ylabel('Build \Delta{L} cm');
-        title(sprintf('%s: Build Tolerance', SR.SRopt.mnc));
+        title(sprintf('%s: Build Tolerance', strrep(SR.SRopt.mnc,'_','\_')));
         hdt = datacursormode;
         set(hdt,'UpdateFcn', ...
           {@ICOS_sr_search.data_cursor_text_func,RLmin,ddBL,m,k,ddL,ddBL,RLmin});
@@ -354,7 +354,7 @@ classdef ICOS_sr_search < handle
         h = plot(ddL(v), ddBL(v),'.', ddL(v1), ddBL(v1), 'or');
         xlabel('Design \Delta{L} cm');
         ylabel('Build \Delta{L} cm');
-        title(sprintf('%s: Build Tolerance', SR.SRopt.mnc));
+        title(sprintf('%s: Build Tolerance', strrep(SR.SRopt.mnc,'_','\_')));
         hdt = datacursormode;
         set(hdt,'UpdateFcn', ...
           {@ICOS_sr_search.data_cursor_text_func,ddL,ddBL,m,k,ddL,ddBL,RLmin});
@@ -367,7 +367,7 @@ classdef ICOS_sr_search < handle
         h = plot(r2_r1(v), ddBL(v), '.', r2_r1(v1),ddBL(v1),'or');
         xlabel('r_2/r_1');
         ylabel('Build \Delta{L} cm');
-        title(sprintf('%s: Build Tolerance', SR.SRopt.mnc));
+        title(sprintf('%s: Build Tolerance', strrep(SR.SRopt.mnc,'_','\_')));
         hdt = datacursormode;
         set(hdt,'UpdateFcn', ...
           {@ICOS_sr_search.data_cursor_text_func,r2_r1,ddBL,m,k,ddL,ddBL,RLmin});
@@ -379,7 +379,7 @@ classdef ICOS_sr_search < handle
         h = plot(R1(v), R2(v), '.', R1(v1),R2(v1),'or');
         xlabel('R_1 cm');
         ylabel('R_2 cm');
-        title(sprintf('%s: Radii of curvature', SR.SRopt.mnc));
+        title(sprintf('%s: Radii of curvature', strrep(SR.SRopt.mnc,'_','\_')));
         hdt = datacursormode;
         set(hdt,'UpdateFcn', ...
           {@ICOS_sr_search.data_cursor_text_func,R1,R2,m,k,ddL,ddBL,RLmin});
