@@ -230,3 +230,7 @@ print -dpng -r300 target_JWa.png
 load IB_JWa.1_50x100.mat
 PM = IB.draw('ICOS_passes_per_injection',23,'visibility',0, ...
   'HR',0,'visible',1,'view',[0 90],'herriott_spacing',8);
+%% How to examine optic positioning
+load IB_JWa.5_50x100.mat
+PM = IB.draw('ICOS_passes_per_injection',23,'visibility',0, ...
+  'HR',0,'visible',1,'view',[0 90],'herriott_spacing',8);
