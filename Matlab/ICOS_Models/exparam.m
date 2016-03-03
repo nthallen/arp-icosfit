@@ -54,16 +54,18 @@ SP.R2 = 64;
 % the parameters are in the supported set, and then use the sum
 % of the codes here to determine which solution to use.
 flds = fields(P);
-if length(flds) ~= 5
-  error('MATLAB:HUARP:InvalidArg','%d parameters specified: expected 5', ...
-    length(flds));
-end
+% if length(flds) ~= 5
+%   error('MATLAB:HUARP:InvalidArg','%d parameters specified: expected 5', ...
+%     length(flds));
+% end
 solution_code = 0;
 for i=1:length(flds)
   fld = flds{i};
   if isfield(SP, fld)
     solution_code = solution_code + SP.(fld);
     R.(fld) = P.(fld);
+  elseif strcmp(fld,'n')
+    R.n = P.(fld);
   else
     error('MATLAB:HUARP:InvalidArg','Invalid parameter: "%s"', ...
     	fld);
