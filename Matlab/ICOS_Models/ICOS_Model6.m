@@ -157,6 +157,7 @@ classdef ICOS_Model6 < opt_model_p
   
   methods (Static)
     function P = props
+      P.optics_n = 2.4361;
       % Herriott Mirror
       P.herriott_spacing = 10; % Before the first ICOS mirror
       P.HRC = 15*2.54; % Herriott radius of curvature
@@ -239,7 +240,7 @@ classdef ICOS_Model6 < opt_model_p
     
     function M = P_model(P)
       T = P.T; % 250e-6; % transmittance
-      n_ZnSe = 2.4361;
+      n_ZnSe = P.optics_n; % 2.4361;
       n_air = 1;
       d = P.mirror_spacing;
       if P.focus == 1
