@@ -17,6 +17,9 @@ for i=1:length(res)
   else
     P.r1 = 3*2.54/2;
   end
+  if isfield(res(i),'n')
+    P.optics_n = res(i).n;
+  end
   P.r2 = res(i).D2*2.54/2;
   P.mirror_spacing = res(i).L;
   P.y0 = res(i).Rr2;
