@@ -49,6 +49,7 @@ classdef ICOS_search < handle
       IS.ISP.r1 = [];
       IS.ISP.L = [];
       IS.ISP.R2 = []; % If not set, choices are searched in ispcatalog
+      IS.ISP.n = []; % index of refraction
       IS.ISopt.mnc = '';
       IS.ISopt.R2_lim = [-inf inf];
       IS.ISopt.RR1_lim = [-inf inf];
@@ -115,6 +116,9 @@ classdef ICOS_search < handle
       end
       if ~isempty(IS.ISP.r1)
         P.r1 = IS.ISP.r1;
+      end
+      if ~isempty(IS.ISP.n)
+        P.n = IS.ISP.n;
       end
       P.Rw1 = IS.ISP.Rw1;
       Res = cell(ntrials,0);
