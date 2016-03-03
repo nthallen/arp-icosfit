@@ -5,6 +5,9 @@ function check_params(sol_num, res)
 % res: output from exparam.
 % See also: exparam
 n = 2.4361;
+if isfield(res,'n')
+  n = res.n;
+end
 run_check(sol_num, 'ICOS eq 1', check_eq1(res.h1, res.r2, res.R2, res.L));
 run_check(sol_num, 'ICOS eq 2', check_eq1(res.h2, res.r1, res.R1, res.L));
 run_check(sol_num, 'ICOS eq 3', check_eq3(res.r1, res.r2, res.h1, res.h2));
