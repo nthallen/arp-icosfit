@@ -1,4 +1,9 @@
 function dN = evaluate_interleave(m,k)
+% dN = evaluate_interleave(m,k);
+%  m = number of spots
+%  k = interleave factor
+% dN is empty if gcd(m,k) ~= 1, otherwise returns the minimum and
+%   maximum scale factors by which spot angle errors are multiplied
 %% scratch_151021.m. Look at interleave to evaluate tolerances
 % Back to the Future Day
 % Interleave is characterized by:
