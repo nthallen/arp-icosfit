@@ -25,6 +25,8 @@ classdef ICOS_sr_search < handle
     NSol % The solution number we're currently working on
     rdtanth % detector radius times tan of acceptance angle
     Rmax % how far out to plot
+    R1 %
+    R2 %
   end
   
   properties (SetAccess = private)
@@ -36,14 +38,26 @@ classdef ICOS_sr_search < handle
       % SR = ICOS_sr_search(options)
       % options are keyword, value pairs. Keywords may include
       % any field of the SRopt property, including:
-      %   C: Laser coherence length or equivalent, cm
-      %   B: Laser beam diameter, cm
-      %   rd: Target radius at detector, cm
-      %   th: Target angle at detector, degrees
-      %   L: ICOS cell length, cm
-      %   Rtolerance: Tolerance factor on mirror radius
-      %   r_limit: Maximum r1, cm (based on mirror diameter)
-      %   Rw1: Target Rw1, cm
+      %   C: Laser coherence length or equivalent, cm. Def: 3000
+      %   B: Laser beam diameter, cm. Def: 0.4
+      %   rd: Target radius at detector, cm. Def: .09
+      %   th: Target angle at detector, degrees. Def: 14.5
+      %   L: ICOS cell length, cm. Def: 50
+      %   Rtolerance: Tolerance factor on mirror radius. Def: 0.01
+      %   r_limit: Maximum r1, cm (based on mirror diameter).
+      %     Def: 1.25"-.4cm
+      %   Rw1: Target Rw1, cm. Def: 0.22
+      %   R1: List of specific R1 values. Def: []
+      %   R2: List of specific R2 values. Def: []
+      %   n: Indef of refraction of all refracting optics. Def: 2.4361
+      %
+      % If L is defined and R1 and R2 are empty, specific values for
+      % R1 and R2 are selected that will work with L. If L has two
+      % elements, the second value is an upper limit on L values for
+      % ruling out design tolerances that are too long.
+      %
+      % If R1 and R2 are specified, L should be [Lmin Lmax], defining
+      % the acceptable range of L values.
       SR.SRopt.C = 3000; % Laser coherence length or equivalent, cm
       SR.SRopt.B = .4; % Beam diameter, cm
       SR.SRopt.rd = .09; % Target radius at detector, cm
@@ -58,6 +72,9 @@ classdef ICOS_sr_search < handle
       SR.SRopt.mk = [];
       % SolScale if set causes a different selection criteria
       SR.SRopt.SolScale = []; % Value from 0 to 1 weighing where to select
+      SR.SRopt.R1 = [];
+      SR.SRopt.R2 = [];
+      SR.SRopt.n = [];
       for i=1:2:length(varargin)-1
         fld = varargin{i};
         if isfield(SR.SRopt, fld)
@@ -68,34 +85,28 @@ classdef ICOS_sr_search < handle
           error('MATLAB:HUARP:badopt', 'Invalid option: "%s"', fld);
         end
       end
-      SR.m_min = ceil(SR.SRopt.C/(2*SR.SRopt.L)); % This spot can overlap
+      SR.m_min = ceil(SR.SRopt.C/(2*SR.SRopt.L(end))); % This spot can overlap
       SR.m_max = floor(pi/asin(SR.SRopt.B/(2*SR.SRopt.r_limit)));
       SR.SolInc = 40; % Just a preallocation parameter
       SR.RawSols = 0;
       SR.NSol = 0;
       SR.rdtanth = SR.SRopt.rd*tand(SR.SRopt.th);
       SR.Summary = [];
+      SR.R1 = [];
+      SR.R2 = [];
     end
     
     function enumerate(SR)
       % SR.enumerate
       % Identifies all interleave patterns that meet both the focus and
       % overlap criteria.
-      function enumerate_mk(SR,m,k)
-        dN = evaluate_interleave(m,k);
-        if isempty(dN)
-          return;
-        end
-        [~,Phi,R1,R2,RL,vok,~,r_max,r_min,~,~,s1,Phi_n,Phi_p,dBL] ...
-          = select_R1R2(SR,m,k);
-        RLok = RL;
-        RLok(~vok) = NaN;
-        
+      function increment_solutions(SR)
         SR.NSol = SR.NSol+1;
         if SR.NSol > SR.RawSols
           S = ...
-            struct('RLmin',[],'r_max',[],'r_min',[],'r1',[],'r2',[],'R1',[],'R2',[], ...
-            'm',[],'k',[],'Phi',[], 'Phi_n', [], 'Phi_p', [], 'Phi_N', [], ...
+            struct('RLmin',[],'r_max',[],'r_min',[],'r1',[],'r2',[],...
+            'R1',[],'R2',[],'L',[],'m',[],'k',[],'Phi',[],'Phi_n',[],...
+            'Phi_p', [], 'Phi_N', [], ...
             'Phi_P', [],'Phi_OK', [], 'dL', [], 'dBL', [], 'sel', []);
           if SR.RawSols == 0
             SR.RawSols = 1;
@@ -105,65 +116,181 @@ classdef ICOS_sr_search < handle
             SR.Summary(SR.RawSols) = S;
           end
         end
-        
-        % This is where we select which R1/R2 pair is best.
-        % The old criteria was minimum RL, but this allowed for
-        % unbuildable configurations. I will try going for maximum
-        % ddBL instead:
-        % Smmry(SR.NSol).RLmin = nanmin(RLok);
-        % mi = find(RLok == Smmry(SR.NSol).RLmin);
-        if isempty(SR.SRopt.SolScale)
-          ddBL = diff(dBL')';
-          mi = find(~isnan(ddBL) & (ddBL == nanmax(ddBL(vok))));
-          SR.Summary(SR.NSol).sel = 0;
-        else
-          mii = find(vok);
-          n_mii = length(mii);
-          mi_n = (0:n_mii-1)/(n_mii-1);
-          mi = interp1(mi_n,mii,SR.SRopt.SolScale,'nearest');
-          SR.Summary(SR.NSol).sel = 1; % Probably only one, so select
+      end
+      
+      function enumerate_mk(SR,m,k)
+        dN = evaluate_interleave(m,k);
+        if isempty(dN)
+          return;
         end
-        SR.Summary(SR.NSol).RLmin = RLok(mi);
-        SP.R1 = R1(mi);
-        SP.R2 = R2(mi);
-        SP.L = SR.SRopt.L;
-        SP.Rw1 = SR.SRopt.Rw1;
-        SP.RL = SP.Rw1/s1(mi);
-        Res = exparam(SP);
-        check_params(SR.NSol, Res);
-        SR.Summary(SR.NSol).R1 = R1(mi);
-        SR.Summary(SR.NSol).R2 = R2(mi);
-        SR.Summary(SR.NSol).r_max = r_max(mi);
-        SR.Summary(SR.NSol).r_min = r_min;
-        SR.Summary(SR.NSol).r1 = Res(1).r1;
-        SR.Summary(SR.NSol).r2 = Res(1).r2;
-        SR.Summary(SR.NSol).m = m;
-        SR.Summary(SR.NSol).k = k;
-        SR.Summary(SR.NSol).Phi = Phi;
-        SR.Summary(SR.NSol).Phi_n = Phi_n(mi);
-        SR.Summary(SR.NSol).Phi_p = Phi_p(mi);
-        SR.Summary(SR.NSol).dBL = dBL(mi,:);
+        if isempty(SR.SRopt.R1) && isempty(SR.SRopt.R2)
+          [~,Phi,R1,R2,RL,vok,~,r_max,r_min,~,~,s1,Phi_n,Phi_p,dBL] ...
+            = select_R1R2(SR,m,k);
+          RLok = RL;
+          RLok(~vok) = NaN;
+          increment_solutions(SR);
+          
+          % This is where we select which R1/R2 pair is best.
+          % The old criteria was minimum RL, but this allowed for
+          % unbuildable configurations. I will try going for maximum
+          % ddBL instead:
+          % Smmry(SR.NSol).RLmin = nanmin(RLok);
+          % mi = find(RLok == Smmry(SR.NSol).RLmin);
+          if isempty(SR.SRopt.SolScale)
+            ddBL = diff(dBL')';
+            mi = find(~isnan(ddBL) & (ddBL == nanmax(ddBL(vok))));
+            SR.Summary(SR.NSol).sel = 0;
+          else
+            mii = find(vok);
+            n_mii = length(mii);
+            mi_n = (0:n_mii-1)/(n_mii-1);
+            mi = interp1(mi_n,mii,SR.SRopt.SolScale,'nearest');
+            SR.Summary(SR.NSol).sel = 1; % Probably only one, so select
+          end
+          SR.Summary(SR.NSol).RLmin = RLok(mi);
+          SP.R1 = R1(mi);
+          SP.R2 = R2(mi);
+          SP.L = SR.SRopt.L(1);
+          SP.Rw1 = SR.SRopt.Rw1;
+          SP.RL = SP.Rw1/s1(mi);
+          if ~isempty(SR.SRopt.n)
+            SP.n = SR.SRopt.n;
+          end
+          Res = exparam(SP);
+          check_params(SR.NSol, Res);
+          SR.Summary(SR.NSol).R1 = R1(mi);
+          SR.Summary(SR.NSol).R2 = R2(mi);
+          SR.Summary(SR.NSol).L = SR.SRopt.L(1);
+          SR.Summary(SR.NSol).r_max = r_max(mi);
+          SR.Summary(SR.NSol).r_min = r_min;
+          SR.Summary(SR.NSol).r1 = Res(1).r1;
+          SR.Summary(SR.NSol).r2 = Res(1).r2;
+          SR.Summary(SR.NSol).m = m;
+          SR.Summary(SR.NSol).k = k;
+          SR.Summary(SR.NSol).Phi = Phi;
+          SR.Summary(SR.NSol).Phi_n = Phi_n(mi);
+          SR.Summary(SR.NSol).Phi_p = Phi_p(mi);
+          SR.Summary(SR.NSol).dBL = dBL(mi,:);
+        else % R1 and R2 are specified
+          R1 = SR.R1;
+          R2 = SR.R2;
+          phi = pi/m;
+          Phi = k*phi;
+          s2 = sin(Phi)^2;
+          disc = (R1+R2)^2-4*R1*R2*s2;
+          if disc > 0
+            L = (R1+R2+[-1 1]*sqrt(disc))/2;
+          elseif disc == 0
+            L = (R1+R2)/2;
+          else
+            L = [];
+          end
+          L = L(L >= SR.SRopt.L(1) & L <= SR.SRopt.L(2));
+          m_min = ceil(SR.SRopt.C./(2*L)); % This spot can overlap
+          L = L(m>=m_min); % If L is short, SR.m_min may be < m_min
+          if ~isempty(L)
+            r_min = SR.SRopt.B/(2*sin(phi));
+            r_max = sqrt(SR.rdtanth* ...
+              sqrt(((R2-L).*R1.^2.*L)./ ...
+              ((R1-L).*(R1+R2-L))));
+            r_max(~isnan(r_max)) = min(r_max(~isnan(r_max)),SR.SRopt.r_limit);
+            r2 = abs(r_max.*cos(Phi).*R2./(R2-L));
+            w2 = abs(r_max*sin(Phi)*cos(Phi).*R2./(R2-L));
+            s1 = w2./L;
+            
+            % Rw1 = 1.1*B/2;
+            RL = abs(SR.SRopt.Rw1./s1);
+            vok = r_max > r_min & r_max >= r2;
+            % Rmax = min(nanmax(R1(vok))*1.1, 2000);
+            phi_min = asin(SR.SRopt.B./(2*r_max));
+            Phi_n = Phi + (phi_min-phi)/dN(2);
+            Phi_p = Phi + (phi_min-phi)/dN(1);
+            % This is different: R1 is not a vector, but Phi_n might be
+%             disc = ((R1+R2).^2)*ones(length(phi_min),2) - ...
+%               (4*R1.*R2*ones(length(phi_min),2)).*sin([Phi_n' Phi_p']).^2;
+%             if all(all(isnan(disc) | disc > 0))
+%               Lp = ((R1+R2)*ones(length(phi_min),4)+sqrt(disc)*[1,0,0,-1;0,1,-1,0])/2;
+%               Lps = sign(Lp-L'*ones(1,4));
+%               Lp2 = Lps(:,3)==-1&Lps(:,4)==1;
+%               dBL = Lp(:,[1 2]);
+%               dBL(Lp2,:) = Lp(Lp2,[3,4]);
+%               dBL = dBL - L(1);
+%             end
+            for i=1:length(L)
+              if vok(i)
+                increment_solutions(SR);
+                SR.Summary(SR.NSol).RLmin = RL(i);
+                SP.R1 = R1;
+                SP.R2 = R2;
+                SP.L = L(i);
+                SP.Rw1 = SR.SRopt.Rw1;
+                SP.RL = SP.Rw1/s1(i);
+                if ~isempty(SR.SRopt.n)
+                  SP.n = SR.SRopt.n;
+                end
+                Res = exparam(SP);
+                check_params(SR.NSol, Res);
+                SR.Summary(SR.NSol).R1 = R1;
+                SR.Summary(SR.NSol).R2 = R2;
+                SR.Summary(SR.NSol).L = L(i);
+                SR.Summary(SR.NSol).r_max = r_max(i);
+                SR.Summary(SR.NSol).r_min = r_min;
+                SR.Summary(SR.NSol).r1 = Res(1).r1;
+                SR.Summary(SR.NSol).r2 = Res(1).r2;
+                SR.Summary(SR.NSol).m = m;
+                SR.Summary(SR.NSol).k = k;
+                SR.Summary(SR.NSol).Phi = Phi;
+                SR.Summary(SR.NSol).Phi_n = Phi_n(i);
+                SR.Summary(SR.NSol).Phi_p = Phi_p(i);
+                % SR.Summary(SR.NSol).dBL = dBL(i,:);
+                SR.Summary(SR.NSol).sel = 0;
+              end
+            end
+          end
+        end
+      end
+      
+      function enumerate_mks(SR)
+        % SR.NSol = 0;
+        if ~isempty(SR.SRopt.mk)
+          for i=1:size(SR.SRopt.mk,1)
+            m = SR.SRopt.mk(i,1);
+            k = SR.SRopt.mk(i,2);
+            if m >= SR.m_min && m <= SR.m_max && k >= 1 && k <= floor(m/2)
+              enumerate_mk(SR,m,k);
+            end
+          end
+        else
+          for m=SR.m_min:SR.m_max
+            for k = 1:floor(m/2);
+              enumerate_mk(SR,m,k);
+            end
+          end
+        end
+      end
+      
+      function enumerate_R1R2(SR)
+        if ~isempty(SR.SRopt.R1) && ~isempty(SR.SRopt.R2)
+          for i1=1:length(SR.SRopt.R1)
+            SR.R1 = SR.SRopt.R1(i1);
+            for i2=1:length(SR.SRopt.R2)
+              SR.R2 = SR.SRopt.R2(i2);
+              enumerate_mks(SR);
+            end
+          end
+        else
+          error('MATLAB:HUARP:Unsupp','Unsupported option');
+        end
       end
       
 %       SR.Summary(SR.RawSols) = ...
 %         struct('RLmin',[],'r_max',[],'r_min',[],'r1',[],'r2',[],'R1',[],'R2',[], ...
 %         'm',[],'k',[],'Phi',[], 'Phi_n', [], 'Phi_p', [], 'Phi_N', [], ...
 %         'Phi_P', [],'Phi_OK', [], 'dL', [], 'dBL', [], 'sel', []);
-      SR.NSol = 0;
-      if ~isempty(SR.SRopt.mk)
-        for i=1:size(SR.SRopt.mk,1)
-          m = SR.SRopt.mk(i,1);
-          k = SR.SRopt.mk(i,2);
-          if m >= SR.m_min && m <= SR.m_max && k >= 1 && k <= floor(m/2)
-            enumerate_mk(SR,m,k);
-          end
-        end
+      if isempty(SR.SRopt.R1) && isempty(SR.SRopt.R2)
+        enumerate_mks(SR);
       else
-        for m=SR.m_min:SR.m_max
-          for k = 1:floor(m/2);
-            enumerate_mk(SR,m,k);
-          end
-        end
+        enumerate_R1R2(SR);
       end
       SR.Summary = SR.Summary(1:SR.NSol);
       SR.RawSols = SR.NSol;
@@ -172,24 +299,43 @@ classdef ICOS_sr_search < handle
     function [phi,Phi,R1,R2,RL,vok,Rmax,r_max,r_min,r2,w2,s1,Phi_n,Phi_p,dBL] = select_R1R2(SR,m,k)
       % [phi, Phi, R1, R2, RL, vok, Rmax, r_max, r_min, r2, w2, s1] = SR.select_R1R2(m,k);
       % Performs the calculation of possible R1, R2 values
+      % phi: Advancement angle for m
+      % Phi: Advancement angle for m,k
+      % R1: Array of possible RoC values for M1
+      % R2: Array of corresponding RoC values for M2
+      % RL: Array of corresponding RIM lengths
+      % vok: Boolean array indicating which options are reasonable
+      % Rmax: An upper limit on R1 useful for setting axis limits
+      % r_max: The max r1 satisfying focusing criteria
+      % r_min: The minimum r1 satisfying overlap criteria
+      % r2: r2 value corresponding to r_max
+      % w2: w2 value corresponding to r_max
+      % s1: s1 value corresponding to r_max
+      % Phi_n: The smallest advancement angle at r_max satisfying
+      %   overlap criteria
+      % Phi_p: The larges advancement ange at r_max satisfying
+      %   overlap criteria
+      % dBL: The change in cavity length that can be tolerated while
+      %   keeping the advancement angle between Phi_n and Phi_p
       dN = evaluate_interleave(m,k);
+      % We know dN is non-empty
       phi = pi/m;
       Phi = k*phi;
-      R1pole = SR.SRopt.L/sin(Phi)^2;
+      R1pole = SR.SRopt.L(1)/sin(Phi)^2;
       if R1pole > 2000
-        R1 = interp1([0 2000],[SR.SRopt.L 2000],1:2000)';
-        R2 = SR.SRopt.L*(R1-SR.SRopt.L)./(sin(Phi)^2*R1-SR.SRopt.L);
+        R1 = interp1([0 2000],[SR.SRopt.L(1) 2000],1:2000)';
+        R2 = SR.SRopt.L(1)*(R1-SR.SRopt.L(1))./(sin(Phi)^2*R1-SR.SRopt.L(1));
         RR = []; % L/(1+cos(Phi));
         Rmax = 2000;
       else
-        R1a = interp1([0 1001],[SR.SRopt.L R1pole],1:1000)';
+        R1a = interp1([0 1001],[SR.SRopt.L(1) R1pole],1:1000)';
         R1b = interp1([0 1000],[R1pole 2000],1:1000)';
         R1 = [R1a;R1pole;R1b];
         R2 = [ ...
-          SR.SRopt.L*(R1a-SR.SRopt.L)./(sin(Phi)^2*R1a-SR.SRopt.L); ...
+          SR.SRopt.L(1)*(R1a-SR.SRopt.L(1))./(sin(Phi)^2*R1a-SR.SRopt.L(1)); ...
           NaN; ...
-          SR.SRopt.L*(R1b-SR.SRopt.L)./(sin(Phi)^2*R1b-SR.SRopt.L)];
-        RR = SR.SRopt.L./(1+cos(Phi)*(-1)); % Where R1==R2
+          SR.SRopt.L(1)*(R1b-SR.SRopt.L(1))./(sin(Phi)^2*R1b-SR.SRopt.L(1))];
+        RR = SR.SRopt.L(1)./(1+cos(Phi)*(-1)); % Where R1==R2
         Rmax = min(RR*1.1,2000);
         RR = RR(RR<2000);
       end
@@ -197,17 +343,17 @@ classdef ICOS_sr_search < handle
       % fprintf(1,'Break at R1 = %.1f\n', L/sin(Phi)^2);
       r_min = SR.SRopt.B/(2*sin(pi/m));
       r_max = sqrt(SR.rdtanth* ...
-        sqrt(((R2-SR.SRopt.L).*R1.^2*SR.SRopt.L)./ ...
-        ((R1-SR.SRopt.L).*(R1+R2-SR.SRopt.L))));
+        sqrt(((R2-SR.SRopt.L(1)).*R1.^2*SR.SRopt.L(1))./ ...
+        ((R1-SR.SRopt.L(1)).*(R1+R2-SR.SRopt.L(1)))));
       r_max(~isnan(r_max)) = min(r_max(~isnan(r_max)),SR.SRopt.r_limit);
       % rRR = interp1(R1,r_max,RR,'linear','extrap');
       % This (commented) calculation is wrong, but I haven't figured out why yet
       %   k2 = ((R1-L).*(R1.*R2-L))./((R2-L).*R1.^2.*L);
       %   k2(k2<0) = NaN;
       %   s1 = r_max.*sqrt(k2);
-      r2 = abs(r_max.*cos(Phi).*R2./(R2-SR.SRopt.L));
-      w2 = abs(r_max*sin(Phi)*cos(Phi).*R2./(R2-SR.SRopt.L));
-      s1 = w2/SR.SRopt.L;
+      r2 = abs(r_max.*cos(Phi).*R2./(R2-SR.SRopt.L(1)));
+      w2 = abs(r_max*sin(Phi)*cos(Phi).*R2./(R2-SR.SRopt.L(1)));
+      s1 = w2/SR.SRopt.L(1);
       
       % Rw1 = 1.1*B/2;
       RL = abs(SR.SRopt.Rw1./s1);
@@ -222,14 +368,14 @@ classdef ICOS_sr_search < handle
       phi_min = asin(SR.SRopt.B./(2*r_max));
       Phi_n = Phi + (phi_min-phi)/dN(2);
       Phi_p = Phi + (phi_min-phi)/dN(1);
-      det = ((R1+R2).^2)*[1 1] - (4*R1.*R2*[1 1]).*sin([Phi_n Phi_p]).^2;
-      if all(all(isnan(det) | det > 0))
-        Lp = ((R1+R2)*[1,1,1,1]+sqrt(det)*[1,0,0,-1;0,1,-1,0])/2;
-        Lps = sign(Lp-SR.SRopt.L);
+      disc = ((R1+R2).^2)*[1 1] - (4*R1.*R2*[1 1]).*sin([Phi_n Phi_p]).^2;
+      if all(all(isnan(disc) | disc > 0))
+        Lp = ((R1+R2)*[1,1,1,1]+sqrt(disc)*[1,0,0,-1;0,1,-1,0])/2;
+        Lps = sign(Lp-SR.SRopt.L(1));
         Lp2 = Lps(:,3)==-1&Lps(:,4)==1;
         dBL = Lp(:,[1 2]);
         dBL(Lp2,:) = Lp(Lp2,[3,4]);
-        dBL = dBL - SR.SRopt.L;
+        dBL = dBL - SR.SRopt.L(1);
       end
     end
     
@@ -244,8 +390,9 @@ classdef ICOS_sr_search < handle
       for i=1:length(SR.Summary)
         R1 = SR.Summary(i).R1 * (1+SR.SRopt.Rtolerance*[-1,1,-1,1]);
         R2 = SR.Summary(i).R2 * (1+SR.SRopt.Rtolerance*[-1,-1,1,1]);
+        L = SR.Summary(i).L;
         SR.Summary(i).Phi_OK = false;
-        Phi_a = SR.SRopt.L.*(R1+R2-SR.SRopt.L)./(R1.*R2);
+        Phi_a = L.*(R1+R2-L)./(R1.*R2);
         if all(Phi_a >= 0 & Phi_a <= 1)
           Phi_b = asin(sqrt(Phi_a));
           Phi = minmax(Phi_b);
@@ -258,21 +405,33 @@ classdef ICOS_sr_search < handle
             v = Phi_b > SR.Summary(i).Phi_p;
             if any(v)
               % L necessary to reach Phi_p with R1(v), R2(v)
-              det = (R1(v)+R2(v)).^2 - 4*R1(v).*R2(v).*sin(SR.Summary(i).Phi_p)^2;
-              Lp = ([1;1]*(R1(v)+R2(v)) + [-1;1]*sqrt(det))/2;
-              Lpr = Lp([1;1]*det > 0 & Lp > 0)';
+              disc = (R1(v)+R2(v)).^2 - 4*R1(v).*R2(v).*sin(SR.Summary(i).Phi_p)^2;
+              Lp = ([1;1]*(R1(v)+R2(v)) + [-1;1]*sqrt(disc))/2;
+              Lpr = Lp([1;1]*disc > 0 & Lp > 0)';
+              % If we still have more than one, choose the one closest
+              % to the original cell length
+              if length(Lpr) > 1
+                dLpr = abs(Lpr - L);
+                Lpr = Lpr(find(dLpr == min(dLpr)));
+              end
             else
               Lpr = [];
             end
             v = Phi_b < SR.Summary(i).Phi_n;
             if any(v)
-              det = (R1(v)+R2(v)).^2 - 4*R1(v).*R2(v).*sin(SR.Summary(i).Phi_n)^2;
-              Ln = ([1;1]*(R1(v)+R2(v)) + [-1;1]*sqrt(det))/2;
-              Lnr = Ln([1;1]*det > 0 & Ln > 0)';
+              disc = (R1(v)+R2(v)).^2 - 4*R1(v).*R2(v).*sin(SR.Summary(i).Phi_n)^2;
+              Ln = ([1;1]*(R1(v)+R2(v)) + [-1;1]*sqrt(disc))/2;
+              Lnr = Ln([1;1]*disc > 0 & Ln > 0)';
+              % If we still have more than one, choose the one closest
+              % to the original cell length
+              if length(Lnr) > 1
+                dLnr = abs(Lnr - L);
+                Lnr = Lnr(find(dLnr == min(dLnr)));
+              end
             else
               Lnr = [];
             end
-            SR.Summary(i).dL = minmax([SR.SRopt.L Lpr Lnr])' - SR.SRopt.L;
+            SR.Summary(i).dL = minmax([L Lpr Lnr])' - L;
           end
         else
           SR.Summary(i).dL = [-2000;2000];
@@ -293,7 +452,7 @@ classdef ICOS_sr_search < handle
       plot(ax(1),Phi(~Phi_OK), RLmin(~Phi_OK), 'r.',Phi(Phi_OK), RLmin(Phi_OK), 'b*');
       plot(ax(2),Phi(~Phi_OK), r_max(~Phi_OK), 'r.',Phi(Phi_OK), r_max(Phi_OK), 'b*');
       plot(ax(3),[SR.Summary.Phi], [SR.Summary.R1], '*', [SR.Summary.Phi], [SR.Summary.R2], '+');
-      title(ax(1),sprintf('L=%d', SR.SRopt.L));
+      title(ax(1),sprintf('L=%d', SR.SRopt.L(1)));
       set(ax(1),'XTickLabel',[]);
       set(ax(2),'XTickLabel',[],'YAxisLocation','Right');
       ylabel(ax(1),'RL_{min} cm');
@@ -315,11 +474,17 @@ classdef ICOS_sr_search < handle
         Phi = SR.Summary(i).Phi;
         R1 = SR.Summary(i).R1;
         R2 = SR.Summary(i).R2;
-        det = (R1+R2).^2 - 4*R1.*R2.*sin([SR.Summary(i).Phi_n SR.Summary(i).Phi_p]).^2;
-        if all(det > 0)
-          Lp = ((R1+R2) + [-1;1]*sqrt(det))/2;
-          Lpr = Lp(Lp>0);
-          SR.Summary(i).dBL = minmax(Lpr')' - SR.SRopt.L;
+        disc = (R1+R2).^2 - 4*R1.*R2.*sin([SR.Summary(i).Phi_n SR.Summary(i).Phi_p]).^2;
+        if all(disc > 0)
+          Lp = ((R1+R2) + [-1;1]*sqrt(disc))/2;
+          Lprs = [0 0];
+          for j=1:2
+            Lpr = Lp(:,j);
+            Lpr = Lpr(Lpr>0);
+            dLpr = abs(Lpr-SR.Summary(i).L);
+            Lprs(j) = Lpr(find(dLpr == min(dLpr)));
+          end
+          SR.Summary(i).dBL = minmax(Lprs)' - SR.Summary(i).L;
         end
       end
     end
@@ -373,7 +538,7 @@ classdef ICOS_sr_search < handle
           {@ICOS_sr_search.data_cursor_text_func,r2_r1,ddBL,m,k,ddL,ddBL,RLmin});
         set(h,'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,r2_r1,ddBL));
         set(gca, 'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,r2_r1,ddBL));
-      else % plot_num == 4
+      elseif plot_num == 4 % plot_num == 4
         R1 = [SR.Summary.R1];
         R2 = [SR.Summary.R2];
         h = plot(R1(v), R2(v), '.', R1(v1),R2(v1),'or');
@@ -385,6 +550,17 @@ classdef ICOS_sr_search < handle
           {@ICOS_sr_search.data_cursor_text_func,R1,R2,m,k,ddL,ddBL,RLmin});
         set(h,'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,R1,R2));
         set(gca, 'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,R1,R2));
+      else % plot_num == 5
+        L = [SR.Summary.L];
+        h = plot(L(v),ddBL(v),'.', L(v1),ddBL(v1),'or');
+        xlabel('Cavity Length L cm');
+        ylabel('Build \Delta{L} cm');
+        title(sprintf('%s: Build Tolerance', strrep(SR.SRopt.mnc,'_','\_')));
+        hdt = datacursormode;
+        set(hdt,'UpdateFcn', ...
+          {@ICOS_sr_search.data_cursor_text_func,L,ddBL,m,k,ddL,ddBL,RLmin});
+        set(h,'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,L,ddBL));
+        set(gca, 'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,L,ddBL));
       end
       waitfor(f);
     end
@@ -438,7 +614,7 @@ classdef ICOS_sr_search < handle
       title(ax(1),sprintf('%s (%d,%d)',SR.SRopt.mnc,m,k));
       xlabel(ax(N),'R_1 cm');
       linkaxes(ax,'x');
-      set(ax(3),'xlim',[SR.SRopt.L/2, Rmax]);
+      set(ax(3),'xlim',[SR.SRopt.L(1)/2, Rmax]);
     end
     
     function validate_build_tolerance(SR,m,k)
@@ -451,9 +627,9 @@ classdef ICOS_sr_search < handle
       if length(i) ~= 1
         return;
       end
-      Llims = SR.SRopt.L + SR.Summary(i).dBL;
+      Llims = SR.SRopt.L(1) + SR.Summary(i).dBL;
       % L = linspace(Llims(1), Llims(2), 21);
-      L = [Llims(1) SR.SRopt.L Llims(2)];
+      L = [Llims(1) SR.SRopt.L(1) Llims(2)];
       R1 = SR.Summary(i).R1;
       R2 = SR.Summary(i).R2;
       Phi_a = L.*(R1+R2-L)./(R1.*R2);
@@ -499,13 +675,18 @@ classdef ICOS_sr_search < handle
       Sums = SR.Summary(selected);
       for i = 1:length(selected)
         ii = selected(i);
-        mnc = sprintf('%s.%d_%d.%d',SR.SRopt.mnc,ii,Sums(i).m,Sums(i).k);
+        if isempty(SR.SRopt.R1) && isempty(SR.SRopt.R2)
+          mnc = sprintf('%s.%d_%d.%d',SR.SRopt.mnc,ii,Sums(i).m,Sums(i).k);
+        else
+          mnc = sprintf('%s.%d_%.0f_%.0f_%d.%d', SR.SRopt.mnc,ii, ...
+            Sums(i).R1, Sums(i).R2, Sums(i).m, Sums(i).k);
+        end
         IS_fname = sprintf('IS_%s.mat', mnc);
         if ~exist(IS_fname,'file')
           fprintf(1,'Focusing (%d,%d)\n', Sums(i).m, Sums(i).k);
           SP.R1 = Sums(i).R1;
           SP.R2 = Sums(i).R2;
-          SP.L = SR.SRopt.L;
+          SP.L = Sums(i).L;
           SP.Rw1 = SR.SRopt.Rw1;
           phi = pi/Sums(i).m;
           Phi = Sums(i).k*phi;
@@ -518,11 +699,14 @@ classdef ICOS_sr_search < handle
           w2 = abs(r_max*sin(Phi)*cos(Phi).*SP.R2./(SP.R2-SP.L));
           s1 = w2/SP.L;
           SP.RL = SP.Rw1/s1;
+          if ~isempty(SR.SRopt.n)
+            SP.n = SR.SRopt.n;
+          end
           Res = exparam(SP);
           check_params(i, Res);
           IS = ICOS_search('mnc', mnc,'R1',SP.R1,'R2',SP.R2,'L',SP.L, ...
             'RR1',Res.RR1,'Rw1',SP.Rw1, 'RL_lim', [0.95,1.05]*SP.RL, ...
-            'focus_visible', SFopt.focus_visible);
+            'focus_visible', SFopt.focus_visible,'n',Res.n);
           %%
           IS.search_ICOS_RIM;
           % Check IS.res1 solutions Only accept solutions where
