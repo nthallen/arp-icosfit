@@ -1,8 +1,8 @@
 function res = collect_results(varargin)
 % res = collect_results(params);
 % ICOS_search objects named 'IS'.
-% params is a struct. The fields are the fields from the IS.res2
-% struct. The values, if present, identify which range of values
+% params is a list of field names and values. The fields are the fields from
+% the IS.res2 struct. The values, if present, identify which range of values
 % to include in the results collection. Results missing a specified
 % field are omitted. To exclude a field from the result (and allow
 % solutions without that field), use 'exclude'
