@@ -504,6 +504,8 @@ classdef ICOS_sr_search < handle
       v1 = ddL < 2000 & sel;
       m = [SR.Summary.m];
       k = [SR.Summary.k];
+      R1 = [SR.Summary.R1];
+      R2 = [SR.Summary.R2];
       f = figure;
       if nargin < 2 || plot_num == 1
         h = plot(RLmin(v),ddBL(v),'.', RLmin(v1),ddBL(v1),'or');
@@ -512,7 +514,7 @@ classdef ICOS_sr_search < handle
         title(sprintf('%s: Build Tolerance', strrep(SR.SRopt.mnc,'_','\_')));
         hdt = datacursormode;
         set(hdt,'UpdateFcn', ...
-          {@ICOS_sr_search.data_cursor_text_func,RLmin,ddBL,m,k,ddL,ddBL,RLmin});
+          {@ICOS_sr_search.data_cursor_text_func,RLmin,ddBL,m,k,R1,R2,ddL,ddBL,RLmin});
         set(h,'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,RLmin,ddBL));
         set(gca, 'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,RLmin,ddBL));
       elseif plot_num == 2
@@ -522,7 +524,7 @@ classdef ICOS_sr_search < handle
         title(sprintf('%s: Build Tolerance', strrep(SR.SRopt.mnc,'_','\_')));
         hdt = datacursormode;
         set(hdt,'UpdateFcn', ...
-          {@ICOS_sr_search.data_cursor_text_func,ddL,ddBL,m,k,ddL,ddBL,RLmin});
+          {@ICOS_sr_search.data_cursor_text_func,ddL,ddBL,m,k,R1,R2,ddL,ddBL,RLmin});
         set(h,'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,ddL,ddBL));
         set(gca, 'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,ddL,ddBL));
       elseif plot_num == 3
@@ -535,7 +537,7 @@ classdef ICOS_sr_search < handle
         title(sprintf('%s: Build Tolerance', strrep(SR.SRopt.mnc,'_','\_')));
         hdt = datacursormode;
         set(hdt,'UpdateFcn', ...
-          {@ICOS_sr_search.data_cursor_text_func,r2_r1,ddBL,m,k,ddL,ddBL,RLmin});
+          {@ICOS_sr_search.data_cursor_text_func,r2_r1,ddBL,m,k,R1,R2,ddL,ddBL,RLmin});
         set(h,'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,r2_r1,ddBL));
         set(gca, 'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,r2_r1,ddBL));
       elseif plot_num == 4 % plot_num == 4
@@ -547,7 +549,7 @@ classdef ICOS_sr_search < handle
         title(sprintf('%s: Radii of curvature', strrep(SR.SRopt.mnc,'_','\_')));
         hdt = datacursormode;
         set(hdt,'UpdateFcn', ...
-          {@ICOS_sr_search.data_cursor_text_func,R1,R2,m,k,ddL,ddBL,RLmin});
+          {@ICOS_sr_search.data_cursor_text_func,R1,R2,m,k,R1,R2,ddL,ddBL,RLmin});
         set(h,'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,R1,R2));
         set(gca, 'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,R1,R2));
       else % plot_num == 5
@@ -558,7 +560,7 @@ classdef ICOS_sr_search < handle
         title(sprintf('%s: Build Tolerance', strrep(SR.SRopt.mnc,'_','\_')));
         hdt = datacursormode;
         set(hdt,'UpdateFcn', ...
-          {@ICOS_sr_search.data_cursor_text_func,L,ddBL,m,k,ddL,ddBL,RLmin});
+          {@ICOS_sr_search.data_cursor_text_func,L,ddBL,m,k,R1,R2,ddL,ddBL,RLmin});
         set(h,'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,L,ddBL));
         set(gca, 'buttondownfcn', @(s,e) ICOS_sr_search.ex_bdf(s,e,SR,L,ddBL));
       end
@@ -739,7 +741,7 @@ classdef ICOS_sr_search < handle
   
   methods(Static)
     function output_txt = data_cursor_text_func(~,event_obj,...
-        x,y,m,k,ddL,ddBL,RL)
+        x,y,m,k,R1,R2,ddL,ddBL,RL)
       % Display the position of the data cursor
       % obj          Currently not used (empty)
       % event_obj    Handle to event object
@@ -758,6 +760,8 @@ classdef ICOS_sr_search < handle
       i = find(pos(1)==x & pos(2)==y,1);
       if ~isempty(i)
         output_txt{end+1} = sprintf('(m,k) = (%d,%d)', m(i), k(i));
+        output_txt{end+1} = sprintf('R1 = %.0f', R1(i));
+        output_txt{end+1} = sprintf('R2 = %.0f', R2(i));
         output_txt{end+1} = sprintf('ddL = %.2f', ddL(i));
         output_txt{end+1} = sprintf('ddBL = %.2f', ddBL(i));
         output_txt{end+1} = sprintf('RL = %.2f', RL(i));
