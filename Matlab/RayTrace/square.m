@@ -4,13 +4,19 @@ classdef square < opt_surface
     perimeter
     rad1
     rad2
+    cos_theta
   end
   
   methods
-    function sq = square(l, O, D, T, R, ni, ne)
+    function sq = square(l, O, D, T, R, ni, ne, theta)
       sq = sq@opt_surface(O, D, T, R, ni, ne);
       sq.l = l;
       
+      if nargin < 8
+        sq.cos_theta = 0;
+      else
+        sq.cos_theta = cosd(theta);
+      end
       sq.rad1 = cross([0 0 1], D);
       nrad = sqrt(dot(sq.rad1,sq.rad1));
       if nrad < 0.1
@@ -40,6 +46,9 @@ classdef square < opt_surface
     
     function [Pintercept,Vnormal] = intercept(sq, Rincident)
       if isempty(Rincident)
+        Pintercept = [];
+        Vnormal = [];
+      elseif abs(dot(Rincident.D,sq.D)) < sq.cos_theta
         Pintercept = [];
         Vnormal = [];
       else
