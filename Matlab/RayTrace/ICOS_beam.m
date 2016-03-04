@@ -30,6 +30,7 @@ classdef ICOS_beam < handle
       IB.IBP.mnc = 'ib.def';
       IB.IBP.Herriott_passes = 100;
       IB.IBP.ICOS_passes = 100;
+      IB.IBP.theta = 15; % acceptance angle
       IB.IBP.n_optics = 5;
       IB.IBP.NPI = IB.IBP.ICOS_passes;
       IB.IBP.beam_samples = 100;
@@ -37,6 +38,8 @@ classdef ICOS_beam < handle
       IB.IBP.Dyz = [0.01 0.2];
       IB.IBP.opt_n = 0;
       IB.IBP.Tinterval = 60;
+      IB.IBP.Int.Yr = []; % 2x2, row for each Dyz
+      IB.IBP.Int.Zr = [];
       IB.IBP.Track_Power = 0;
       IB.IBP.Npass_dim = 2; % The number of different pass counts (Herriott & ICOS)
       IB.IBP.rng_state = [];
@@ -148,17 +151,6 @@ classdef ICOS_beam < handle
             IB.Res.perimeter = PM.M.Optic{IB.IBP.opt_n}.Surface{1}.perimeter;
           end
           Ri = 1:PM.M.n_rays;
-          
-          % ### This pass identification can be eliminated and extracted
-          % ### from the rays now.
-%           vo = pre_opt == 2 & cur_opt == 3;
-%           pass = cumsum(vo);
-%           % but reset the pass count 
-%           vr = pre_opt == 1 & cur_opt == 2;
-%           repass = vr .* pass;
-%           vri = find(vr);
-%           repass(vri(2:end)) = diff(repass(vri));
-%           pass = cumsum(vo-repass)';
           
           vf = find([PM.M.Rays(Ri).n_opt] == IB.IBP.opt_n);
           nvf = length(vf);
@@ -403,10 +395,11 @@ classdef ICOS_beam < handle
     end
     
     function ff = Integrate(IB)
-      % IB.Integrate;
+      % ff = IB.Integrate;
       % Analyzes rays from the Sample operation to generate heat
       % maps in the plane of a particular optical element, usually
-      % the detector.
+      % the detector. If an output argument is specified, the
+      % heat maps are displayed.
       % All options are set during the Sample phase.
       if ~isstruct(IB.Res)
         error('MATLAB:HUARP:Unsampled', ...
@@ -414,6 +407,9 @@ classdef ICOS_beam < handle
       end
       if ~isfield(IB.IBP,'mnc')
         IB.IBP.mnc = 'ib.def';
+      end
+      if ~isfield(IB.IBP,'theta')
+        IB.IBP.theta = 0;
       end
       Nsamples = IB.IBP.beam_samples;
       T = IB.P.T;
@@ -423,16 +419,28 @@ classdef ICOS_beam < handle
       Tstart = tic;
       Treport = 0;
       dyz = IB.IBP.dyz; % spacing of detector centers
-      figs = zeros(length(IB.IBP.Dyz),1);
+      if IB.IBP.theta > 0
+        figs = zeros(2*length(IB.IBP.Dyz),1);
+      else
+        figs = zeros(length(IB.IBP.Dyz),1);
+      end
       for Dyzi = 1:length(IB.IBP.Dyz)
         Dyz = IB.IBP.Dyz(Dyzi);
         if isempty(IB.Res.Int(Dyzi).img)
           %Dyz = .01; % detector width, cm
           Ei = 1:IB.Res.N;
-          Yr = minmax(IB.Res.E(Ei,2)');
+          if isempty(IB.IBP.Int.Yr)
+            Yr = minmax(IB.Res.E(Ei,2)');
+          else
+            Yr = IB.IBP.Int.Yr(Dyzi,:);
+          end
           Yr(1) = floor((Yr(1)-Dyz/2)/dyz);
           Yr(2) = ceil((Yr(2)+Dyz/2)/dyz);
-          Zr = minmax(IB.Res.E(Ei,2)');
+          if isempty(IB.IBP.Int.Zr)
+            Zr = minmax(IB.Res.E(Ei,2)');
+          else
+            Zr = IB.IBP.Int.Zr(Dyzi,:);
+          end
           Zr(1) = floor((Zr(1)-Dyz/2)/dyz);
           Zr(2) = ceil((Zr(2)+Dyz/2)/dyz);
           IB.Res.Int(Dyzi).Yr = Yr;
@@ -442,6 +450,13 @@ classdef ICOS_beam < handle
           nY = length(Y);
           nZ = length(Z);
           Pimg = zeros(nY,nZ);
+          if IB.IBP.theta > 0
+            Rimg = zeros(nY,nZ);
+            thOK = atand(sqrt((IB.Res.D(Ei,2)./IB.Res.D(Ei,1)).^2 + ...
+              (IB.Res.D(Ei,3)./IB.Res.D(Ei,1)).^2)) <= IB.IBP.theta;
+          else
+            thOK = ones(size(Ei))>0;
+          end
           Ptotal = sum(IB.Res.P(Ei))/Nsamples;
           for yi = 1:nY
             TIter = toc(Tstart);
@@ -454,35 +469,98 @@ classdef ICOS_beam < handle
             for zi = 1:nZ
               dz = IB.Res.E(Ei,3)-Z(zi);
               vz = dz > -Dyz/2 & dz <= Dyz/2;
-              Pimg(yi,zi) = sum(IB.Res.P(Ei(vy & vz)))/Pexp;
+              Pimg(yi,zi) = sum(IB.Res.P(Ei(vy & vz & thOK)))/Pexp;
+              if IB.IBP.theta > 0
+                Rimg(yi,zi) = sum(IB.Res.P(Ei(vy & vz & ~thOK)))/Pexp;
+              end
             end
           end
           IB.Res.Int(Dyzi).img = Pimg;
+          if IB.IBP.theta > 0
+            IB.Res.Int(Dyzi).rimg = Rimg;
+          end
         else
           Pimg = IB.Res.Int(Dyzi).img;
           Yr = IB.Res.Int(Dyzi).Yr;
           Zr = IB.Res.Int(Dyzi).Zr;
+          if IB.IBP.theta > 0
+            Rimg = IB.Res.Int(Dyzi).rimg;
+          end
         end
-        figs(Dyzi) = figure;
-        h = image(Yr*dyz,Zr*dyz,Pimg','CDataMapping','scaled'); shg
-        pos = get(figs(Dyzi),'position');
-        pos(1) = 5 + (Dyzi-1)*pos(3);
-        set(figs(Dyzi),'position',pos);
-        set(gca,'DataAspectRatio',[1 1 1],'Ydir','normal');
-        ch = colorbar;
-        mname = strrep(IB.IBP.mnc,'_','\_');
-        
-        title(sprintf('%s: %.1fmm Detector %d passes %d samples', ...
-          mname, Dyz*10, IB.IBP.ICOS_passes, ...
-          IB.IBP.beam_samples ));
-        ylabel(ch,'Nomalized to single ICOS injection');
-        xlabel('Y position of detector center, cm');
-        ylabel('Z position of detector center, cm');
-        drawnow; shg;
+        if nargout > 0
+          figs(Dyzi) = figure;
+          h = image(Yr*dyz,Zr*dyz,Pimg','CDataMapping','scaled'); shg
+          pos = get(figs(Dyzi),'position');
+          pos(1) = 5 + (Dyzi-1)*pos(3);
+          pos(2) = 5;
+          set(figs(Dyzi),'position',pos);
+          set(gca,'DataAspectRatio',[1 1 1],'Ydir','normal');
+          ch = colorbar;
+          mname = strrep(IB.IBP.mnc,'_','\_');
+
+          title(sprintf('%s: %.1fmm Detector %d passes %d samples', ...
+            mname, Dyz*10, IB.IBP.ICOS_passes, ...
+            IB.IBP.beam_samples ));
+          ylabel(ch,'Nomalized to single ICOS injection');
+          xlabel('Y position of detector center, cm');
+          ylabel('Z position of detector center, cm');
+          drawnow; shg;
+
+          if IB.IBP.theta > 0
+            figs(Dyzi+length(IB.IBP.Dyz)) = figure;
+            h = image(Yr*dyz,Zr*dyz,Rimg','CDataMapping','scaled'); shg
+            pos = get(figs(Dyzi+length(IB.IBP.Dyz)),'position');
+            pos(1) = 5 + (Dyzi-1)*pos(3);
+            pos(2) = 5 + pos(4);
+            set(figs(Dyzi+length(IB.IBP.Dyz)),'position',pos);
+            set(gca,'DataAspectRatio',[1 1 1],'Ydir','normal');
+            ch = colorbar;
+            mname = strrep(IB.IBP.mnc,'_','\_');
+
+            title(sprintf('%s: %.1fmm Detector bad angle', ...
+              mname, Dyz*10));
+            ylabel(ch,'Nomalized to single ICOS injection');
+            xlabel('Y position of detector center, cm');
+            ylabel('Z position of detector center, cm');
+            drawnow; shg;
+          end
+        end
       end
       if nargout > 0
         ff = figs;
       end
+    end
+    
+    function analyze_angle(IB)
+      % IB.analyze_angle()
+      % Reviews the incident angles at the detector and generates a
+      % plot showing how the detector power would have been different if
+      % the acceptance angle were different. This is somewhat easier to do
+      % than running multiple analyses with different target angles.
+      
+      % I'm taking a shortcut, assuming normal the detector is normal to
+      % the optical axis.
+      Itheta = acosd(IB.Res.D(1:IB.Res.N,1));
+      P = IB.Res.P(1:IB.Res.N);
+      Ptotal = sum(P);
+      r = max(abs(IB.Res.E(1:IB.Res.N,[2 3])),[],2);
+      [Ithetas,I] = sort(Itheta);
+      Ps = P(I);
+      rs = r(I);
+      max_rs = max(rs);
+      min_rs = min(rs);
+      N = 5;
+      rss = linspace(min_rs,max_rs,N);
+      figure;
+      for i = 1:N
+        Inside = rs <= rss(i);
+        plot(Ithetas(Inside),100*cumsum(Ps(Inside))/Ptotal);
+        hold on;
+      end
+      hold off;
+      legend(num2str(rss','%.3f'),'location','northwest');
+      xlabel('Acceptance Angle, degrees');
+      ylabel('percent power on detector');
     end
     
     function display(IB)
