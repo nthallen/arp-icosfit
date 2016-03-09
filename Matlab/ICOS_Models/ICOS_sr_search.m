@@ -74,6 +74,7 @@ classdef ICOS_sr_search < handle
       SR.SRopt.SolScale = []; % Value from 0 to 1 weighing where to select
       SR.SRopt.R1 = [];
       SR.SRopt.R2 = [];
+      SR.SRopt.RR1 = [];
       SR.SRopt.n = [];
       for i=1:2:length(varargin)-1
         fld = varargin{i};
@@ -104,7 +105,7 @@ classdef ICOS_sr_search < handle
         SR.NSol = SR.NSol+1;
         if SR.NSol > SR.RawSols
           S = ...
-            struct('RLmin',[],'r_max',[],'r_min',[],'r1',[],'r2',[],...
+            struct('RLmin',[],'RR1',[],'r_max',[],'r_min',[],'r1',[],'r2',[],...
             'R1',[],'R2',[],'L',[],'m',[],'k',[],'Phi',[],'Phi_n',[],...
             'Phi_p', [], 'Phi_N', [], ...
             'Phi_P', [],'Phi_OK', [], 'dL', [], 'dBL', [], 'sel', []);
@@ -218,32 +219,68 @@ classdef ICOS_sr_search < handle
 %             end
             for i=1:length(L)
               if vok(i)
-                increment_solutions(SR);
-                SR.Summary(SR.NSol).RLmin = RL(i);
-                SP.R1 = R1;
-                SP.R2 = R2;
-                SP.L = L(i);
-                SP.Rw1 = SR.SRopt.Rw1;
-                SP.RL = SP.Rw1/s1(i);
-                if ~isempty(SR.SRopt.n)
-                  SP.n = SR.SRopt.n;
+                if isempty(SR.SRopt.RR1)
+                  increment_solutions(SR);
+                  SR.Summary(SR.NSol).RLmin = RL(i);
+                  SP.R1 = R1;
+                  SP.R2 = R2;
+                  SP.L = L(i);
+                  SP.Rw1 = SR.SRopt.Rw1;
+                  SP.RL = SP.Rw1/s1(i);
+                  if ~isempty(SR.SRopt.n)
+                    SP.n = SR.SRopt.n;
+                  end
+                  Res = exparam(SP);
+                  check_params(SR.NSol, Res);
+                  SR.Summary(SR.NSol).R1 = R1;
+                  SR.Summary(SR.NSol).R2 = R2;
+                  SR.Summary(SR.NSol).L = L(i);
+                  SR.Summary(SR.NSol).r_max = r_max(i);
+                  SR.Summary(SR.NSol).r_min = r_min;
+                  SR.Summary(SR.NSol).r1 = Res(1).r1;
+                  SR.Summary(SR.NSol).r2 = Res(1).r2;
+                  SR.Summary(SR.NSol).m = m;
+                  SR.Summary(SR.NSol).k = k;
+                  SR.Summary(SR.NSol).Phi = Phi;
+                  SR.Summary(SR.NSol).Phi_n = Phi_n(i);
+                  SR.Summary(SR.NSol).Phi_p = Phi_p(i);
+                  % SR.Summary(SR.NSol).dBL = dBL(i,:);
+                  SR.Summary(SR.NSol).sel = 0;
+                else % RR1 options are specified
+                  for RRi = 1:length(SR.SRopt.RR1)
+                    SP.R1 = R1;
+                    SP.R2 = R2;
+                    SP.L = L(i);
+                    SP.Rw1 = SR.SRopt.Rw1;
+                    SP.RR1 = SR.SRopt.RR1(RRi);
+                    if ~isempty(SR.SRopt.n)
+                      SP.n = SR.SRopt.n;
+                    end
+                    Res = exparam(SP);
+                    for Resi = 1:length(Res)
+                      if Res(Resi).RL >= RL(i) && Res(Resi).RL < 50
+                        increment_solutions(SR);
+                        check_params(SR.NSol, Res(Resi));
+                        SR.Summary(SR.NSol).RR1 = Res(Resi).RR1;
+                        SR.Summary(SR.NSol).RLmin = Res(Resi).RL;
+                        SR.Summary(SR.NSol).R1 = R1;
+                        SR.Summary(SR.NSol).R2 = R2;
+                        SR.Summary(SR.NSol).L = L(i);
+                        SR.Summary(SR.NSol).r_max = r_max(i);
+                        SR.Summary(SR.NSol).r_min = r_min;
+                        SR.Summary(SR.NSol).r1 = Res(Resi).r1;
+                        SR.Summary(SR.NSol).r2 = Res(Resi).r2;
+                        SR.Summary(SR.NSol).m = m;
+                        SR.Summary(SR.NSol).k = k;
+                        SR.Summary(SR.NSol).Phi = Phi;
+                        SR.Summary(SR.NSol).Phi_n = Phi_n(i);
+                        SR.Summary(SR.NSol).Phi_p = Phi_p(i);
+                        % SR.Summary(SR.NSol).dBL = dBL(i,:);
+                        SR.Summary(SR.NSol).sel = 0;
+                      end
+                    end
+                  end
                 end
-                Res = exparam(SP);
-                check_params(SR.NSol, Res);
-                SR.Summary(SR.NSol).R1 = R1;
-                SR.Summary(SR.NSol).R2 = R2;
-                SR.Summary(SR.NSol).L = L(i);
-                SR.Summary(SR.NSol).r_max = r_max(i);
-                SR.Summary(SR.NSol).r_min = r_min;
-                SR.Summary(SR.NSol).r1 = Res(1).r1;
-                SR.Summary(SR.NSol).r2 = Res(1).r2;
-                SR.Summary(SR.NSol).m = m;
-                SR.Summary(SR.NSol).k = k;
-                SR.Summary(SR.NSol).Phi = Phi;
-                SR.Summary(SR.NSol).Phi_n = Phi_n(i);
-                SR.Summary(SR.NSol).Phi_p = Phi_p(i);
-                % SR.Summary(SR.NSol).dBL = dBL(i,:);
-                SR.Summary(SR.NSol).sel = 0;
               end
             end
           end
@@ -679,41 +716,51 @@ classdef ICOS_sr_search < handle
         ii = selected(i);
         if isempty(SR.SRopt.R1) && isempty(SR.SRopt.R2)
           mnc = sprintf('%s.%d_%d.%d',SR.SRopt.mnc,ii,Sums(i).m,Sums(i).k);
+        elseif isfield(Sums(i),'RR1') && ~isempty(Sums(i).RR1)
+          mnc = sprintf('%s.%d_%.0f_%.0f_%.0f_%d.%d', SR.SRopt.mnc,ii, ...
+            Sums(i).R1, Sums(i).R2, Sums(i).RR1, Sums(i).m, Sums(i).k);
         else
           mnc = sprintf('%s.%d_%.0f_%.0f_%d.%d', SR.SRopt.mnc,ii, ...
             Sums(i).R1, Sums(i).R2, Sums(i).m, Sums(i).k);
         end
         IS_fname = sprintf('IS_%s.mat', mnc);
         if ~exist(IS_fname,'file')
-          fprintf(1,'Focusing (%d,%d)\n', Sums(i).m, Sums(i).k);
+          fprintf(1,'Focusing %d: (%d,%d)\n', i, Sums(i).m, Sums(i).k);
           SP.R1 = Sums(i).R1;
           SP.R2 = Sums(i).R2;
           SP.L = Sums(i).L;
           SP.Rw1 = SR.SRopt.Rw1;
-          phi = pi/Sums(i).m;
-          Phi = Sums(i).k*phi;
-          r_max = sqrt(SR.rdtanth*sqrt(((SP.R2-SP.L).*SP.R1.^2*SP.L)./((SP.R1-SP.L).*(SP.R1+SP.R2-SP.L))));
-          if isnan(r_max)
-            error('r_max %d is NaN', i);
-          end
-          r_max = min(SR.SRopt.r_limit,r_max);
-          r2 = abs(r_max.*cos(Phi).*SP.R2./(SP.R2-SP.L));
-          w2 = abs(r_max*sin(Phi)*cos(Phi).*SP.R2./(SP.R2-SP.L));
-          s1 = w2/SP.L;
-          SP.RL = SP.Rw1/s1;
           if ~isempty(SR.SRopt.n)
             SP.n = SR.SRopt.n;
+          end
+          if isfield(Sums(i), 'RR1') && ~isempty(Sums(i).RR1)
+            SP.RR1 = Sums(i).RR1;
+            RL = Sums(i).RLmin;
+            r_max = Sums(i).r_max;
+          else
+            phi = pi/Sums(i).m;
+            Phi = Sums(i).k*phi;
+            r_max = sqrt(SR.rdtanth*sqrt(((SP.R2-SP.L).*SP.R1.^2*SP.L)./((SP.R1-SP.L).*(SP.R1+SP.R2-SP.L))));
+            if isnan(r_max)
+              error('r_max %d is NaN', i);
+            end
+            r_max = min(SR.SRopt.r_limit,r_max);
+            r2 = abs(r_max.*cos(Phi).*SP.R2./(SP.R2-SP.L));
+            w2 = abs(r_max*sin(Phi)*cos(Phi).*SP.R2./(SP.R2-SP.L));
+            s1 = w2/SP.L;
+            SP.RL = SP.Rw1/s1;
+            RL = SP.RL;
           end
           Res = exparam(SP);
           check_params(i, Res);
           IS = ICOS_search('mnc', mnc,'R1',SP.R1,'R2',SP.R2,'L',SP.L, ...
-            'RR1',Res.RR1,'Rw1',SP.Rw1, 'RL_lim', [0.95,1.05]*SP.RL, ...
+            'RR1',Res.RR1,'Rw1',SP.Rw1, 'RL_lim', [0.95,1.05]*RL, ...
             'focus_visible', SFopt.focus_visible,'n',Res.n);
           %%
           IS.search_ICOS_RIM;
           % Check IS.res1 solutions Only accept solutions where
           % RL, r1 are within 5% of input values
-          ISRL = [IS.res1.RL]/SP.RL;
+          ISRL = [IS.res1.RL]/RL;
           ISr1 = [IS.res1.r1]/r_max;
           ISok = ISRL > .95 & ISRL < 1.05 & ISr1 > .95 & ISr1 < 1.05;
           %%
@@ -737,6 +784,17 @@ classdef ICOS_sr_search < handle
       fprintf(1, 'ICOS_sr_search saved to %s\n', fname);
     end
     
+    function select(SR,indices)
+      for i=1:length(indices)
+        SR.Summary(indices(i)).sel = 1;
+      end
+    end
+    
+    function deselect(SR,indices)
+      for i=1:length(indices)
+        SR.Summary(indices(i)).sel = 0;
+      end
+    end
   end
   
   methods(Static)
