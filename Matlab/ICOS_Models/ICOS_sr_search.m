@@ -752,9 +752,9 @@ classdef ICOS_sr_search < handle
             RL = SP.RL;
           end
           Res = exparam(SP);
-          check_params(i, Res);
+          check_params(i, Res(1));
           IS = ICOS_search('mnc', mnc,'R1',SP.R1,'R2',SP.R2,'L',SP.L, ...
-            'RR1',Res.RR1,'Rw1',SP.Rw1, 'RL_lim', [0.95,1.05]*RL, ...
+            'RR1',Res(1).RR1,'Rw1',SP.Rw1, 'RL_lim', [0.95,1.05]*RL, ...
             'focus_visible', SFopt.focus_visible,'n',Res.n);
           %%
           IS.search_ICOS_RIM;
