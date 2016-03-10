@@ -751,6 +751,7 @@ classdef ICOS_sr_search < handle
             SP.RL = SP.Rw1/s1;
             RL = SP.RL;
           end
+          r_min = Sums(i).r_min;
           Res = exparam(SP);
           check_params(i, Res(1));
           IS = ICOS_search('mnc', mnc,'R1',SP.R1,'R2',SP.R2,'L',SP.L, ...
@@ -761,11 +762,13 @@ classdef ICOS_sr_search < handle
           % Check IS.res1 solutions Only accept solutions where
           % RL, r1 are within 5% of input values
           ISRL = [IS.res1.RL]/RL;
-          ISr1 = [IS.res1.r1]/r_max;
-          ISok = ISRL > .95 & ISRL < 1.05 & ISr1 > .95 & ISr1 < 1.05;
+          ISr1 = [IS.res1.r1];
+          ISok = ISRL > .95 & ISRL < 1.05 & ISr1 > r_min & ISr1 < r_max;
           %%
           if any(ISok)
             IS.search_focus2('max_lenses',2,'det_acc_limit',SR.SRopt.th,'select',find(ISok));
+          else
+            fprintf('SR.focus: %s IS.search_ICOS_RIM returned no acceptable solutions\n', IS_fname);
           end
         else
           fprintf('%s already exists, skipping\n', IS_fname);
