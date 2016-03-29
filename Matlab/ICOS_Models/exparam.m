@@ -5,6 +5,7 @@ function R = exparam(P)
 % or R1, R2, RR1, r1, Rw1
 % or R1, R2, RR1, L, Rw1
 % or R1, R2, RL, L, Rw1
+% or R1, R2, L, r1, RR1
 % One of these may be a vector.
 % See also: check_params, render_model
 Res = cell(1,0);
@@ -190,6 +191,40 @@ elseif solution_code == SP.RL + SP.R1 + SP.R2 + SP.L + SP.Rw1
   
   R.r15 = R.s1*R.r1/tand(15);
   Res{1,end+1} = R;
+elseif solution_code == SP.r1 + SP.R1 + SP.R2 + SP.L + SP.RR1
+  R.r2 = R.r1*sqrt(R.R2*(R.R1-R.L)/(R.R1*(R.R2-R.L)));
+  R.h2 = R.r1*(R.R1-R.L)/R.R1;
+  R.w2 = sqrt(R.r2^2-R.h2^2);
+  R.h1 = R.r2*(R.R2-R.L)/R.R2;
+  R.w1 = sqrt(R.r1^2-R.h1^2);
+  R.d1 = R.r1/R.R1;
+  R.d2 = R.r2/R.R2;
+  R.s1 = R.w2/R.L;
+  R.s2 = R.w1/R.L;
+  R.Rd2 = -R.n*R.d1;
+  R.Rs2 = R.s1;
+  R.Rr2 = R.r1;
+  R.RR2 = -R.R1/R.n;
+  V = [
+    (R.Rs2^2)*(R.RR2^2) + R.Rr2^2
+    -((R.Rs2^2)*R.RR1*(R.RR2^2) + (R.Rr2^2)*R.RR1 + 2*(R.Rr2^2)*R.RR2)
+    (R.Rr2^2)*(R.RR1*R.RR2+R.RR2^2)
+    ];
+  rts = roots(V);
+  rts = rts(imag(rts)==0);
+  rts = rts(rts > 0);
+  for RLi = 1:length(rts)
+    R.RL = rts(RLi);
+    R.Rr1 = R.Rr2*sqrt(R.RR1*(R.RR2-R.RL)/(R.RR2*(R.RR1-R.RL)));
+    R.Rw1 = R.Rs2*R.RL;
+    R.Rh1 = sqrt(R.Rr1^2-R.Rw1^2);
+    R.Rd1 = R.Rr1/R.RR1;
+    R.Rw2 = R.Rw1*R.Rr2/R.Rr1;
+    R.Rs1 = R.Rw2/R.RL;
+    R.Rh2 = R.Rh1*R.Rr2/R.Rr1;
+    R.r15 = R.s1*R.r1/tand(15);
+    Res{1,end+1} = R;
+  end
 else
   error('MATLAB:HUARP:NoSolution', 'No solution defined for supplied parameters');
 end

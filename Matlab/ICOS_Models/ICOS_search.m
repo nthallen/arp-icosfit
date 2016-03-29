@@ -55,10 +55,15 @@ classdef ICOS_search < handle
       IS.ISopt.RR1_lim = [-inf inf];
       IS.ISopt.L_lim = [0 inf];
       IS.ISopt.RL_lim = [2 inf];
-      IS.ISopt.RD1_margin = 1; % cm. When RR1 is set, this is added to Rr1 to determine RD1
-      IS.ISopt.D1_margin = 1; % cm. When R1 is set, this is added to r1 to determine D1
-      IS.ISopt.D1_resolution = 2.54/2;
-      IS.ISopt.D2_margin = 1; % cm. When R2 is set, this is added to r2 to determine D2
+      IS.ISopt.RD1_margin = 2; % cm. When RR1 is set, this is added to Rr1 to determine RD1
+      IS.ISopt.RD1_lip = 0;
+      IS.ISopt.RD1_resolution = 2.54/4;
+      IS.ISopt.D1_margin = 0.3; % cm. When R1 is set, this is added to r1 to determine D1
+      IS.ISopt.D1_lip = 0.125*2.54; % cm on the radius.
+      IS.ISopt.D1_resolution = 2.54/4; % Applies to radius
+      IS.ISopt.D2_margin = 0.3; % cm. When R2 is set, this is added to r2 to determine D2
+      IS.ISopt.D2_lip = 0.125*2.54; % cm on the radius
+      IS.ISopt.D2_resolution = 2.54/4; % applies to radius
       IS.ISopt.focus_visible = 1; % 0: don't draw any focus 1: just finished focus 2: each iteration
       IS.ISopt.max_focus_length = 20; % abandon is sum of lens space exceeds
       IS.ISopt.allow_negative_focus = 0;
@@ -120,7 +125,9 @@ classdef ICOS_search < handle
       if ~isempty(IS.ISP.n)
         P.n = IS.ISP.n;
       end
-      P.Rw1 = IS.ISP.Rw1;
+      if ~isempty(IS.ISP.Rw1)
+        P.Rw1 = IS.ISP.Rw1;
+      end
       Res = cell(ntrials,0);
       trialn = 1;
       for IR2i = 1:nIR2
@@ -157,11 +164,15 @@ classdef ICOS_search < handle
             issane(i) = 0;
           end
         else
-          res(i).RD1 = (Rr1+IS.ISopt.RD1_margin)*2/2.54;
+          res(i).RD1 = ...
+            (ceil((Rr1+IS.ISopt.RD1_margin+IS.ISopt.RD1_lip)/ ...
+              IS.ISopt.RD1_resolution)*IS.ISopt.RD1_resolution - ...
+              IS.ISopt.RD1_lip) * 2/2.54;
         end
         
-        res(i).D1 = ceil((res(i).r1+IS.ISopt.D1_margin)*2/...
-          IS.ISopt.D1_resolution) * IS.ISopt.D1_resolution / 2.54;
+        res(i).D1 = (ceil((res(i).r1+IS.ISopt.D1_margin+IS.ISopt.D1_lip)/...
+          IS.ISopt.D1_resolution) * IS.ISopt.D1_resolution ...
+          - IS.ISopt.D1_lip) * 2 / 2.54;
         r2 = res(i).r2;
         R2 = res(i).R2;
         if ~isempty(IM2)
@@ -173,11 +184,14 @@ classdef ICOS_search < handle
             issane(i) = 0;
           end
         else
-          res(i).D2 = (r2+IS.ISopt.D2_margin)*2/2.54;
+          % res(i).D2 = (r2+IS.ISopt.D2_margin)*2/2.54;
+          res(i).D2 = (ceil((res(i).r2+IS.ISopt.D2_margin+IS.ISopt.D2_lip)/...
+            IS.ISopt.D2_resolution) * IS.ISopt.D2_resolution ...
+            - IS.ISopt.D2_lip) * 2 / 2.54;
         end
         
         r1 = res(i).r1;
-        D1 = 3; % fixed for now
+        D1 = res(i).D1;
         if r1 > D1*2.54/2
           fprintf(1,'Discarding %d: r1 (%.1f) exceeds D1/2 (%.1f)\n', i, r1, D1*2.54/2);
           issane(i) = 0;
@@ -323,6 +337,7 @@ classdef ICOS_search < handle
       %     2 shows all attempts.
       %   max_lenses: defaults to 3
       %   fix_lenses: cell array of specific lenses to use
+      %   injection_scale: Used to scale up radius
       %
       % search_focus2 attempts to build configurations using lenses
       % defined in the ICOS_Model6.props LensTypes array.
@@ -457,6 +472,9 @@ classdef ICOS_search < handle
         P.evaluate_endpoints = -1;
         PM = ICOS_Model6(P);
         [oxyz,r2,div,skew] = PM.M.extract_origin_skew(4+n_lenses);
+        if isempty(div)
+          return;
+        end
         theta2 = atand(sqrt(mean(div).^2 + mean(skew).^2));
         % Now do we need to optimize further? Only if
         % length(x) == 3 and theta2 is not close to th
@@ -529,6 +547,7 @@ classdef ICOS_search < handle
       SFopt.det_acc_limit_tolerance = 0.05;
       SFopt.max_lenses = 3;
       SFopt.fix_lenses = {};
+      SFopt.injection_scale = 1;
       for i=1:2:length(varargin)-1
         fld = varargin{i};
         if isfield(IS.ISopt,fld)
@@ -550,12 +569,13 @@ classdef ICOS_search < handle
         end
       end
       i = 0;
-      P = ICOS_Model6.props;
+      % P = ICOS_Model6.props;
       results = 0;
       while i < length(res)
         i = i+1;
         P = render_model(res(i), 'visibility', [0 0 0], ...
           'focus', 1, 'ICOS_passes_per_injection', 100, ...
+          'injection_scale', SFopt.injection_scale, ...
           'max_rays', 3000, 'HR', 0);
         n = res(i).n; % 2.4361
         d = res(i).d2*n;
@@ -599,13 +619,14 @@ classdef ICOS_search < handle
         end
       end
       i = 0;
-      P = ICOS_Model6.props;
+      % P = ICOS_Model6.props;
       LTS = fields(P.LensTypes);
       results = 0;
       while i < length(res)
         i = i+1;
         P = render_model(res(i), 'visibility', [0 0 0], ...
           'focus', 1, 'ICOS_passes_per_injection', 100, ...
+          'injection_scale', SFopt.injection_scale, ...
           'max_rays', 3000);
         n = res(i).n; % 2.4361
         d = res(i).d2*n;
@@ -886,12 +907,13 @@ classdef ICOS_search < handle
             'Herriott_passes', Opt.Herriott_passes, ...
             'mnc', IBmnc, IBopt{:});
           if opt_n == n_optics
-            ff2 = IB.Integrate;
-            if ~isempty(ff)
-              delete(ff);
-              drawnow;
-            end
-            ff = ff2;
+            IB.Integrate;
+%             ff2 = IB.Integrate;
+%             if ~isempty(ff)
+%               delete(ff);
+%               drawnow;
+%             end
+%             ff = ff2;
           end
           IB.savefile;
           % save(ofile, 'IB');

@@ -60,9 +60,9 @@ end
 function msgs = check_eq3(r1, r2, h1, h2)
 msgs = {};
 p = [r1, r2, h1, h2];
-if any(p < 0)
-  msgs{end+1} = 'Not all parameters are non-negative';
-end
+% if any(p < 0)
+%   msgs{end+1} = 'Not all parameters are non-negative';
+% end
 mp = min(abs(p));
 Mp = max(abs(p));
 if mp/Mp < .01

@@ -29,7 +29,7 @@ params.D2 = [];
 params.overlap = [];
 params.theta = [];
 params.r_d = [];
-params.NH = [];
+% params.NH = [];
 params.max_pwr = [];
 %%
 exclude = [];
@@ -139,8 +139,17 @@ for i=1:length(res)
     end
     load(IBs{1});
     Pwr = IB.PowerSummary;
-    res(i).eNH = res(i).NH * (1-Pwr.H_loss/100);
-    res(i).H_loss = Pwr.H_loss;
+    % res(i).eNH = res(i).NH * (1-Pwr.H_loss/100);
+    % Recalculate eNH as actual power factor:
+    if isfield(IB.Res,'Pwr')
+      if isfield(IB.Res.Pwr,'R1_2')
+        P2_Actual = (IB.Res.Pwr.R0_2.I + IB.Res.Pwr.R1_2.I)/IB.Res.Pwr.R0_2.NI;
+      else
+        P2_Actual = IB.Res.Pwr.R0_2.I/IB.Res.Pwr.R0_2.NI;
+      end
+      res(i).eNH = P2_Actual;
+    end
+    % res(i).H_loss = Pwr.H_loss;
     res(i).I_loss = Pwr.I_loss;
     res(i).F_loss = Pwr.F_loss;
     res(i).D_loss = Pwr.D_loss;
