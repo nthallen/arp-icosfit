@@ -244,7 +244,7 @@ classdef ICOS_sr_search < handle
                     SP.R2 = R2;
                     SP.L = L(i);
                     %SP.Rw1 = SR.SRopt.Rw1;
-                    SP.r1 = r_max;
+                    SP.r1 = r_max(i);
                     SP.RR1 = SR.SRopt.RR1(RRi);
                     if ~isempty(SR.SRopt.n)
                       SP.n = SR.SRopt.n;
@@ -697,6 +697,7 @@ classdef ICOS_sr_search < handle
       % For each selected configuration, generate an ICOS_search
       % model and run search_ICOS_RIM and search_focus2 methods
       SFopt.focus_visible = 1;
+      SFopt.max_lens_radius = 0;
       for i=1:2:length(varargin)-1
         fld = varargin{i};
         if isfield(SFopt, fld)
@@ -779,7 +780,8 @@ classdef ICOS_sr_search < handle
           %%
           if any(ISok)
             IS.search_focus2('max_lenses',2,'det_acc_limit',SR.SRopt.th,...
-              'select',find(ISok),'injection_scale',injection_scale);
+              'select',find(ISok),'injection_scale',injection_scale,...
+              'max_lens_radius',SFopt.max_lens_radius);
           else
             fprintf('SR.focus: %s IS.search_ICOS_RIM returned no acceptable solutions\n', IS_fname);
           end

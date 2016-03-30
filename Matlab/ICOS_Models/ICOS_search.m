@@ -341,8 +341,8 @@ classdef ICOS_search < handle
       %
       % search_focus2 attempts to build configurations using lenses
       % defined in the ICOS_Model6.props LensTypes array.
-      function optimize_focus(IS, resn, P, d, s, r, th, dth, depth, fix)
-        % optimize_focus(IS, resn, P, d, s, r, th, dth, fix)
+      function optimize_focus(IS, resn, P, d, s, r, th, dth, depth, fix, max_lens_radius)
+        % optimize_focus(IS, resn, P, d, s, r, th, dth, fix, max_lens_radius)
         % IS ICOS_search object
         % resn The res1 index we are working on
         % P ICOS_Model6 properties
@@ -353,6 +353,7 @@ classdef ICOS_search < handle
         % dth target angle tolerance
         % depth is a limit on how many lenses we should allow
         % fix cell array if non-empty, defines specific lenses to use
+        % max_lens_radius
         % Assumption is that we need to be converging.
         if th < 0 || th > 90
           error('MATLAB:HUARP:badangle', ...
@@ -423,7 +424,11 @@ classdef ICOS_search < handle
           LTS = fields(P.LensTypes);
         end
         if n_lenses == 1
-          Prev_lens_r = P.r2;
+          if max_lens_radius > 0
+            Prev_lens_r = max_lens_radius;
+          else
+            Prev_lens_r = P.r2;
+          end
         else
           Prev_lens_r = P.LensTypes.(P.Lenses{n_lenses-1}).r;
         end
@@ -437,7 +442,10 @@ classdef ICOS_search < handle
               'Negative meniscus %s has positive EFL', LTS{LTSi});
           end
           if (IS.ISopt.allow_negative_focus || f > 0) && ...
-              (IS.ISopt.allow_nondecreasing_focus || Lens.r <= Prev_lens_r)
+              (max_lens_radius == 0 || ...
+                Lens.r <= max_lens_radius) && ...
+              (IS.ISopt.allow_nondecreasing_focus || ...
+                Lens.r <= Prev_lens_r)
             [x,~,ds] = pick_lens_x2(r,d,s,f,th,Lens.r-0.3);
             % pick_lens_x2 could have found
             %   a: no solution -- just try the next lens
@@ -449,17 +457,17 @@ classdef ICOS_search < handle
             % In that case, we should try to optimize by binary
             % search.
             if ~isempty(x)
-              optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth, fix);
+              optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth, fix, max_lens_radius);
               if length(x) == 3 && x(1) > 5
                 % Try for a shorter focus by using minimum
-                optimize_rays(IS, P, x(2), d, ds, th, dth, f, resn, depth, fix);
+                optimize_rays(IS, P, x(2), d, ds, th, dth, f, resn, depth, fix, max_lens_radius);
               end
             end
           end
         end
       end
       
-      function optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth, fix)
+      function optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth, fix, max_lens_radius)
         n_lenses = length(P.Lenses);
         P.Lens_Space(n_lenses) = x(1);
         P.detector_spacing = ds;
@@ -539,7 +547,7 @@ classdef ICOS_search < handle
         s2 = mean(skew);
         P.detector_spacing = mean(oxyz(:,1)) - PM.M.Optic{3+n_lenses}.O(1) - ...
           PM.M.Optic{3+n_lenses}.CT - r2*d2/(d2^2+s2^2);
-        optimize_focus(IS, resn, P, d2, s2, r2, th, dth, depth-1, fix);
+        optimize_focus(IS, resn, P, d2, s2, r2, th, dth, depth-1, fix, max_lens_radius);
       end
       
       SFopt.select = [];
@@ -548,6 +556,7 @@ classdef ICOS_search < handle
       SFopt.max_lenses = 3;
       SFopt.fix_lenses = {};
       SFopt.injection_scale = 1;
+      SFopt.max_lens_radius = 0;
       for i=1:2:length(varargin)-1
         fld = varargin{i};
         if isfield(IS.ISopt,fld)
@@ -583,7 +592,7 @@ classdef ICOS_search < handle
         r = res(i).r2;
         optimize_focus(IS, i, P, d, s, r, SFopt.det_acc_limit, ...
           SFopt.det_acc_limit_tolerance, SFopt.max_lenses, ...
-          SFopt.fix_lenses);
+          SFopt.fix_lenses, SFopt.max_lens_radius);
       end
       IS.savefile;
     end

@@ -194,6 +194,9 @@ elseif solution_code == SP.RL + SP.R1 + SP.R2 + SP.L + SP.Rw1
 elseif solution_code == SP.r1 + SP.R1 + SP.R2 + SP.L + SP.RR1
   R.r2 = R.r1*sqrt(R.R2*(R.R1-R.L)/(R.R1*(R.R2-R.L)));
   R.h2 = R.r1*(R.R1-R.L)/R.R1;
+  if length(R.r2) ~= 1 || length(R.h2) ~= 1
+    error('Expecting scalar inputs');
+  end
   R.w2 = sqrt(R.r2^2-R.h2^2);
   R.h1 = R.r2*(R.R2-R.L)/R.R2;
   R.w1 = sqrt(R.r1^2-R.h1^2);
