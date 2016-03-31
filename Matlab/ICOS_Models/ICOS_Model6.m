@@ -164,6 +164,7 @@ classdef ICOS_Model6 < opt_model_p
       P.HCT = 0.2;
       P.Hr = 1.5*2.54; % Herriott radius
       P.HR = 0.98; % Herriott reflectivity
+      P.C = 3000; % Laser coherence length or equivalent, cm
       
       % ICOS Mirrors
       P.T = 250e-6; % ICOS mirror transmission

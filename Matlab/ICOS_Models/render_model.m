@@ -6,6 +6,11 @@ function P_o = render_model(res, varargin)
 %   Just returns the parameter structures.
 % See also: exparam, ICOS_search
 P = ICOS_Model6.props;
+if isfield(P,'C')
+  C = P.C;
+else
+  C = 3000;
+end
 if nargout > 0
   P_o(length(res)) = P;
 end
@@ -22,6 +27,7 @@ for i=1:length(res)
   end
   P.r2 = res(i).D2*2.54/2;
   P.mirror_spacing = res(i).L;
+  P.n_overlap_spots = C/(2*P.mirror_spacing);
   P.y0 = res(i).Rr2;
   if isfield(res(i),'ORd2') && ~isempty(res(i).ORd2)
     P.dy = -res(i).ORd2;
