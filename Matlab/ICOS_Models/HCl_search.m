@@ -15,9 +15,10 @@ R2 = [IR2 R1];
 HM1 = ed_rim_catalog;
 RR1 = unique([HM1.R_cm]);
 %%
-mnc = sprintf('HCl_rd%02d_th%.1f', floor(rd*100), th);
-SR = ICOS_sr_search('mnc',mnc,'L',L,'B',0.4,'Rw1',0.2,'R1',R1,'R2',R2,...
-  'RR1',RR1,'rd',rd,'th',th, 'ICOS_margin', 0.3, 'RD1_margin', 2.0);
+B = 0.1;
+mnc = sprintf('HCl_B%d_rd%02d_th%.1f', round(B*10), floor(rd*100), th);
+SR = ICOS_sr_search('mnc',mnc,'L',L,'B',B,'Rw1',0.2,'R1',R1,'R2',R2,...
+  'RR1',RR1,'rd',rd,'th',th, 'ICOS_margin', 0.2, 'RD1_margin', 2.0);
 SR.enumerate;
 %%
 SR.design_tolerance;
@@ -107,7 +108,9 @@ fprintf(1,'%d passed search_ICOS_RIM\n', sum(configs));
 fprintf(1,'%d can be focused with 2 or fewer off-the-shelf lenses\n', ...
   sum(focuses>0));
 %%
-res = collect_results('files','IS_HCl_rd08_th13.0*.mat','sel',1,'exclude','NH','exclude','max_pwr');
+pattern = 'IS_HCl_rd08_th13.0*.mat';
+%%
+res = collect_results('files',pattern,'R1',[],'D1',[],'sel',1,'exclude','NH','exclude','max_pwr');
 %%
 % Discard the IS files with no configurations
 v = find(configs==0);
@@ -258,7 +261,7 @@ for i=1:length(results)
 end
 %%
 res = collect_results('files','IS_HCl.H_rd08_th13.0*.mat','Rr1',[], ...
-  'r2',[],'Lens_Space',[],'detector_spacing',[]);
+  'r2',[],'D1',[],'Lens_Space',[],'detector_spacing',[]);
 %%
 for i=1:length(res)
   mnc = res(i).mnc;
@@ -268,19 +271,7 @@ for i=1:length(res)
   res(i).k = A(6);
   r1 = [res.r1];
   L = [res.L];
-  mirror_resolution = 2.54/2;
-  mirror_margin = SR.SRopt.B * 0.75;
-  mirror_lip = 2.54/8; % 1/8"
-  r_mirror = ceil((r1(i)+mirror_margin+mirror_lip)/mirror_resolution) * ...
-    mirror_resolution;
-  % r_mirror = r_max+mirror_margin+mirror_lip; % This is theoretical min
-  res(i).Volume = pi*L(i).*(r_mirror-mirror_lip).^2*1e-3; % liters
-  res(i).D1 = r_mirror*2/2.54;
-  r2 = [res.r2];
-  r2_mirror = ceil((r2(i)+mirror_margin+mirror_lip)/mirror_resolution) * ...
-    mirror_resolution;
-  res(i).D2 = r2_mirror*2/2.54;
-  res(i).RD1 = (res(i).Rr1+mirror_margin+mirror_lip)*2/2.54;
+  res(i).Volume = pi*L(i).*(res(i).D1*2.54/2).^2*1e-3; % liters
   res(i).L_tot = res(i).RL + res(i).L + sum(res(i).Lens_Space) + ...
     res(i).detector_spacing;
   % res(i).Rth = asind(res(i).Rw1/res(i).Rr1);
@@ -290,15 +281,19 @@ end
 % quick_plot(res,'Rw1','eNH'); quick_plot(res,'Rw1');
 % shows that Rw1 = 0.4137, and this is for samples 19, 20. 20 has the
 % lower eNH
-resno = 14;
+resno = 11;
 IBfile = sprintf('IB_%s.%d_50x100.mat', res(resno).mnc, res(resno).index);
 load(IBfile);
 mnc = strrep(res(resno).mnc,'HCl.H','HCl.H1');
 P = IB.P;
 P.stop_ICOS = 1;
 P.focus = 0;
+% P.beam_diameter = 0.2;
+%% Animate optic 1
 IB = ICOS_beam(@ICOS_Model6,P);
-%%
 IB.Sample('mnc', mnc, 'opt_n',1,'n_optics',3,'ICOS_passes',1);
-%%
+IB.Animate('IPass',0);
+%% Animate optic 2
+IB = ICOS_beam(@ICOS_Model6,P);
+IB.Sample('mnc', mnc, 'opt_n',2,'n_optics',3,'ICOS_passes',1);
 IB.Animate('IPass',0);
