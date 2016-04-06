@@ -27,7 +27,7 @@ for i=1:length(res)
   end
   P.r2 = res(i).D2*2.54/2;
   P.mirror_spacing = res(i).L;
-  P.n_overlap_spots = C/(2*P.mirror_spacing);
+  P.n_overlap_spots = ceil(C/(2*P.mirror_spacing));
   P.y0 = res(i).Rr2;
   if isfield(res(i),'ORd2') && ~isempty(res(i).ORd2)
     P.dy = -res(i).ORd2;
