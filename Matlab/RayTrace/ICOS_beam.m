@@ -69,7 +69,7 @@ classdef ICOS_beam < handle
       % IB.IBP options:
       %   opt_n: The index of the optic whose rays we want to track
       %   Track_Power: boolean: default is 0
-      %   ICOS_Passes: The number of ICOS passes to track. Default is 100
+      %   ICOS_passes: The number of ICOS passes to track. Default is 100
       %   beam_samples: The number of random beams. Default is 100
       %
       % IB.Sample generates a random sample of rays to represent the
@@ -118,6 +118,9 @@ classdef ICOS_beam < handle
       IB.Res.Int(length(IB.IBP.Dyz)).img = [];
       IB.Res.Dy = Dy;
       IB.Res.Dz = Dz;
+      IB.Res.Warn.n_rays = 0;
+      IB.Res.Warn.resovf = 0;
+      IB.Res.Warn.resovf2 = 0;
       if IB.IBP.Track_Power
         IB.Res.Pwr = [];
       end
@@ -146,6 +149,7 @@ classdef ICOS_beam < handle
           if PM.M.n_rays >= PM.M.max_rays
             warning('Matlab:HUARP:model_maxed', ...
               'n_rays >= max_rays (maxed out): accuracy will be limited');
+            IB.Res.Warn.n_rays = IB.Res.Warn.n_rays+1;
           end
           if isempty(IB.Res.perimeter)
             IB.Res.perimeter = PM.M.Optic{IB.IBP.opt_n}.Surface{1}.perimeter;
@@ -159,12 +163,15 @@ classdef ICOS_beam < handle
             warning('Matlab:HUARP:ResultOverflow', ...
               'Result overflow in sample %d of %d', i, Nsamples);
             nvf = ResLen - IB.Res.N;
+            IB.Res.Warn.resovf = IB.Res.Warn.resovf+1;
           end
           if nvf > IB.IBP.NPI*IB.IBP.Herriott_passes
             warning('Matlab:HUARP:ResultOverflow', ...
               'nvf > NPI*HP in sample %d of %d', i, Nsamples);
+            IB.Res.Warn.resovf2 = IB.Res.Warn.resovf2+1;
             % nvf = IB.IBP.NPI*IB.IBP.Herriott_passes;
           end
+          % Save rays associated with IB.IBP.opt_n
           for j=1:nvf
             IB.Res.N = IB.Res.N+1;
             ray = PM.M.Rays(vf(j)).ray;
@@ -176,6 +183,7 @@ classdef ICOS_beam < handle
             IB.Res.Sample(IB.Res.N) = i;
           end
           if IB.IBP.Track_Power
+            % Summarize power associated with all optics
             pre_opt = [0,PM.M.Rays([PM.M.Rays(Ri(2:end)).n_inc]).n_opt];
             cur_opt = [PM.M.Rays(Ri).n_opt];
             A = [pre_opt' cur_opt'];
@@ -183,17 +191,28 @@ classdef ICOS_beam < handle
             % ib(pass > IB.IBP.NPI) = 0;
             RP = zeros(size(Ri'));
             inside = zeros(size(Ri'));
+            outside = zeros(size(Ri'));
+            ap_exit = zeros(size(Ri'));
+            % Categorize all the rays
             for Pi=1:length(Ri)
               ray = PM.M.Rays(Ri(Pi)).ray;
               RP(Pi) = ray.P;
               inside(Pi) = ray.Inside > 0;
+              ap_exit(Pi) = ray.Inside < 0;
+              outside(Pi) = ray.Inside == 0;
             end
-            outside = ~inside;
-            for Pi=1:length(B)
+            % Now loop through the transitions
+            for Pi=1:size(B,1)
               fld = sprintf('R%d_%d', B(Pi,1), B(Pi,2));
               if ~isfield(IB.Res.Pwr, fld)
-                IB.Res.Pwr.(fld) = struct('I',0,'O',0,'NI',0,'NO',0);
+                if strcmp(fld, 'R2_1')
+                  IB.Res.Pwr.(fld) = struct('I',0,'O',0,'NI',0,'NO',0, ...
+                    'E1',0,'NE1',0,'EO',0,'NEO',0);
+                else
+                  IB.Res.Pwr.(fld) = struct('I',0,'O',0,'NI',0,'NO',0);
+                end
               end
+              transitionV = ib == Pi; % boolean of rays that match trans.
               for pre = 'IO'
                 if pre == 'I'
                   icond = inside;
@@ -201,15 +220,23 @@ classdef ICOS_beam < handle
                   icond = outside;
                 end
                 IB.Res.Pwr.(fld).(pre) = IB.Res.Pwr.(fld).(pre) + ...
-                  sum(RP((ib == Pi) & icond));
+                  sum(RP(transitionV & icond));
                 IB.Res.Pwr.(fld).(['N' pre]) = IB.Res.Pwr.(fld).(['N' pre]) + ...
-                  sum((ib == Pi) & icond);
+                  sum(transitionV & icond);
+              end
+              if strcmp(fld, 'R2_1')
+                ei = find(ap_exit,1);
+                if ~isempty(ei)
+                  if sum(transitionV) > 1
+                    IB.Res.Pwr.R2_1.EO = IB.Res.Pwr.R2_1.EO + RP(ei);
+                    IB.Res.Pwr.R2_1.NEO = IB.Res.Pwr.R2_1.NEO+1;
+                  else
+                    IB.Res.Pwr.R2_1.E1 = IB.Res.Pwr.R2_1.E1 + RP(ei);
+                    IB.Res.Pwr.R2_1.NE1 = IB.Res.Pwr.R2_1.NE1+1;
+                  end
+                end
               end
             end
-%             if isfield(IB.Res.Pwr,'R2_3') && isfield(IB.Res.Pwr,'R3_4') ...
-%                 && IB.Res.Pwr.R2_3.NI ~= IB.Res.Pwr.R3_4.NI
-%               fprintf(1, 'Sample %d: R2_3.NI ~= R3_4.NI\n', i);
-%             end
           end
         end
         TIter = toc(TStart);
@@ -222,17 +249,34 @@ classdef ICOS_beam < handle
     end
     
     function Pwr = PowerSummary(IB)
-      % IB.PowerSummary
+      % IB.PowerSummary;
+      % Pwr = IB.PowerSummary;
+      %
       % Reports on how optical power propagates through the setup.
+      % If an output argument is provided, the verbose output is
+      % suppressed.
+      %
       % The cumulative power loss figure is expected to be a better
       % predictor of performance than the total power ratios.
+      %
       % Total power as a percent of injected power is mostly an indication
-      % of how many ICOS passes were simulated.
+      % of how many ICOS passes were simulated..
+      %
       % Total power as a percent of expected power normalizes for the
       % number of ICOS passes, but yields a number somewhat higher
       % than what we expect as the number of ICOS passes increases.
       % This is because once the beams leave the ICOS cell, they no
       % longer propagate.
+      %
+      % The Herriott cell details do not add up to the total Herriott cell
+      % loss, but should be useful as a general guide as to how the
+      % reinjection module is working. The actual reduction in effective
+      % power when a beam leaves the Herriott cell depends on how many
+      % passes it has already traversed. The detail simply reports the
+      % amount of power leaving the cell by various means, but a beam
+      % exiting on pass 32 of 33 represents a smaller net loss than one
+      % exiting on the first bounce.
+      %
       % See also: ICOS_beam, ICOS_beam.display, ICOS_beam.draw,
       % ICOS_beam.png
       if ~isstruct(IB.Res)
@@ -242,7 +286,15 @@ classdef ICOS_beam < handle
       T = IB.P.T;
       Nsamples = IB.IBP.beam_samples;
       IB.Res.Ptotal = sum(IB.Res.P(1:IB.Res.N))/Nsamples;
-      NH = max(IB.Res.NPass(1:IB.Res.N,1));
+      % Herriott optimal number of passes
+      dNP = diff(IB.Res.NPass(1:IB.Res.N+1,:));
+      v = find(IB.Res.NPass(1:IB.Res.N,1)>1 & ...
+        (dNP(:,1)<0 | (dNP(:,1)==0 & dNP(:,2)<0)));
+      if isempty(v)
+        NH = 1;
+      else
+        NH = mode(IB.Res.NPass(v,1));
+      end
       RH = IB.P.HR;
       P2_Ideal = (1-RH^NH)/(1-RH); % normalized by Nsamples
       Pin = T*P2_Ideal;
@@ -258,18 +310,46 @@ classdef ICOS_beam < handle
           100*IB.Res.Ptotal/Pexp);
       end
       if isfield(IB.Res,'Pwr')
+        % Herriott Cell Analysis
         if isfield(IB.Res.Pwr,'R1_2')
           P2_Actual = (IB.Res.Pwr.R0_2.I + IB.Res.Pwr.R1_2.I)/Nsamples;
+          Hgain = Nsamples*P2_Actual/(IB.Res.Pwr.R0_2.I+IB.Res.Pwr.R0_2.O);
         else
           P2_Actual = IB.Res.Pwr.R0_2.I/Nsamples;
         end
         P2_loss_pct = 100*(P2_Ideal-P2_Actual)/P2_Ideal;
         cum_pwr = 1-P2_loss_pct/100;
+        if nargout == 0
+          fprintf(1,'Herriott cell loss: %.1f%%\n', P2_loss_pct);
+        end
+        if isfield(IB.Res.Pwr,'R2_1') && isfield(IB.Res.Pwr.R2_1,'NEO');
+          PO_E1 = 100*IB.Res.Pwr.R2_1.E1/Nsamples;
+          PO_EO = 100*IB.Res.Pwr.R2_1.EO/Nsamples;
+          PO_1O = 100*IB.Res.Pwr.R2_1.O/Nsamples;
+          PO_2O = 100*(IB.Res.Pwr.R0_2.O + IB.Res.Pwr.R1_2.O)/Nsamples;
+          PO_ICOS = 100*(IB.Res.Pwr.R0_2.I + IB.Res.Pwr.R1_2.I)*IB.P.T/Nsamples;
+          PO_Hloss = 100*IB.Res.Pwr.R2_1.I * (1-IB.P.HR)/Nsamples;
+          if nargout == 0
+            fprintf(1, '  %4.1f%% loss through aperature on 1st pass\n', PO_E1);
+            fprintf(1, '  %4.1f%% loss outside on Herriott mirror\n', PO_1O);
+            fprintf(1, '  %4.1f%% loss outside on back of ICOS mirror\n', PO_2O);
+            fprintf(1, '  %4.1f%% reflective loss on Herriott mirror\n', PO_Hloss);
+            fprintf(1, '  %4.1f%% power through aperature later\n', PO_EO);
+            fprintf(1, '  %4.1f%% power into ICOS cell\n', PO_ICOS);
+          else
+            Pwr.H.PO_E1 = PO_E1;
+            Pwr.H.PO_EO = PO_EO;
+            Pwr.H.PO_1O = PO_1O;
+            Pwr.H.PO_2O = PO_2O;
+            Pwr.H.PO_ICOS = PO_ICOS;
+            Pwr.H.PO_Hloss = PO_Hloss;
+          end
+        end
+        % ICOS analysis
         Iin_Actual = P2_Actual * T;
         I_loss_pct = 100*(IB.Res.Pwr.R2_3.O+IB.Res.Pwr.R3_2.O)/ ...
           (Iin_Actual*Nsamples);
         if nargout == 0
-          fprintf(1,'Herriott cell loss: %.1f%%\n', P2_loss_pct);
           fprintf(1,'ICOS cell loss: %.1f%%\n', I_loss_pct);
         end
         cum_pwr = cum_pwr * (1-I_loss_pct/100);
@@ -316,6 +396,8 @@ classdef ICOS_beam < handle
               Dloss);
             fprintf(1, 'Cumulative loss after translation: %.1f %%\n', cum_loss_pct1);
             fprintf(1, 'Effective output after translation: %.1f\n', eff_pwr1);
+          else
+            Pwr.cum_loss_pct = cum_loss_pct1;
           end
         else
           Dloss = focus_losses(end);
@@ -323,7 +405,6 @@ classdef ICOS_beam < handle
           max_pwr = eff_pwr0;
         end
         if nargout > 0
-          Pwr.cum_loss_pct = cum_loss_pct1;
           Pwr.H_loss = P2_loss_pct;
           Pwr.I_loss = I_loss_pct;
           Pwr.D_loss = Dloss;
