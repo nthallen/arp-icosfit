@@ -147,10 +147,10 @@ classdef ICOS_Model6 < opt_model_p
         y = [];
       end
       if nargout > 3
-        ri = i;
+        ri = j;
       end
       if nargout > 4
-        ci = j;
+        ci = i;
       end
     end
   end

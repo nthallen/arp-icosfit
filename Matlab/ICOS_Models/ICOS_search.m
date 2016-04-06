@@ -68,6 +68,7 @@ classdef ICOS_search < handle
       IS.ISopt.max_focus_length = 20; % abandon is sum of lens space exceeds
       IS.ISopt.allow_negative_focus = 0;
       IS.ISopt.allow_nondecreasing_focus = 0; % Allow big focus lenses after small ones
+      IS.ISopt.beam_diameter = 0.4;
       for i=1:2:length(varargin)-1
         fld = varargin{i};
         if isfield(IS.ISP, fld)
@@ -216,7 +217,7 @@ classdef ICOS_search < handle
       while i < length(res)
         %
         i = i+1;
-        P = render_model(res(i));
+        P = render_model(res(i),'beam_diameter',IS.ISopt.beam_diameter);
         % fine tune dy/dz
         P.stop_ICOS = 0;
         P.visible = 0;
@@ -585,7 +586,8 @@ classdef ICOS_search < handle
         P = render_model(res(i), 'visibility', [0 0 0], ...
           'focus', 1, 'ICOS_passes_per_injection', 100, ...
           'injection_scale', SFopt.injection_scale, ...
-          'max_rays', 3000, 'HR', 0);
+          'max_rays', 3000, 'HR', 0, ...
+          'beam_diameter',IS.ISopt.beam_diameter);
         n = res(i).n; % 2.4361
         d = res(i).d2*n;
         s = res(i).s2;
@@ -636,7 +638,8 @@ classdef ICOS_search < handle
         P = render_model(res(i), 'visibility', [0 0 0], ...
           'focus', 1, 'ICOS_passes_per_injection', 100, ...
           'injection_scale', SFopt.injection_scale, ...
-          'max_rays', 3000);
+          'max_rays', 3000, ...
+          'beam_diameter',IS.ISopt.beam_diameter);
         n = res(i).n; % 2.4361
         d = res(i).d2*n;
         s = res(i).s2;
@@ -888,7 +891,7 @@ classdef ICOS_search < handle
           IS.res2(i).Nres2, Opt.ICOS_passes,Opt.Nsamples);
 %         ofile = sprintf('IB_%s.%d_%dx%d', IS.ISopt.mnc, ...
 %           IS.res2(i).Nres2, Opt.ICOS_passes,Opt.Nsamples);
-        P = render_model(IS.res2(i));
+        P = render_model(IS.res2(i),'beam_diameter',IS.ISopt.beam_diameter);
         P.HR = Opt.HR;
         if Opt.HR == 0
           Opt.Herriott_passes = 1;
