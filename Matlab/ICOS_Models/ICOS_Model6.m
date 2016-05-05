@@ -158,6 +158,8 @@ classdef ICOS_Model6 < opt_model_p
   methods (Static)
     function P = props
       P.optics_n = 2.4361;
+      P.mirrors_n = [];
+      P.lenses_n = [];
       % Herriott Mirror
       P.herriott_spacing = 10; % Before the first ICOS mirror
       P.HRC = 15*2.54; % Herriott radius of curvature
@@ -241,7 +243,14 @@ classdef ICOS_Model6 < opt_model_p
     
     function M = P_model(P)
       T = P.T; % 250e-6; % transmittance
-      n_ZnSe = P.optics_n; % 2.4361;
+      mirrors_n = P.optics_n; % 2.4361;
+      if isfield(P,'mirrors_n') && ~isempty(P.mirrors_n)
+        mirrors_n = P.mirrors_n;
+      end
+      lenses_n = P.optics_n;
+      if isfield(P,'lenses_n') && ~isempty(P.lenses_n)
+        lenses_n = P.lenses_n;
+      end
       n_air = 1;
       d = P.mirror_spacing;
       if P.focus == 1
@@ -259,17 +268,17 @@ classdef ICOS_Model6 < opt_model_p
       %M.Optic{1} = HRmirror('HM', P.Hr, P.HRC, CT, 0, P.HR, ...
       %  [-P.herriott_spacing 0 0], [1 0 0], n_air, n_air, P.visible);
       M.Optic{2} = HRmirror('M1', P.r1, P.R1, P.CT1, T, 1-T, [0 0 0], ...
-        [1 0 0], n_ZnSe, n_air, P.visible && visibility(2));
+        [1 0 0], mirrors_n, n_air, P.visible && visibility(2));
       % Ignore rays transmitted back through ICOS mirror:
       % M.Optic{2}.Surface{2}.emission_threshold = 2*T^2;
       M.Optic{2}.max_passes = P.Herriott_passes;
       M.Optic{2}.edges_visible = P.edges_visible;
       if P.stop_ICOS
         M.Optic{3} = HRmirror('M2', P.r2, P.R2, P.CT2, 0, 0, [d 0 0], ...
-          [-1 0 0], n_ZnSe, n_air, P.visible && visibility(3));
+          [-1 0 0], mirrors_n, n_air, P.visible && visibility(3));
       else
         M.Optic{3} = HRmirror('M2', P.r2, P.R2, P.CT2, T, 1-T, [d 0 0], ...
-          [-1 0 0], n_ZnSe, n_air, P.visible && visibility(3));
+          [-1 0 0], mirrors_n, n_air, P.visible && visibility(3));
         M.Optic{3}.max_passes = P.ICOS_passes_per_injection;
       end
       M.Optic{3}.edges_visible = P.edges_visible;
@@ -286,11 +295,11 @@ classdef ICOS_Model6 < opt_model_p
               D = [1, 0, 0];
             end
             M.Optic{opt_n} = positive_meniscus(L.r, L.R1, L.R2, L.CT, L.EFL, ...
-              sprintf('L%d', i), [opt_X,0,0], D, n_ZnSe, n_air, ...
+              sprintf('L%d', i), [opt_X,0,0], D, lenses_n, n_air, ...
               P.visible && visibility(opt_n));
           elseif strcmp(L.type,'negative_meniscus')
             M.Optic{opt_n} = negative_meniscus(L.r, L.R1, L.R2, L.CT, L.EFL, ...
-              sprintf('L%d', i), [opt_X,0,0], [-1,0,0], n_ZnSe, n_air, ...
+              sprintf('L%d', i), [opt_X,0,0], [-1,0,0], lenses_n, n_air, ...
               P.visible && visibility(opt_n));
           end
           M.Optic{opt_n}.edges_visible = P.edges_visible;
@@ -310,6 +319,7 @@ classdef ICOS_Model6 < opt_model_p
         P.visible && visibility(1));
       Pincident = M.Optic{2}.O + [0, m*P.y0 + P.beam_dy, m*P.z0 + P.beam_dz];
       Oincident = Pincident - (P.herriott_spacing+1)*Dincident;
+      M = ICOS_Model6_hook(M, P);
       if P.propagate
         M.push_ray(opt_ray(Oincident, Dincident), 0, 1, 2);
       end

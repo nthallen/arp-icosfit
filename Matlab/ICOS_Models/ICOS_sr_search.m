@@ -49,7 +49,8 @@ classdef ICOS_sr_search < handle
       %   Rw1: Target Rw1, cm. Def: 0.22
       %   R1: List of specific R1 values. Def: []
       %   R2: List of specific R2 values. Def: []
-      %   n: Indef of refraction of all refracting optics. Def: 2.4361
+      %   optics_n: Index of refraction of all refracting optics. Def: 2.4361
+      %   mirrors_n: Index of refraction of mirrors. Defs to optics_n
       %
       % If L is defined and R1 and R2 are empty, specific values for
       % R1 and R2 are selected that will work with L. If L has two
@@ -77,7 +78,9 @@ classdef ICOS_sr_search < handle
       SR.SRopt.R1 = [];
       SR.SRopt.R2 = [];
       SR.SRopt.RR1 = [];
-      SR.SRopt.n = [];
+      SR.SRopt.optics_n = [];
+      SR.SRopt.mirrors_n = [];
+      SR.SRopt.lenses_n = [];
       for i=1:2:length(varargin)-1
         fld = varargin{i};
         if isfield(SR.SRopt, fld)
@@ -156,8 +159,10 @@ classdef ICOS_sr_search < handle
           SP.L = SR.SRopt.L(1);
           SP.Rw1 = SR.SRopt.Rw1;
           SP.RL = SP.Rw1/s1(mi);
-          if ~isempty(SR.SRopt.n)
-            SP.n = SR.SRopt.n;
+          if ~isempty(SR.SRopt.mirrors_n)
+            SP.n = SR.SRopt.mirrors_n;
+          elseif ~isempty(SR.SRopt.optics_n)
+            SP.n = SR.SRopt.optics_n;
           end
           Res = exparam(SP);
           check_params(SR.NSol, Res);
@@ -214,8 +219,10 @@ classdef ICOS_sr_search < handle
                   SP.L = L(i);
                   SP.Rw1 = SR.SRopt.Rw1;
                   SP.RL = SP.Rw1/s1(i);
-                  if ~isempty(SR.SRopt.n)
-                    SP.n = SR.SRopt.n;
+                  if ~isempty(SR.SRopt.mirrors_n)
+                    SP.n = SR.SRopt.mirrors_n;
+                  elseif ~isempty(SR.SRopt.optics_n)
+                    SP.n = SR.SRopt.optics_n;
                   end
                   Res = exparam(SP);
                   check_params(SR.NSol, Res);
@@ -246,8 +253,10 @@ classdef ICOS_sr_search < handle
                     %SP.Rw1 = SR.SRopt.Rw1;
                     SP.r1 = r_max(i);
                     SP.RR1 = SR.SRopt.RR1(RRi);
-                    if ~isempty(SR.SRopt.n)
-                      SP.n = SR.SRopt.n;
+                    if ~isempty(SR.SRopt.mirrors_n)
+                      SP.n = SR.SRopt.mirrors_n;
+                    elseif ~isempty(SR.SRopt.optics_n)
+                      SP.n = SR.SRopt.optics_n;
                     end
                     Res = exparam(SP);
                     for Resi = 1:length(Res)
@@ -725,8 +734,10 @@ classdef ICOS_sr_search < handle
           SP.R1 = Sums(i).R1;
           SP.R2 = Sums(i).R2;
           SP.L = Sums(i).L;
-          if ~isempty(SR.SRopt.n)
-            SP.n = SR.SRopt.n;
+          if ~isempty(SR.SRopt.mirrors_n)
+            SP.n = SR.SRopt.mirrors_n;
+          elseif ~isempty(SR.SRopt.optics_n)
+            SP.n = SR.SRopt.optics_n;
           end
           if isfield(Sums(i), 'RR1') && ~isempty(Sums(i).RR1)
             SP.RR1 = Sums(i).RR1;
@@ -755,7 +766,7 @@ classdef ICOS_sr_search < handle
           if isfield(Sums(i), 'RR1') && ~isempty(Sums(i).RR1)
             IS = ICOS_search('mnc', mnc,'R1',SP.R1,'R2',SP.R2,'L',SP.L, ...
               'RR1',SP.RR1,'r1',SP.r1, 'RL_lim', [0.95,1.05]*RL, ...
-              'focus_visible', SFopt.focus_visible,'n',Res(1).n, ...
+              'focus_visible', SFopt.focus_visible,'mirrors_n',Res(1).n, ...
               'D1_margin', SR.SRopt.ICOS_margin, ...
               'D2_margin', SR.SRopt.ICOS_margin, ...
               'RD1_margin', SR.SRopt.RD1_margin, ...
@@ -764,12 +775,18 @@ classdef ICOS_sr_search < handle
           else
             IS = ICOS_search('mnc', mnc,'R1',SP.R1,'R2',SP.R2,'L',SP.L, ...
               'RR1',Res(1).RR1,'Rw1',SP.Rw1, 'RL_lim', [0.95,1.05]*RL, ...
-              'focus_visible', SFopt.focus_visible,'n',Res(1).n, ...
+              'focus_visible', SFopt.focus_visible,'mirrors_n',Res(1).n, ...
               'D1_margin', SR.SRopt.ICOS_margin, ...
               'D2_margin', SR.SRopt.ICOS_margin, ...
               'RD1_margin', SR.SRopt.RD1_margin, ...
               'beam_diameter', SR.SRopt.B);
             injection_scale = r_max/Res(1).r1;
+          end
+          if ~isempty(SR.SRopt.optics_n)
+            IS.ISP.optics_n = SR.SRopt.optics_n;
+          end
+          if ~isempty(SR.SRopt.lenses_n)
+            IS.ISP.lenses_n = SR.SRopt.lenses_n;
           end
           %%
           IS.search_ICOS_RIM;

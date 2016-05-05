@@ -49,7 +49,9 @@ classdef ICOS_search < handle
       IS.ISP.r1 = [];
       IS.ISP.L = [];
       IS.ISP.R2 = []; % If not set, choices are searched in ispcatalog
-      IS.ISP.n = []; % index of refraction
+      IS.ISP.optics_n = []; % index of refraction
+      IS.ISP.mirrors_n = [];
+      IS.ISP.lenses_n = [];
       IS.ISopt.mnc = '';
       IS.ISopt.R2_lim = [-inf inf];
       IS.ISopt.RR1_lim = [-inf inf];
@@ -123,8 +125,10 @@ classdef ICOS_search < handle
       if ~isempty(IS.ISP.r1)
         P.r1 = IS.ISP.r1;
       end
-      if ~isempty(IS.ISP.n)
-        P.n = IS.ISP.n;
+      if ~isempty(IS.ISP.mirrors_n)
+        P.n = IS.ISP.mirrors_n;
+      elseif ~isempty(IS.ISP.optics_n)
+        P.n = IS.ISP.optics_n;
       end
       if ~isempty(IS.ISP.Rw1)
         P.Rw1 = IS.ISP.Rw1;
@@ -588,6 +592,11 @@ classdef ICOS_search < handle
           'injection_scale', SFopt.injection_scale, ...
           'max_rays', 3000, 'HR', 0, ...
           'beam_diameter',IS.ISopt.beam_diameter);
+        if ~isempty(IS.ISP.lenses_n)
+          P.lenses_n = IS.ISP.lenses_n;
+        elseif ~isempty(IS.ISP.optics_n)
+          P.lenses_n = IS.ISP.optics_n;
+        end
         n = res(i).n; % 2.4361
         d = res(i).d2*n;
         s = res(i).s2;
@@ -892,6 +901,11 @@ classdef ICOS_search < handle
 %         ofile = sprintf('IB_%s.%d_%dx%d', IS.ISopt.mnc, ...
 %           IS.res2(i).Nres2, Opt.ICOS_passes,Opt.Nsamples);
         P = render_model(IS.res2(i),'beam_diameter',IS.ISopt.beam_diameter);
+        if ~isempty(IS.ISP.lenses_n)
+          P.lenses_n = IS.ISP.lenses_n;
+        elseif ~isempty(IS.ISP.optics_n)
+          P.lenses_n = IS.ISP.optics_n;
+        end
         P.HR = Opt.HR;
         if Opt.HR == 0
           Opt.Herriott_passes = 1;
