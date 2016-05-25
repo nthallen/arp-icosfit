@@ -17,7 +17,7 @@ classdef ICOS_beam < handle
   end
   
   methods
-    function IB = ICOS_beam(om, P)
+    function IB = ICOS_beam(om, P, varargin)
       % IB = ICOS_beam(model, P)
       % IB.IBP contains ICOS_beam options, including:
       %   Herriott_passes: advisory on the maximum number
@@ -34,6 +34,7 @@ classdef ICOS_beam < handle
       IB.IBP.n_optics = 5;
       IB.IBP.NPI = IB.IBP.ICOS_passes;
       IB.IBP.beam_samples = 100;
+      IB.IBP.beam_divergence = 0;
       IB.IBP.dyz = 0.01;
       IB.IBP.Dyz = [0.01 0.2];
       IB.IBP.opt_n = 0;
@@ -58,6 +59,18 @@ classdef ICOS_beam < handle
       % IB.Res.Pwr: Summary of power for each transition
       % IB.Res.Ptotal: Total power (by some metric)
       % IB.Res.Pexp: Expected power (by some possibly different metric)
+      i = 1;
+      while i < length(varargin)
+        if isfield(IB.IBP, varargin{i})
+          IB.IBP.(varargin{i}) = varargin{i+1};
+        elseif isfield(IB.P, varargin{i})
+          IB.P.(varargin{i}) = varargin{i+1};
+        else
+          error('MATLAB:HUARP:InvalidOption', ...
+            'Invalid option: "%s"', varargin{i});
+        end
+        i = i+2;
+      end
     end
     
     function Sample(IB, varargin)
@@ -287,7 +300,7 @@ classdef ICOS_beam < handle
       Nsamples = IB.IBP.beam_samples;
       IB.Res.Ptotal = sum(IB.Res.P(1:IB.Res.N))/Nsamples;
       % Herriott optimal number of passes
-      dNP = diff(IB.Res.NPass(1:IB.Res.N+1,:));
+      dNP = [ diff(IB.Res.NPass(1:IB.Res.N,:)); -ones(1,size(IB.Res.NPass,2))];
       v = find(IB.Res.NPass(1:IB.Res.N,1)>1 & ...
         (dNP(:,1)<0 | (dNP(:,1)==0 & dNP(:,2)<0)));
       if isempty(v)
