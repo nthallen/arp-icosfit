@@ -79,7 +79,7 @@ if noplot == 0
   % xlabel('cm^{-1}');
   % ylabel('Phase deg');
   % set(f, 'Name', sprintf('%s: Phase vs cm-1', getrun));
-end
+
 
 f = figure;
 % polar(deg2rad(beta'), osc','.-');
@@ -106,7 +106,7 @@ hold off;
 title(sprintf('%s: %d-%d: Phase Plot',getrun, min(scans), max(scans)));
 set(f,'Name',sprintf('%s: Phase Plot',getrun));
 drawnow;
-
+end
 if nargout > 0
   osc_out = osc;
   if nargout > 1
