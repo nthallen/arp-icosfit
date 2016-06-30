@@ -167,16 +167,17 @@ classdef ICOS_Model6 < opt_model_p
       P.Hr = 1.5*2.54; % Herriott radius
       P.HR = 0.98; % Herriott reflectivity
       P.C = 3000; % Laser coherence length or equivalent, cm
+      P.dP = []; % Differential pressure in Torr
       
       % ICOS Mirrors
       P.T = 250e-6; % ICOS mirror transmission
       P.mirror_spacing = 50; % mirror spacing
       P.r1 = 1.5*2.54; % mirror radius
       P.R1 = 75;
-      P.CT1 = 0.2; % mirror center thickness
+      P.CT1 = 0.6; % mirror center thickness
       P.r2 = .75*2.54;
       P.R2 = -25.4;
-      P.CT2 = .22;
+      P.CT2 = .6;
 
       % Focusing lenses
       P.Lenses = {};
@@ -267,20 +268,32 @@ classdef ICOS_Model6 < opt_model_p
       M.visible = P.visible;
       %M.Optic{1} = HRmirror('HM', P.Hr, P.HRC, CT, 0, P.HR, ...
       %  [-P.herriott_spacing 0 0], [1 0 0], n_air, n_air, P.visible);
-      M.Optic{2} = HRmirror('M1', P.r1, P.R1, P.CT1, T, 1-T, [0 0 0], ...
-        [1 0 0], mirrors_n, n_air, P.visible && visibility(2));
+      if isfield(P,'dP') && ~isempty(P.dP)
+        M.Optic{2} = HRmirrorP('M1', P.r1, P.R1, P.CT1, T, 1-T, [0 0 0], ...
+          [1 0 0], mirrors_n, n_air, P.visible && visibility(2),P.dP);
+      else
+        M.Optic{2} = HRmirror('M1', P.r1, P.R1, P.CT1, T, 1-T, [0 0 0], ...
+          [1 0 0], mirrors_n, n_air, P.visible && visibility(2));
+      end
       % Ignore rays transmitted back through ICOS mirror:
       % M.Optic{2}.Surface{2}.emission_threshold = 2*T^2;
       M.Optic{2}.max_passes = P.Herriott_passes;
       M.Optic{2}.edges_visible = P.edges_visible;
       if P.stop_ICOS
-        M.Optic{3} = HRmirror('M2', P.r2, P.R2, P.CT2, 0, 0, [d 0 0], ...
-          [-1 0 0], mirrors_n, n_air, P.visible && visibility(3));
+        M2T = 0;
+        M2R = 0;
       else
-        M.Optic{3} = HRmirror('M2', P.r2, P.R2, P.CT2, T, 1-T, [d 0 0], ...
-          [-1 0 0], mirrors_n, n_air, P.visible && visibility(3));
-        M.Optic{3}.max_passes = P.ICOS_passes_per_injection;
+        M2T = T;
+        M2R = 1-T;
       end
+      if isfield(P,'dP') && ~isempty(P.dP)
+        M.Optic{3} = HRmirrorP('M2', P.r2, P.R2, P.CT2, M2T, M2R, [d 0 0], ...
+          [-1 0 0], mirrors_n, n_air, P.visible && visibility(3),P.dP);
+      else
+        M.Optic{3} = HRmirror('M2', P.r2, P.R2, P.CT2, M2T, M2R, [d 0 0], ...
+          [-1 0 0], mirrors_n, n_air, P.visible && visibility(3));
+      end
+      M.Optic{3}.max_passes = P.ICOS_passes_per_injection;
       M.Optic{3}.edges_visible = P.edges_visible;
       if P.focus > 0
         opt_n = 4;

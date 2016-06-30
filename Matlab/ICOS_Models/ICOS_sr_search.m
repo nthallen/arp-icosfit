@@ -225,25 +225,28 @@ classdef ICOS_sr_search < handle
                     SP.n = SR.SRopt.optics_n;
                   end
                   Res = exparam(SP);
-                  check_params(SR.NSol, Res);
-                  if Res(Resi).RL >= RL(i) && Res(Resi).RL < 50 && ...
-                      Res(Resi).r1 >= r_min && Res(Resi).r1 <= r_max
-                    increment_solutions(SR);
-                    SR.Summary(SR.NSol).RLmin = RL(i);
-                    SR.Summary(SR.NSol).R1 = R1;
-                    SR.Summary(SR.NSol).R2 = R2;
-                    SR.Summary(SR.NSol).L = L(i);
-                    SR.Summary(SR.NSol).r_max = r_max(i);
-                    SR.Summary(SR.NSol).r_min = r_min;
-                    SR.Summary(SR.NSol).r1 = Res(1).r1;
-                    SR.Summary(SR.NSol).r2 = Res(1).r2;
-                    SR.Summary(SR.NSol).m = m;
-                    SR.Summary(SR.NSol).k = k;
-                    SR.Summary(SR.NSol).Phi = Phi;
-                    SR.Summary(SR.NSol).Phi_n = Phi_n(i);
-                    SR.Summary(SR.NSol).Phi_p = Phi_p(i);
-                    % SR.Summary(SR.NSol).dBL = dBL(i,:);
-                    SR.Summary(SR.NSol).sel = 0;
+                  for Resi = 1:length(Res)
+                    if Res(Resi).RL >= RL(i) && Res(Resi).RL < 50 && ...
+                        Res(Resi).r1 >= r_min && Res(Resi).r1 <= r_max(i)
+                      check_params(SR.NSol, Res(Resi));
+                      increment_solutions(SR);
+                      SR.Summary(SR.NSol).RR1 = Res(Resi).RR1;
+                      SR.Summary(SR.NSol).RLmin = Res(Resi).RL;
+                      SR.Summary(SR.NSol).R1 = R1;
+                      SR.Summary(SR.NSol).R2 = R2;
+                      SR.Summary(SR.NSol).L = L(i);
+                      SR.Summary(SR.NSol).r_max = r_max(i);
+                      SR.Summary(SR.NSol).r_min = r_min;
+                      SR.Summary(SR.NSol).r1 = Res(Resi).r1;
+                      SR.Summary(SR.NSol).r2 = Res(Resi).r2;
+                      SR.Summary(SR.NSol).m = m;
+                      SR.Summary(SR.NSol).k = k;
+                      SR.Summary(SR.NSol).Phi = Phi;
+                      SR.Summary(SR.NSol).Phi_n = Phi_n(i);
+                      SR.Summary(SR.NSol).Phi_p = Phi_p(i);
+                      % SR.Summary(SR.NSol).dBL = dBL(i,:);
+                      SR.Summary(SR.NSol).sel = 0;
+                    end
                   end
                 else % RR1 options are specified
                   for RRi = 1:length(SR.SRopt.RR1)
