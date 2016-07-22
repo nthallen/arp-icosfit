@@ -141,9 +141,26 @@ fprintf(1,'Space between M1 and M2 (face to face): %.2f cm\n',X);
 X = X + IB.P.CT2+IB.P.Lens_Space(1);
 fprintf(1,'L1 leading position: %.2f cm\n', X);
 fprintf(1,'Space between M2 and L1: %.2f cm\n',IB.P.Lens_Space(1));
-X = X + PM.M.Optic{4}.CT+IB.P.Lens_Space(2);
-fprintf(1,'L2 leading position: %.2f cm\n', X);
-fprintf(1,'Space between L1 and L2: %.2f cm\n',IB.P.Lens_Space(2));
-X = X + PM.M.Optic{5}.CT+IB.P.detector_spacing;
+if length(IB.P.Lens_Space) == 2
+  X = X + PM.M.Optic{4}.CT+IB.P.Lens_Space(2);
+  fprintf(1,'L2 leading position: %.2f cm\n', X);
+  fprintf(1,'Space between L1 and L2: %.2f cm\n',IB.P.Lens_Space(2));
+  X = X + PM.M.Optic{5}.CT+IB.P.detector_spacing;
+else
+  X = X + PM.M.Optic{4}.CT+IB.P.detector_spacing;
+end
 fprintf(1,'Detector position: %.2f cm\n', X);
-fprintf(1,'Space between L2 and detector: %.2f cm\n',IB.P.detector_spacing);
+fprintf(1,'Space between L%d and detector: %.2f cm\n', ...
+  length(IB.P.Lens_Space), IB.P.detector_spacing);
+%%
+P = IB.P;
+P.r1 = 2.54; % 2" diamter
+P.r2 = 2.54; % 2" diameter
+P.Hr = 2.54; % 2" diameter: what the heck
+% This is target for mirror in free mount
+%draw_targets(P,[4*2.54, 0.345]);
+% This is target for RIM + Carolina's cavity end cap
+draw_targets(P,[IB.P.herriott_spacing, 2.78]);
+%%
+fname = [IB.IBP.mnc '_target.png'];
+print(gcf,'-dpng',fname,'-r600');
