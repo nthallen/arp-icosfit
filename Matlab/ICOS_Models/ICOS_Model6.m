@@ -324,13 +324,13 @@ classdef ICOS_Model6 < opt_model_p
           P.visible && visibility(opt_n), 15);
       end
       m = P.injection_scale;
-      APincident = M.Optic{2}.O + [0, m*P.y0, m*P.z0];
+      APincident = M.Optic{2}.O + [-P.CT1, m*P.y0, m*P.z0];
       Dincident = [1, -m*P.dy, m*P.dz];
       Ap = APincident - P.herriott_spacing*Dincident;
       M.Optic{1} = Herriott_Mirror('HM', P.Hr, P.HRC, P.HCT, P.HR, Ap, ...
-        P.beam_diameter, [-P.herriott_spacing 0 0], [1 0 0], ...
+        P.beam_diameter, [-P.herriott_spacing-P.CT1,0,0], [1 0 0], ...
         P.visible && visibility(1));
-      Pincident = M.Optic{2}.O + [0, m*P.y0 + P.beam_dy, m*P.z0 + P.beam_dz];
+      Pincident = M.Optic{2}.O + [-P.CT1, m*P.y0 + P.beam_dy, m*P.z0 + P.beam_dz];
       Oincident = Pincident - (P.herriott_spacing+1)*Dincident;
       M = ICOS_Model6_hook(M, P);
       if P.propagate
