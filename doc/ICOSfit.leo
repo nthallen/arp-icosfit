@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Created by Leo (http://leoeditor.com/leo_toc.html) -->
 <?xml-stylesheet ekr_test?>
-<leo_file>
+<leo_file xmlns:leo="http://www.leo-editor.org/2011/leo" >
 <leo_header file_format="2" tnodes="0" max_tnode_index="0" clone_windows="0"/>
 <globals body_outline_ratio="0.5" body_secondary_ratio="0.5">
 	<global_window_position top="50" left="50" height="500" width="700"/>
@@ -18,6 +19,9 @@
 <v t="ntallen.20130522124837.1270"><vh>ICOSconfig.m</vh></v>
 </v>
 <v t="ntallen.20130522100930.1249"><vh>Realtime Support</vh></v>
+<v t="nort.20150311135345.1249" a="E"><vh>Simulation</vh>
+<v t="nort.20150311135345.1250"><vh>ICOS_function</vh></v>
+</v>
 <v t="ntallen.20130522100930.1250"><vh>GSL Integration</vh></v>
 <v t="ntallen.20130522100930.1251"><vh>Linking parameters</vh></v>
 <v t="ntallen.20130522100930.1252"><vh>Parallel Operations</vh></v>
@@ -33,6 +37,76 @@
 </v>
 </vnodes>
 <tnodes>
+<t tx="nort.20150311135345.1249">
+Synthetic Spectra
+     Inputs:
+          waves.m: defines sampling and a couple fit parameters
+          ICOSfit_Config: points to experimental data. We probably want to point to synthetic data
+          Cell_Config.m: Defines cell, etalon
+            function cell_cfg = Cell_Config;
+            cell_cfg.fsr = 0.032730;
+            cell_cfg.CavityLength = 90.00;
+            cell_cfg.MirrorLoss = 400.76;
+            cell_cfg.N_Passes = 0;
+            cell_cfg.CavityFixedLength = 0.00;
+          fitline.dat/fitline.mat: Define the scan regionbaseline file
+Power curveTuning curve
+	* Could copy fit values from recent runs
+	* 
+		* baseline parameters for power curve
+		* PTE parameters for tuning curve plus nu_f0
+
+	* Could specify baseline file, vector of parameters | etalon parameters, but would also be useful to allow perturbations away from these
+
+P,T,Mixing Ratios
+ 
+     Need convenient way to create waves.m
+
+Three use cases:
+
+	1. Recreating verbose output from a fit of real data on an existing instrument
+
+		1. All the line strength calculations have already been done
+
+	2. Simulating an existing instrument
+
+		1. Can point to existing data, use ICOSfit_Config, waves.m, Cell_Config.m
+
+	3. Simulating a virtual instrument
+
+		1. Need to create ICOSfit_Config, waves.m, Cell_Config.m
+
+
+In the fit_view case, we are generating output that perfectly represents our model
+In the simulation cases, we would like to introduce perturbations that do not necessarily fit the model.
+
+Setting up the synthetic project defines these things.
+
+	1. Create a directory
+	2. Create ICOSfit_Config.m pointing to this directory
+	3. Create or copy waves.m defining waveform sampling
+	4. Create or copy Cell_Config.m defining cell parameters and some fitting parameters
+
+Set up a synthetic run
+
+	1. Create a run directory
+	2. Copy config files
+
+</t>
+<t tx="nort.20150311135345.1250">Core object for both fit_view and simulation processing
+
+To calculate output, we need the following:
+    Power: input power vector
+    nu: input tuning vector, cm-1
+    P: pressure in torr
+    T: temperature in K
+    lines: HITRAN parameters for lines we care about
+    Q(T) functions for each line:
+        load_QT assumes all T are known up front and loads each QT file.
+        This is potentially inefficient even when all Ts are known, since the same
+        isotopologue may occur more than once. Will need to restructure to
+        load the QT files and store them in the object.
+    MR: mixing ratios for each line (or concentrations?)</t>
 <t tx="ntallen.20130522094826.2379">@nocolor</t>
 <t tx="ntallen.20130522094826.2380"></t>
 <t tx="ntallen.20130522100930.1245">@nocolor</t>
@@ -72,7 +146,7 @@ etln_fit2:
       </t>
 <t tx="ntallen.20130522100930.1248"></t>
 <t tx="ntallen.20130522100930.1249"></t>
-<t tx="ntallen.20130522100930.1250"></t>
+<t tx="ntallen.20130522100930.1250">GNU Scientific Library</t>
 <t tx="ntallen.20130522100930.1251"></t>
 <t tx="ntallen.20130522100930.1252"></t>
 <t tx="ntallen.20130522100930.1253">ICOSfit is somewhat more and somewhat less than a non-linear least squares fit.
