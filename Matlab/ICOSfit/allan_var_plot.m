@@ -4,26 +4,26 @@ function [var_data,t_int]=allan_var_plot(data,time,varargin)
 %create allan variance plot given data and time
 %Time is assumed to be in seconds.
 
-maxint_t=(max(time)-min(time))/10; %maximum integration time is total time/10.
+maxint_t=(max(time)-min(time))/5; %maximum integration time is total time/10.
 min_t=round(diff(time(1:2))*10)/10; %initial integration time equals minimum time differance to nearest 1/10th second.
-max_tt=.1;
+max_tt=min_t;
 inc=1;
 j=1;
 while maxint_t > max_tt
     inc=min_t;
-%     if min_t==0.1;
-%         inc=0.1;
-%     elseif min_t==1;
-%         inc=1;
-%     elseif min_t==10;
-%         inc=5;
-%     elseif min_t==100;
-%         inc=10;
-%     elseif min_t==1000;
-%         inc=50;
-%     else
-%         inc=50;
-%     end
+    if min_t==0.1;
+        inc=0.1;
+    elseif min_t==1;
+        inc=1;
+    elseif min_t==10;
+        inc=5;
+    elseif min_t==100;
+        inc=10;
+    elseif min_t==1000;
+        inc=50;
+    else
+        inc=50;
+    end
     max_tt=max_tt*10;
     if max_tt>maxint_t; max_tt=maxint_t; end
     for i=min_t:inc:max_tt
