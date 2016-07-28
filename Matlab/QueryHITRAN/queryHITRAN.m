@@ -16,39 +16,39 @@ function queryHITRAN( varargin )
 DB='HITRAN';
 HITRAN_Table='HITRAN2012';
 MOLEC_INFO_Table='HITRAN_Molecules';
-user='sayres'; %change this to your MyQSL user name
-pword='mysqlpw'; %change this to your MyQSL passowrd
+user='HITRAN'; %change this to your MyQSL user name
+pword='9&hNy&99by8F6!$'; %change this to your MyQSL passowrd
 
 if nargin == 0
-line_obj.DB=DB;
-line_obj.HITRAN_Table=HITRAN_Table;
-line_obj.MOLEC_INFO_Table=MOLEC_INFO_Table;
-line_obj.user=user;
-line_obj.pword=pword;
-
-if isempty(line_obj.user)
+  line_obj.DB=DB;
+  line_obj.HITRAN_Table=HITRAN_Table;
+  line_obj.MOLEC_INFO_Table=MOLEC_INFO_Table;
+  line_obj.user=user;
+  line_obj.pword=pword;
+  
+  if isempty(line_obj.user)
     mysql('open');
-else
-    conn=database('HITRAN',user,pword,'Vendor','MySQL');
-end
-setdbprefs('DataReturnFormat','cellarray')
-[fields]=fetch(conn,['SHOW FIELDS FROM ' HITRAN_Table]);
-fields=fields(:,1);
-[line_obj.tables]=fetch(conn,'SHOW TABLES');
-setdbprefs('DataReturnFormat','structure')
-[line_obj.HITRAN]=fetch(conn,['select molec,iso,isotopologue,weight,frac_abun,name,texname from ' MOLEC_INFO_Table]);
-close(conn);
-line_obj.fields=fields;
-line_obj.sel_fig = 0;
-line_obj.query_results = [];
-for i=1:length(line_obj.HITRAN.molec)
+  else
+    conn = database('HITRAN',user,pword,'Vendor','MySQL');
+  end
+  setdbprefs('DataReturnFormat','cellarray')
+  [fields]=fetch(conn,['SHOW FIELDS FROM ' HITRAN_Table]);
+  fields=fields(:,1);
+  [line_obj.tables]=fetch(conn,'SHOW TABLES');
+  setdbprefs('DataReturnFormat','structure')
+  [line_obj.HITRAN]=fetch(conn,['select molec,iso,isotopologue,weight,frac_abun,name,texname from ' MOLEC_INFO_Table]);
+  close(conn);
+  line_obj.fields=fields;
+  line_obj.sel_fig = 0;
+  line_obj.query_results = [];
+  for i=1:length(line_obj.HITRAN.molec)
     eval(['line_obj.select.m' num2str(line_obj.HITRAN.molec(i)) '.i' num2str(line_obj.HITRAN.iso(i)) '=1;']);
-end
-for i=1:max(line_obj.HITRAN.molec)
+  end
+  for i=1:max(line_obj.HITRAN.molec)
     eval(['line_obj.select.m' num2str(i) '.i0 = 0;']);
-end
-%[trop, strat, user]
-line_obj.mixing_ratios=[...
+  end
+  %[trop, strat, user]
+  line_obj.mixing_ratios=[...
     10000e-6, 5e-6, 100e-6;... %H2O
     388e-6, 388e-6, 388e-6;... %CO2
     20e-9, 1e-6, 80e-9;... %O3
@@ -97,8 +97,10 @@ line_obj.mixing_ratios=[...
     0,0,0;... %CS
     0,0,0;... %SO3
     ];
-cmap=colormap('lines');
-cmap(8:15,:)=[255 153 0;
+  %set up output field parameters
+  f = figure('visible','on','Name','Query HITRAN Database Program','Numbertitle','off');
+  cmap=colormap('lines');
+  cmap(8:15,:)=[255 153 0;
     153 153 255;
     153 153 0;
     246 137 249;
@@ -106,179 +108,177 @@ cmap(8:15,:)=[255 153 0;
     110 187 154;
     187 42 236;
     230 37 162;]/255;
-line_obj.cmap=cmap;
-%set up output field parameters
-f = figure('visible','off','Name','Query HITRAN Database Program','Numbertitle','off');
-set(f,'UserData',line_obj,'tag','queryHITRAN')
-hp(1)=uipanel('Title','Select Parameters','FontSize',12,...
-                'Position',[.02 .1 .6 .85],'Unit','normalized');
-h = zeros(length(fields),1);
-en = zeros(length(fields),1);
-for i = 1:length(fields)
+  line_obj.cmap=cmap;
+  set(f,'UserData',line_obj,'tag','queryHITRAN')
+  hp(1) = uipanel(f,'Title','Select Parameters','FontSize',12,...
+    'Position',[.02 .1 .6 .85],'Unit','normalized');
+  h = zeros(length(fields),1);
+  en = zeros(length(fields),1);
+  for i = 1:length(fields)
     if strcmp(fields(i,:),'molec') || ...
-            strcmp(fields(i,:),'iso') || ...
-            strcmp(fields(i,:),'wavenumber') || ...
-            strcmp(fields(i,:),'intensity') || ...
-            strcmp(fields(i,:),'gamma_air') || ...
-            strcmp(fields(i,:),'n_air') || ...
-            strcmp(fields(i,:),'delta_air') || ...
-            strcmp(fields(i,:),'Ierr') || ...
-            strcmp(fields(i,:),'LS_energy')
-        en(i)=1;
+        strcmp(fields(i,:),'iso') || ...
+        strcmp(fields(i,:),'wavenumber') || ...
+        strcmp(fields(i,:),'intensity') || ...
+        strcmp(fields(i,:),'gamma_air') || ...
+        strcmp(fields(i,:),'n_air') || ...
+        strcmp(fields(i,:),'delta_air') || ...
+        strcmp(fields(i,:),'Ierr') || ...
+        strcmp(fields(i,:),'LS_energy')
+      en(i)=1;
     end
-end
-height = 0;
-width = 0;
-for i=length(fields):-1:1
+  end
+  height = 0;
+  width = 0;
+  for i=length(fields):-1:1
     name = fields(i,:);
     h(i) = uicontrol( hp(1), 'Style', 'checkbox','tag','parameters','UserData',i,'string',name,'value',en(i));
     pos = get(h(i),'extent');
     height = height + pos(4);
     width = max(width,pos(3));
     set(h(i),'position',[ 220 height pos(3)+20 pos(4)]);
-end
-height = height+20;
-uicontrol(hp(1),'style','text','string','Output Parameters','position',[220 height 130 15]);
-maxheight=height+20;
-height=height-20;
-%set up select parameters
-hs(1)=uicontrol(hp(1),'Style','text','string','Wavenumber Range','position',[10 height 150 20]);
-pos=get(hs(1),'extent'); height=height-pos(4);
-hs(2)=uicontrol(hp(1),'Style','text','string','min:','position',[10 height 30 20]);
-hs(3)=uicontrol(hp(1),'Style','edit','tag','min_wn','string','','position',[ 40 height 50 20]);
-hs(4)=uicontrol(hp(1),'Style','text','tag','wn','string','cm-1','position',[90 height 50 20]);
-pos=get(hs(2),'extent'); height=height-pos(4);
-hs(5)=uicontrol(hp(1),'Style','text','string','max:','position',[10 height 30 20]);
-hs(6)=uicontrol(hp(1),'Style','edit','tag','max_wn','string','','position',[ 40 height 50 20]);
-hs(7)=uicontrol(hp(1),'Style','text','tag','wn','string','cm-1','position',[90 height 50 20]);
-uicontrol(hp(1),'Style','pushbutton','string',sprintf('Switch\n cm-1/um'),'Callback','queryHITRAN(''switch_wn'')','position',[140 height 60 40]);
-pos=get(hs(7),'extent'); height=height-pos(4)-20;
-hs(8)=uicontrol(hp(1),'Style','pushbutton','string','Select Molecules','tag','sel_molec','Callback','queryHITRAN(''select_molecule'')','position',[10 height 120 25]);
-pos=get(hs(7),'extent'); height=height-pos(4)-10;
-hs(9)=uicontrol(hp(1),'Style','text','string','Cutoff:','position',[10 height 50 20]);
-hs(10)=uicontrol(hp(1),'Style','edit','tag','cutoff','string','','position',[ 60 height 60 20]);
-pos=get(hs(9),'extent'); height=height-pos(4)-100;
-uicontrol(hp(1),'Style','pushbutton','string','Run Query','Callback','queryHITRAN(''run_query'')','position',[30 height 100 60]);
-hs(11)=uicontrol(hp(1),'Style','text','string',sprintf('Database = %s',line_obj.DB));
-pos=get(hs(11),'extent'); height=height-pos(4)-50;
-set(hs(11),'Position',[10 height pos(3) pos(4)]);
-hs(12)=uicontrol(hp(1),'Style','text','string','HITRAN Table = ');
-pos=get(hs(12),'extent'); height=height-pos(4);
-set(hs(12),'Position',[10 height pos(3) pos(4)]);
-itable=find(strcmp(line_obj.tables,line_obj.HITRAN_Table));
-hs(13)=uicontrol(hp(1),'Style','listbox','string',[line_obj.tables],'max',1,'min',1,'value',itable,'Callback','queryHITRAN(''change_table'')','tag','table_name');
-xstart=10+pos(3);
-pos=get(hs(13),'extent');
-set(hs(13),'Position',[xstart height pos(3)+20 pos(4)]);
-
-
-
-%set up select save options
-hp(2)=uipanel('Title','Save Functions','FontSize',12,...
-                'Position',[.65 .71 .33 .27]);
-height=90;
-hf(1)=uicontrol(hp(2),'Style','text','string','Fitline File Name:','position',[10 height 115 20]);
-pos=get(hf(1),'extent'); height=height-pos(4);
-hf(2)=uicontrol(hp(2),'Style','edit','tag','filename','string','fitline.dat','position',[10 height 150 20]);
-pos=get(hf(1),'extent'); height=height-pos(4)-10;
-hf(3)=uicontrol(hp(2),'Style','pushbutton','string','Create Fitline File','Callback','queryHITRAN(''save_queryHITRAN'')','position',[ 10 height 150 25]);
-pos=get(hf(2),'extent'); height=height-pos(4)-10;
-hf(5)=uicontrol(hp(2),'Style','pushbutton','string','Save to Workspace','Callback','queryHITRAN(''save_workspace'')','position',[10 height 150 25]);
-
-%set up select plot options
-hp(3)=uipanel('Title','Plot Functions','FontSize',12,...
-                'Position',[.65 .02 .33 .66]);
-set(hp(3),'Units','pixels');
-pos=get(hp(3),'Position');
-height=pos(4)-10;
-set(hp(3),'Units','normalized');
-hf(3)=uicontrol(hp(3),'Style','pushbutton','string','Intensity Plot','Callback','queryHITRAN(''plot_intensity'')','position',[ 10 height 150 25]);
-pos=get(hf(2),'extent'); height=height-pos(4)-40;
-
-hf(20)=uibuttongroup('Parent',hp(3),'Position',[0 .8 1 .1],'tag','intensity_method');
-ub(1)=uicontrol(hf(20),'Style','radio','string','Intensity','Position',[5 2 70 20]);
-ub(2)=uicontrol(hf(20),'Style','radio','string','Intensity*[Conc.]','Position',[80 2 120 20]);
-
-hf(5)=uicontrol(hp(3),'Style','pushbutton','string','Absorption Spectra','Callback','queryHITRAN(''plot_transmission'')','position',[10 height 150 25]);
-
-hf(6)=uibuttongroup('Parent',hp(3),'Position',[0 .60 1 .1],'tag','absorb_method');
-ub(1)=uicontrol(hf(6),'Style','radio','string','Direct','Position',[5 2 60 20]);
-ub(2)=uicontrol(hf(6),'Style','radio','string','ICOS','Position',[70 2 60 20]);
-
-pos=get(hf(5),'extent'); height=height-pos(4)-35;
-hf(7)=uicontrol(hp(3),'Style','text','string','Cell Properties');
-pos=get(hf(7),'extent');
-set(hf(7),'Position',[40 height pos(3) pos(4)]);
-height=height-pos(4);
-hf(8)=uicontrol(hp(3),'Style','text','string','Length:');
-pos=get(hf(8),'extent');
-set(hf(8),'Position',[5 height pos(3) pos(4)]);
-hf(9)=uicontrol(hp(3),'Style','edit','tag','length','string','','Position',[5+pos(3) height 40 pos(4)]);
-hf(10)=uicontrol(hp(3),'Style','text','string','cm');
-pos2=get(hf(10),'extent');
-set(hf(10),'Position',[5+pos(3)+40 height pos2(3) pos2(4)]);
-xstart=5+pos(3)+40+pos2(3)+5;
-hf(8)=uicontrol(hp(3),'Style','text','string','R:');
-pos=get(hf(8),'extent');
-set(hf(8),'Position',[xstart height pos(3) pos(4)]);
-hf(9)=uicontrol(hp(3),'Style','edit','tag','R','string','','Position',[xstart+pos(3) height 40 pos(4)]);
-hf(10)=uicontrol(hp(3),'Style','text','string','ppm');
-pos2=get(hf(10),'extent');
-set(hf(10),'Position',[xstart+pos(3)+40 height pos2(3) pos2(4)]);
-height=height-pos(4)-5;
-hf(11)=uicontrol(hp(3),'Style','text','string','Temp:');
-pos=get(hf(11),'extent');
-set(hf(11),'Position',[5 height pos(3) pos(4)]);
-hf(12)=uicontrol(hp(3),'Style','edit','tag','temp','string','','Position',[5+pos(3) height 40 pos(4)]);
-hf(13)=uicontrol(hp(3),'Style','text','string','K');
-pos2=get(hf(13),'extent');
-set(hf(13),'Position',[5+pos(3)+40 height pos2(3) pos2(4)]);
-xstart=5+pos(3)+40+pos2(3)+5;
-hf(14)=uicontrol(hp(3),'Style','text','string','Pres:');
-pos=get(hf(14),'extent');
-set(hf(14),'Position',[xstart height pos(3) pos(4)]);
-hf(15)=uicontrol(hp(3),'Style','edit','tag','pres','string','','Position',[xstart+pos(3) height 40 pos(4)]);
-hf(16)=uicontrol(hp(3),'Style','text','string','Torr');
-pos2=get(hf(16),'extent');
-set(hf(16),'Position',[xstart+pos(3)+40 height pos2(3) pos2(4)]);
-
-hf(17)=uibuttongroup('Parent',hp(3),'Position',[0 .17 1 .15],'tag','profile');
-uicontrol(hf(17),'Style','text','string','Mixing Ratio Profile','Position',[2 20 200 20]);
-ub(1)=uicontrol(hf(17),'Style','radio','string','Trop','tag','1');
-pos1=get(ub(1),'extent');
-set(ub(1),'Position',[2 1 pos1(3)+20 pos1(4)])
-ub(2)=uicontrol(hf(17),'Style','radio','string','Strat','tag','2');
-pos2=get(ub(2),'extent');
-set(ub(2),'Position',[2+pos1(3)+20 1 pos2(3)+20 pos2(4)])
-ub(3)=uicontrol(hf(17),'Style','radio','string','User','tag','3');
-pos3=get(ub(3),'extent');
-set(ub(3),'Position',[2+pos1(3)+pos2(3)+40 1 pos3(3)+20 pos3(4)])
-hf(18)=uicontrol(hf(17),'Style','pushbutton','string','Define','Callback','queryHITRAN(''MR_define'')','position',[2+pos1(3)+pos2(3)+60+pos3(3) 2 50 20]);
-
-hf(19)=uibuttongroup('Parent',hp(3),'Position',[0 .005 1 .16],'tag','line_method');
-ub(1)=uicontrol(hf(19),'Style','radio','string','Convolute Lines');
-pos1=get(ub(1),'extent');
-set(ub(1),'Position',[2 23 pos1(3)+20 pos1(4)])
-ub(2)=uicontrol(hf(19),'Style','radio','string','Overlay Lines');
-pos2=get(ub(2),'extent');
-set(ub(2),'Position',[2 2 pos2(3)+20 pos2(4)])
-
-te_x = 220+width;
-br_x = te_x + 130;
-br_xx = br_x + width;
-pos = get(f,'position');
-   pos(3) = br_xx + 170;
-   pos(4) = maxheight + 90;
+  end
+  height = height+20;
+  uicontrol(hp(1),'style','text','string','Output Parameters','position',[220 height 130 15]);
+  maxheight=height+20;
+  height=height-20;
+  %set up select parameters
+  hs(1)=uicontrol(hp(1),'Style','text','string','Wavenumber Range','position',[10 height 150 20]);
+  pos=get(hs(1),'extent'); height=height-pos(4);
+  hs(2)=uicontrol(hp(1),'Style','text','string','min:','position',[10 height 30 20]);
+  hs(3)=uicontrol(hp(1),'Style','edit','tag','min_wn','string','','position',[ 40 height 50 20]);
+  hs(4)=uicontrol(hp(1),'Style','text','tag','wn','string','cm-1','position',[90 height 50 20]);
+  pos=get(hs(2),'extent'); height=height-pos(4);
+  hs(5)=uicontrol(hp(1),'Style','text','string','max:','position',[10 height 30 20]);
+  hs(6)=uicontrol(hp(1),'Style','edit','tag','max_wn','string','','position',[ 40 height 50 20]);
+  hs(7)=uicontrol(hp(1),'Style','text','tag','wn','string','cm-1','position',[90 height 50 20]);
+  uicontrol(hp(1),'Style','pushbutton','string',sprintf('Switch\n cm-1/um'),'Callback','queryHITRAN(''switch_wn'')','position',[140 height 60 40]);
+  pos=get(hs(7),'extent'); height=height-pos(4)-20;
+  hs(8)=uicontrol(hp(1),'Style','pushbutton','string','Select Molecules','tag','sel_molec','Callback','queryHITRAN(''select_molecule'')','position',[10 height 120 25]);
+  pos=get(hs(7),'extent'); height=height-pos(4)-10;
+  hs(9)=uicontrol(hp(1),'Style','text','string','Cutoff:','position',[10 height 50 20]);
+  hs(10)=uicontrol(hp(1),'Style','edit','tag','cutoff','string','','position',[ 60 height 60 20]);
+  pos=get(hs(9),'extent'); height=height-pos(4)-100;
+  uicontrol(hp(1),'Style','pushbutton','string','Run Query','Callback','queryHITRAN(''run_query'')','position',[30 height 100 60]);
+  hs(11)=uicontrol(hp(1),'Style','text','string',sprintf('Database = %s',line_obj.DB));
+  pos=get(hs(11),'extent'); height=height-pos(4)-50;
+  set(hs(11),'Position',[10 height pos(3) pos(4)]);
+  hs(12)=uicontrol(hp(1),'Style','text','string','HITRAN Table = ');
+  pos=get(hs(12),'extent'); height=height-pos(4);
+  set(hs(12),'Position',[10 height pos(3) pos(4)]);
+  itable=find(strcmpi(line_obj.tables,line_obj.HITRAN_Table));
+  hs(13)=uicontrol(hp(1),'Style','listbox','string',[line_obj.tables],'max',1,'min',1,'value',itable,'Callback','queryHITRAN(''change_table'')','tag','table_name');
+  xstart=10+pos(3);
+  pos=get(hs(13),'extent');
+  set(hs(13),'Position',[xstart height pos(3)+20 pos(4)]);
+  
+  
+  
+  %set up select save options
+  hp(2)=uipanel('Title','Save Functions','FontSize',12,...
+    'Position',[.65 .71 .33 .27]);
+  height=90;
+  hf(1)=uicontrol(hp(2),'Style','text','string','Fitline File Name:','position',[10 height 115 20]);
+  pos=get(hf(1),'extent'); height=height-pos(4);
+  hf(2)=uicontrol(hp(2),'Style','edit','tag','filename','string','fitline.dat','position',[10 height 150 20]);
+  pos=get(hf(1),'extent'); height=height-pos(4)-10;
+  hf(3)=uicontrol(hp(2),'Style','pushbutton','string','Create Fitline File','Callback','queryHITRAN(''save_queryHITRAN'')','position',[ 10 height 150 25]);
+  pos=get(hf(2),'extent'); height=height-pos(4)-10;
+  hf(5)=uicontrol(hp(2),'Style','pushbutton','string','Save to Workspace','Callback','queryHITRAN(''save_workspace'')','position',[10 height 150 25]);
+  
+  %set up select plot options
+  hp(3)=uipanel('Title','Plot Functions','FontSize',12,...
+    'Position',[.65 .02 .33 .66]);
+  set(hp(3),'Units','pixels');
+  pos=get(hp(3),'Position');
+  height=pos(4)-10;
+  set(hp(3),'Units','normalized');
+  hf(3)=uicontrol(hp(3),'Style','pushbutton','string','Intensity Plot','Callback','queryHITRAN(''plot_intensity'')','position',[ 10 height 150 25]);
+  pos=get(hf(2),'extent'); height=height-pos(4)-40;
+  
+  hf(20)=uibuttongroup('Parent',hp(3),'Position',[0 .8 1 .1],'tag','intensity_method');
+  ub(1)=uicontrol(hf(20),'Style','radio','string','Intensity','Position',[5 2 70 20]);
+  ub(2)=uicontrol(hf(20),'Style','radio','string','Intensity*[Conc.]','Position',[80 2 120 20]);
+  
+  hf(5)=uicontrol(hp(3),'Style','pushbutton','string','Absorption Spectra','Callback','queryHITRAN(''plot_transmission'')','position',[10 height 150 25]);
+  
+  hf(6)=uibuttongroup('Parent',hp(3),'Position',[0 .60 1 .1],'tag','absorb_method');
+  ub(1)=uicontrol(hf(6),'Style','radio','string','Direct','Position',[5 2 60 20]);
+  ub(2)=uicontrol(hf(6),'Style','radio','string','ICOS','Position',[70 2 60 20]);
+  
+  pos=get(hf(5),'extent'); height=height-pos(4)-35;
+  hf(7)=uicontrol(hp(3),'Style','text','string','Cell Properties');
+  pos=get(hf(7),'extent');
+  set(hf(7),'Position',[40 height pos(3) pos(4)]);
+  height=height-pos(4);
+  hf(8)=uicontrol(hp(3),'Style','text','string','Length:');
+  pos=get(hf(8),'extent');
+  set(hf(8),'Position',[5 height pos(3) pos(4)]);
+  hf(9)=uicontrol(hp(3),'Style','edit','tag','length','string','','Position',[5+pos(3) height 40 pos(4)]);
+  hf(10)=uicontrol(hp(3),'Style','text','string','cm');
+  pos2=get(hf(10),'extent');
+  set(hf(10),'Position',[5+pos(3)+40 height pos2(3) pos2(4)]);
+  xstart=5+pos(3)+40+pos2(3)+5;
+  hf(8)=uicontrol(hp(3),'Style','text','string','R:');
+  pos=get(hf(8),'extent');
+  set(hf(8),'Position',[xstart height pos(3) pos(4)]);
+  hf(9)=uicontrol(hp(3),'Style','edit','tag','R','string','','Position',[xstart+pos(3) height 40 pos(4)]);
+  hf(10)=uicontrol(hp(3),'Style','text','string','ppm');
+  pos2=get(hf(10),'extent');
+  set(hf(10),'Position',[xstart+pos(3)+40 height pos2(3) pos2(4)]);
+  height=height-pos(4)-5;
+  hf(11)=uicontrol(hp(3),'Style','text','string','Temp:');
+  pos=get(hf(11),'extent');
+  set(hf(11),'Position',[5 height pos(3) pos(4)]);
+  hf(12)=uicontrol(hp(3),'Style','edit','tag','temp','string','','Position',[5+pos(3) height 40 pos(4)]);
+  hf(13)=uicontrol(hp(3),'Style','text','string','K');
+  pos2=get(hf(13),'extent');
+  set(hf(13),'Position',[5+pos(3)+40 height pos2(3) pos2(4)]);
+  xstart=5+pos(3)+40+pos2(3)+5;
+  hf(14)=uicontrol(hp(3),'Style','text','string','Pres:');
+  pos=get(hf(14),'extent');
+  set(hf(14),'Position',[xstart height pos(3) pos(4)]);
+  hf(15)=uicontrol(hp(3),'Style','edit','tag','pres','string','','Position',[xstart+pos(3) height 40 pos(4)]);
+  hf(16)=uicontrol(hp(3),'Style','text','string','Torr');
+  pos2=get(hf(16),'extent');
+  set(hf(16),'Position',[xstart+pos(3)+40 height pos2(3) pos2(4)]);
+  
+  hf(17)=uibuttongroup('Parent',hp(3),'Position',[0 .17 1 .15],'tag','profile');
+  uicontrol(hf(17),'Style','text','string','Mixing Ratio Profile','Position',[2 20 200 20]);
+  ub(1)=uicontrol(hf(17),'Style','radio','string','Trop','tag','1');
+  pos1=get(ub(1),'extent');
+  set(ub(1),'Position',[2 1 pos1(3)+20 pos1(4)])
+  ub(2)=uicontrol(hf(17),'Style','radio','string','Strat','tag','2');
+  pos2=get(ub(2),'extent');
+  set(ub(2),'Position',[2+pos1(3)+20 1 pos2(3)+20 pos2(4)])
+  ub(3)=uicontrol(hf(17),'Style','radio','string','User','tag','3');
+  pos3=get(ub(3),'extent');
+  set(ub(3),'Position',[2+pos1(3)+pos2(3)+40 1 pos3(3)+20 pos3(4)])
+  hf(18)=uicontrol(hf(17),'Style','pushbutton','string','Define','Callback','queryHITRAN(''MR_define'')','position',[2+pos1(3)+pos2(3)+60+pos3(3) 2 50 20]);
+  
+  hf(19)=uibuttongroup('Parent',hp(3),'Position',[0 .005 1 .16],'tag','line_method');
+  ub(1)=uicontrol(hf(19),'Style','radio','string','Convolute Lines');
+  pos1=get(ub(1),'extent');
+  set(ub(1),'Position',[2 23 pos1(3)+20 pos1(4)])
+  ub(2)=uicontrol(hf(19),'Style','radio','string','Overlay Lines');
+  pos2=get(ub(2),'extent');
+  set(ub(2),'Position',[2 2 pos2(3)+20 pos2(4)])
+  
+  te_x = 220+width;
+  br_x = te_x + 130;
+  br_xx = br_x + width;
+  pos = get(f,'position');
+  pos(3) = br_xx + 170;
+  pos(4) = maxheight + 90;
   set(f,'position', pos, 'resize', 'off', 'Menubar','none',...
     'UserData',line_obj,'visible','on');
-
+  
 
 elseif strcmp(varargin{1},'select_molecule')
   f=get(gcbo,'parent');
   f=get(f,'parent');
   line_obj = update_line_obj(f);
-  if length(line_obj)
-    if line_obj.sel_fig && ishandle(line_obj.sel_fig)
+  if ~isempty(line_obj)
+    if line_obj.sel_fig ~= 0 && ishandle(line_obj.sel_fig)
       set(line_obj.sel_fig,'visible','on');
       figure(line_obj.sel_fig);
     else
@@ -329,7 +329,7 @@ set(line_obj.sel_fig,'visible','on','name','Select Molecules/Isotopes','NumberTi
 elseif strcmp(varargin{1},'deletefig')
   f = gcbo;
   line_obj = get(f,'UserData');
-  if line_obj.sel_fig && ishandle(line_obj.sel_fig)
+  if line_obj.sel_fig ~= 0 && ishandle(line_obj.sel_fig)
     delete(line_obj.sel_fig);
   end
   return
@@ -480,6 +480,7 @@ elseif strcmp(varargin{1},'run_query')
   %mysql(['use ' line_obj.DB])
   tic;
   %eval(['[' params1(1:end-1) ']=mysql(''select ' params2(1:end-1) ' from ' line_obj.HITRAN_Table ' where CONCAT(molec,iso) IN (' sel_molec(1:end-1) ') AND wavenumber BETWEEN ' line_obj.min_wn ' AND ' line_obj.max_wn ' AND intensity >= ' line_obj.cutoff ''');']);
+  query_string = ['line_obj.query_results=fetch(conn,''select ' params2(1:end-1) ' from ' line_obj.HITRAN_Table ' where CONCAT(molec,iso) IN (' sel_molec(1:end-1) ') AND wavenumber BETWEEN ' line_obj.min_wn ' AND ' line_obj.max_wn ' AND intensity >= ' line_obj.cutoff ''');'];
   eval(['line_obj.query_results=fetch(conn,''select ' params2(1:end-1) ' from ' line_obj.HITRAN_Table ' where CONCAT(molec,iso) IN (' sel_molec(1:end-1) ') AND wavenumber BETWEEN ' line_obj.min_wn ' AND ' line_obj.max_wn ' AND intensity >= ' line_obj.cutoff ''');']);
   query_time=toc;
   lines_selected=length(line_obj.query_results.molec);
