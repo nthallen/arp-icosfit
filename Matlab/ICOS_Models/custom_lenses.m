@@ -1,4 +1,12 @@
 % custom lenses
+% Custom 3" poitive meniscus
+P.LensTypes.Lens1.type = 'positive_meniscus';
+P.LensTypes.Lens1.r = 3*2.54/2;
+P.LensTypes.Lens1.R1 = 8.0122;
+P.LensTypes.Lens1.R2 = 29.8275;
+P.LensTypes.Lens1.CT = 0.9;
+P.LensTypes.Lens1.EFL = 7.62;
+%
 P.LensTypes.Cust_ZC_PM_63_50.type = 'positive_meniscus';
 P.LensTypes.Cust_ZC_PM_63_50.r = 3.1750;
 P.LensTypes.Cust_ZC_PM_63_50.R1 = 4.5720;

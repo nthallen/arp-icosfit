@@ -31,7 +31,10 @@ mnc = sprintf('HCl_L50_B%d_rd%02d_th%.1f', round(B*10), floor(rd*100), th);
 IS = ICOS_search('mnc',mnc,'L',L,'R1',R1,'R2',R2,'Rw1',B/2,'RL_lim',[5, 50]);
 IS.search_ICOS_RIM;
 %%
-IS.search_focus2('focus_visible', 0, 'max_lenses', 2);
+IS.res2 = [];
+%%
+IS.search_focus2('focus_visible', 1, 'max_lenses', 2, ...
+  'allow_nondecreasing_focus',1,'max_focus_length',40);
 %%
 Ltot = [IS.res2.Ltot];
 Max_Foci = 2; % The number of focus solutions to consider
@@ -69,3 +72,51 @@ for i=1:length(res)
     res(i).detector_spacing;
   % res(i).Rth = asind(res(i).Rw1/res(i).Rr1);
 end
+
+%%
+PM = IB.draw('r1',1.5*2.54,'r2',1.5*2.54,'HR',0,'visibility', [0]);
+title('HTW ICOS Focus: no RIM');
+view(0,90);
+%%
+fname = [IB.IBP.mnc '.png'];
+print(gcf, '-dpng', fname);
+%%
+PM = IB.draw('r1',1.5*2.54,'r2',1.5*2.54,'HR',0,'visibility', [0 0 0]);
+title('HTW ICOS Focus: no RIM');
+view(0,90);
+%%
+xlabel('cm');
+ylabel('cm');
+%%
+fname = [IB.IBP.mnc '_focus.png'];
+print(gcf, '-dpng', fname);
+%%
+fprintf(1,'\nOptical Configuration Summary for %s\n\n', IB.IBP.mnc);
+X = IB.P.mirror_spacing;
+fprintf(1,'Space between M1 and M2 (face to face): %.2f cm\n',X);
+X = X + IB.P.CT2+IB.P.Lens_Space(1);
+fprintf(1,'L1 leading position: %.2f cm\n', X);
+fprintf(1,'Space between M2 and L1: %.2f cm\n',IB.P.Lens_Space(1));
+if length(IB.P.Lens_Space) == 2
+  X = X + PM.M.Optic{4}.CT+IB.P.Lens_Space(2);
+  fprintf(1,'L2 leading position: %.2f cm\n', X);
+  fprintf(1,'Space between L1 and L2: %.2f cm\n',IB.P.Lens_Space(2));
+  X = X + PM.M.Optic{5}.CT+IB.P.detector_spacing;
+else
+  X = X + PM.M.Optic{4}.CT+IB.P.detector_spacing;
+end
+fprintf(1,'Detector position: %.2f cm\n', X);
+fprintf(1,'Space between L%d and detector: %.2f cm\n', ...
+  length(IB.P.Lens_Space), IB.P.detector_spacing);
+%%
+P = IB.P;
+P.r1 = 1.5*2.54; % 3" diamter
+P.r2 = 1.5*2.54; % 3" diameter
+P.Hr = 1.5*2.54; % 2" diameter: what the heck
+% This is target for mirror in free mount
+%draw_targets(P,[4*2.54, 0.345]);
+% This is target for RIM + Carolina's cavity end cap
+draw_targets(P,[6.00, 0.32]);
+%%
+fname = [IB.IBP.mnc '_target.png'];
+print(gcf,'-dpng',fname,'-r600');

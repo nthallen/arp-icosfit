@@ -208,13 +208,6 @@ classdef ICOS_Model6 < opt_model_p
       P.dz = .03;
       
       % Lens types:
-      % Custom 3" poitive meniscus
-      P.LensTypes.Lens1.type = 'positive_meniscus';
-      P.LensTypes.Lens1.r = 3*2.54/2;
-      P.LensTypes.Lens1.R1 = 8.0122;
-      P.LensTypes.Lens1.R2 = 29.8275;
-      P.LensTypes.Lens1.CT = 0.9;
-      P.LensTypes.Lens1.EFL = 7.62;
       custom_lenses;
       isp_meniscuses; % Defines all their positive and negative meniscus lenses
       

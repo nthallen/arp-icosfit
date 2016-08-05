@@ -40,7 +40,7 @@ Ioffset = target_radiusI + target_radiusR + 0.5;
 % Ioffset = 0;
 draw_target('ICOS', txtI, IPr, target_radiusI, Ioffset, 0, scale, rs);
 draw_target('RIM', txtR, HPr, target_radiusR, 0, rs, scale, rs);
-draw_slot(r0, rs, target_radiusR, scale);
+draw_slot(HPr(2), rs, target_radiusR, scale);
 hold off;
 shg;
 set(gca,'xtick',[],'ytick',[]);
