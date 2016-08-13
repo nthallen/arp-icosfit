@@ -1,5 +1,5 @@
 function base = find_scans_dir( base_in, ICOSfit )
-% base = find_scan_dir(base_in [, ICOSfit]);
+% base = find_scans_dir(base_in [, ICOSfit]);
 % Finds the appropriate base directory for log files
 % If the ICOSfit argument is provided and is non-zero, the
 % path appropriate for use by ICOSfit is returned.

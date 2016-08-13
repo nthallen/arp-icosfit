@@ -1,5 +1,5 @@
 %%
-% HCL_search_B
+% HCL_L50_search
 % This is very much like HCl_search, but without most of the exploration
 % code. It just runs straight through.
 %
@@ -8,33 +8,41 @@
 % mnc starts with 'HCl_B4_rd...'
 rd = 0.08; % Define the target radius at the detector
 th = 14; % Define the target angle from normal at the detector
-L = 50; % Cavity length
+% Cavity length is nominally 50 cm, but there is an additional 1.42 cm
+% in each end cap to the front edge of the mirror, and each mirror
+% has a sag of 0.10 cm (3" mirror with RoC of 75 cm), so the total
+% distance is 50 + 2*(1.42 + 0.10) = 50 + 2*1.52 = 50 + 3.04 = 53.04 cm
+% distance is 50 + 2*(0.1 + 0.1) = 50.4 cm
+L = 50.4; % Cavity length
 % R2_lim = [-1000 0];
 R2_lim = [];
 
 % R1 = [25 50 75 100 200 300 400 500 750 1000];
 R1 = 75;
-IM2 = ispcatalog;
-IR2 = unique([IM2.R_cm]);
-if ~isempty(R2_lim)
-  IR2 = IR2(IR2 > R2_lim(1) & IR2 < R2_lim(2));
-end
+% IM2 = ispcatalog;
+% IR2 = unique([IM2.R_cm]);
+% if ~isempty(R2_lim)
+%   IR2 = IR2(IR2 > R2_lim(1) & IR2 < R2_lim(2));
+% end
 % R2 = [IR2 R1];
 R2 = R1;
-HM1 = ed_rim_catalog;
-RR1 = unique([HM1.R_cm]);
+% HM1 = ed_rim_catalog;
+% RR1 = unique([HM1.R_cm]);
 %
-B = 0.4;
+B = 0.2;
+Rw1 = B*3/2;
 ICOS_margin = 0.2;
-mnc = sprintf('HCl_L50_B%d_rd%02d_th%.1f', round(B*10), floor(rd*100), th);
+mnc = sprintf('HCl_L50_B%d_Rw%1d_rd%02d_th%.1f', round(B*10), ...
+  round(Rw1*10), floor(rd*100), th);
 %%
-IS = ICOS_search('mnc',mnc,'L',L,'R1',R1,'R2',R2,'Rw1',B/2,'RL_lim',[5, 50]);
+IS = ICOS_search('mnc',mnc,'L',L,'R1',R1,'R2',R2,'Rw1',Rw1, ...
+  'beam_diameter', B, 'RL_lim',[5, 50]);
 IS.search_ICOS_RIM;
 %%
 IS.res2 = [];
 %%
 IS.search_focus2('focus_visible', 1, 'max_lenses', 2, ...
-  'allow_nondecreasing_focus',1,'max_focus_length',40);
+  'allow_nondecreasing_focus',1,'max_focus_length',40, 'dx_min', 1.554);
 %%
 Ltot = [IS.res2.Ltot];
 Max_Foci = 2; % The number of focus solutions to consider
@@ -53,9 +61,11 @@ end
 IS.explore_focus;
 IS.savefile;
 %%
-IS.analyze('RD1_margin',2);
+% Mirror transmission set high based on previous measurments
+IS.analyze('HR',0,'T',.005,'RD1_margin',2,'r1',3*2.54/2,'r2',3*2.54/2);
 
 %%
+pattern = 'IB_HCl_L50_B2*.mat';
 res = collect_results('files',pattern,'Rr1',[], ...
   'r2',[],'R1',[],'D1',[],'Lens_Space',[],'detector_spacing',[]);
 %%
@@ -74,14 +84,14 @@ for i=1:length(res)
 end
 
 %%
-PM = IB.draw('r1',1.5*2.54,'r2',1.5*2.54,'HR',0,'visibility', [0]);
+PM = IB.draw('HR',0,'visibility', [0]);
 title('HTW ICOS Focus: no RIM');
 view(0,90);
 %%
 fname = [IB.IBP.mnc '.png'];
 print(gcf, '-dpng', fname);
 %%
-PM = IB.draw('r1',1.5*2.54,'r2',1.5*2.54,'HR',0,'visibility', [0 0 0]);
+PM = IB.draw('HR',0,'visibility', [0 0 0]);
 title('HTW ICOS Focus: no RIM');
 view(0,90);
 %%
@@ -92,6 +102,11 @@ fname = [IB.IBP.mnc '_focus.png'];
 print(gcf, '-dpng', fname);
 %%
 fprintf(1,'\nOptical Configuration Summary for %s\n\n', IB.IBP.mnc);
+fprintf(1,'M1: Diameter: %.2f" RoC: %.1f cm\n', IB.P.r1*2/2.54, IB.P.R1);
+fprintf(1,'M2: Diameter: %.2f" RoC: %.1f cm\n', IB.P.r2*2/2.54, IB.P.R2);
+for i=1:length(IB.P.Lenses)
+  fprintf(1,'L%d: %s\n', i, IB.P.Lenses{i});
+end
 X = IB.P.mirror_spacing;
 fprintf(1,'Space between M1 and M2 (face to face): %.2f cm\n',X);
 X = X + IB.P.CT2+IB.P.Lens_Space(1);
@@ -116,7 +131,9 @@ P.Hr = 1.5*2.54; % 2" diameter: what the heck
 % This is target for mirror in free mount
 %draw_targets(P,[4*2.54, 0.345]);
 % This is target for RIM + Carolina's cavity end cap
-draw_targets(P,[6.00, 0.32]);
+% draw_targets(P,[6.00, 0.32]);
+% This is target for RIM + HTW end cap
+draw_targets(P,[6.00, 1.554]);
 %%
 fname = [IB.IBP.mnc '_target.png'];
 print(gcf,'-dpng',fname,'-r600');

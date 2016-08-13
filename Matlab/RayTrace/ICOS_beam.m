@@ -335,7 +335,8 @@ classdef ICOS_beam < handle
         if nargout == 0
           fprintf(1,'Herriott cell loss: %.1f%%\n', P2_loss_pct);
         end
-        if isfield(IB.Res.Pwr,'R2_1') && isfield(IB.Res.Pwr.R2_1,'NEO');
+        if isfield(IB.Res.Pwr,'R2_1') && isfield(IB.Res.Pwr,'R1_2') && ...
+            isfield(IB.Res.Pwr.R2_1,'NEO')
           PO_E1 = 100*IB.Res.Pwr.R2_1.E1/Nsamples;
           PO_EO = 100*IB.Res.Pwr.R2_1.EO/Nsamples;
           PO_1O = 100*IB.Res.Pwr.R2_1.O/Nsamples;

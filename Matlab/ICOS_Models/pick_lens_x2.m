@@ -1,4 +1,4 @@
-function [x,theta_o,ds_o] = pick_lens_x2(r, d, s, f, theta, lens_r)
+function [x,theta_o,ds_o] = pick_lens_x2(r, d, s, f, theta, lens_r, dx_min)
 % r is the beam radius at x=0
 % d is the beam divergence at x=0. Should be < 0
 % s is the beam skew at x=0
@@ -6,6 +6,9 @@ function [x,theta_o,ds_o] = pick_lens_x2(r, d, s, f, theta, lens_r)
 % theta is the target max angle
 % lens_r is the lens radius, but the caller should subtract any desired
 %   margin.
+% dx_min is the minimum spacing between the previous optic and this lens.
+%   Defaults to 0.1 cm
+%
 % Returns:
 % x: empty if no solution. Scalar if only a boundary solution
 %    [x0 x1] if only a boundary condition. In this case x0
@@ -40,7 +43,7 @@ if isempty(rts)
   return;
 end
 if d >= 0
-  xmin = 0.1; % Since we can assume f>0, xmin represents the minimal correction
+  xmin = dx_min; % Since we can assume f>0, xmin represents the minimal correction
   xmax = rts; % and xmax will be the maximal correction.
 else
   th0 = atand(sqrt(d^2+s^2));
@@ -55,7 +58,7 @@ else
       return;
     end
   else
-    xmin = 0.1;
+    xmin = dx_min;
   end
   if f > 0
     xmax = -r*d/(d^2 + s^2);

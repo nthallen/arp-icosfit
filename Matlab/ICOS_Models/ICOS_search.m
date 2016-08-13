@@ -342,12 +342,15 @@ classdef ICOS_search < handle
       %     2 shows all attempts.
       %   max_lenses: defaults to 3
       %   fix_lenses: cell array of specific lenses to use
+      %   dx_min: array of minimum spacing
       %   injection_scale: Used to scale up radius
       %
       % search_focus2 attempts to build configurations using lenses
       % defined in the ICOS_Model6.props LensTypes array.
-      function optimize_focus(IS, resn, P, d, s, r, th, dth, depth, fix, max_lens_radius)
-        % optimize_focus(IS, resn, P, d, s, r, th, dth, fix, max_lens_radius)
+      function optimize_focus(IS, resn, P, d, s, r, th, dth, depth, fix, ...
+          max_lens_radius, dx_min)
+        % optimize_focus(IS, resn, P, d, s, r, th, dth, fix, ...
+        %   max_lens_radius, dx_min)
         % IS ICOS_search object
         % resn The res1 index we are working on
         % P ICOS_Model6 properties
@@ -359,6 +362,7 @@ classdef ICOS_search < handle
         % depth is a limit on how many lenses we should allow
         % fix cell array if non-empty, defines specific lenses to use
         % max_lens_radius
+        % dx_min
         % Assumption is that we need to be converging.
         if th < 0 || th > 90
           error('MATLAB:HUARP:badangle', ...
@@ -451,7 +455,12 @@ classdef ICOS_search < handle
                 Lens.r <= max_lens_radius) && ...
               (IS.ISopt.allow_nondecreasing_focus || ...
                 Lens.r <= Prev_lens_r)
-            [x,~,ds] = pick_lens_x2(r,d,s,f,th,Lens.r-0.3);
+            if n_lenses <= length(dx_min)
+              dxm = dx_min(n_lenses);
+            else
+              dxm = 0.1;
+            end
+            [x,~,ds] = pick_lens_x2(r,d,s,f,th,Lens.r-0.3,dxm);
             % pick_lens_x2 could have found
             %   a: no solution -- just try the next lens
             %   b: an incomplete solution (at xmin or xmax)
@@ -462,17 +471,20 @@ classdef ICOS_search < handle
             % In that case, we should try to optimize by binary
             % search.
             if ~isempty(x)
-              optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth, fix, max_lens_radius);
+              optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth, ...
+                fix, max_lens_radius, dx_min);
               if length(x) == 3 && x(1) > 5
                 % Try for a shorter focus by using minimum
-                optimize_rays(IS, P, x(2), d, ds, th, dth, f, resn, depth, fix, max_lens_radius);
+                optimize_rays(IS, P, x(2), d, ds, th, dth, f, resn, ...
+                  depth, fix, max_lens_radius, dx_min);
               end
             end
           end
         end
       end
       
-      function optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth, fix, max_lens_radius)
+      function optimize_rays(IS, P, x, d, ds, th, dth, f, resn, depth, ...
+          fix, max_lens_radius, dx_min)
         n_lenses = length(P.Lenses);
         P.Lens_Space(n_lenses) = x(1);
         P.detector_spacing = ds;
@@ -550,9 +562,11 @@ classdef ICOS_search < handle
         r2 = mean(r2);
         d2 = mean(div);
         s2 = mean(skew);
-        P.detector_spacing = mean(oxyz(:,1)) - PM.M.Optic{3+n_lenses}.O(1) - ...
+        P.detector_spacing = mean(oxyz(:,1)) - ...
+          PM.M.Optic{3+n_lenses}.O(1) - ...
           PM.M.Optic{3+n_lenses}.CT - r2*d2/(d2^2+s2^2);
-        optimize_focus(IS, resn, P, d2, s2, r2, th, dth, depth-1, fix, max_lens_radius);
+        optimize_focus(IS, resn, P, d2, s2, r2, th, dth, depth-1, fix, ...
+          max_lens_radius, dx_min);
       end
       
       SFopt.select = [];
@@ -560,6 +574,7 @@ classdef ICOS_search < handle
       SFopt.det_acc_limit_tolerance = 0.05;
       SFopt.max_lenses = 3;
       SFopt.fix_lenses = {};
+      SFopt.dx_min = [];
       SFopt.injection_scale = 1;
       SFopt.max_lens_radius = 0;
       for i=1:2:length(varargin)-1
@@ -603,7 +618,7 @@ classdef ICOS_search < handle
         r = res(i).r2;
         optimize_focus(IS, i, P, d, s, r, SFopt.det_acc_limit, ...
           SFopt.det_acc_limit_tolerance, SFopt.max_lenses, ...
-          SFopt.fix_lenses, SFopt.max_lens_radius);
+          SFopt.fix_lenses, SFopt.max_lens_radius, SFopt.dx_min);
       end
       IS.savefile;
     end
