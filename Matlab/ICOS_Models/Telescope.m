@@ -138,6 +138,24 @@ classdef Telescope < opt_model_p
         P.visible && visibility(opt_n), 15);
       if P.propagate
         if P.beam_n_r > 0 && P.beam_n_th > 0
+          divl = sind(P.beam_divergence);
+          if P.beam_n_r <= 1
+            rs = P.beam_diameter/2;
+          else
+            rs = linspace(0,P.beam_diameter/2,P.beam_n_r);
+          end
+          for r = rs
+            for th = [0:P.beam_n_th-1]*pi*2/P.beam_n_th
+              Oincident = [-P.L1_Space,r*cos(th),r*sin(th)];
+              Dincident = [1,0,0] + (2/P.beam_diameter)*divl*Oincident;
+              Eincident = Oincident + P.L1_Space*Dincident;
+              M.push_ray(opt_ray(Oincident, Dincident), 0, 0, 1);
+              M.propagate;
+              if r == 0
+                break;
+              end
+            end
+          end
         else
           Oincident = [-P.L1_Space,P.y0+P.beam_dy,P.z0+P.beam_dz];
           Dincident = [1,P.dy+P.dydy,P.dz+P.dzdz];

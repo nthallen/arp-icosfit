@@ -6,6 +6,8 @@
 P = Telescope.props;
 P.visible = 0;
 P.evaluate_endpoints = 3;
+P.beam_n_r = 1;
+P.beam_n_th = 12;
 % P.L2_Space = 6.088;
 PM = Telescope(P,'beam_diameter',[0.1 0.2 0.3 0.4 0.5]);
 PM.plot_results('max_divergence');
@@ -30,6 +32,8 @@ grid;
 P = Telescope.props;
 P.visible = 0;
 P.evaluate_endpoints = 3;
+P.beam_n_r = 1;
+P.beam_n_th = 12;
 P.L2_Space = 6.096;
 PM = Telescope(P,'beam_divergence',[0:.02:0.3]);
 PM.plot_results('max_divergence');
@@ -56,6 +60,7 @@ P.L2_Space = 6.096;
 P.beam_diameter = 0.4;
 P.beam_divergence = 0.3; % degrees
 P.beam_n_r = 1;
+P.beam_n_th = 12;
 dL2S = linspace(0,1,50);
 PM = Telescope(P,'L2_Space', P.L2_Space + dL2S);
 figure;
@@ -75,6 +80,8 @@ P.visible = 0;
 P.evaluate_endpoints = 3;
 P.beam_diameter = 0.4;
 P.beam_divergence = 0.3; % degrees
+P.beam_n_r = 1;
+P.beam_n_th = 12;
 P.L2_Space = 6.8; % Matched to 0.3
 PM = Telescope(P,'D_Space',1:20);
 PM.plot_results('max_radius');
@@ -88,6 +95,8 @@ P.visible = 1;
 P.evaluate_endpoints = 3;
 P.beam_diameter = 0.4;
 P.beam_divergence = 0.3; % degrees
+P.beam_n_r = 1;
+P.beam_n_th = 12;
 P.L1_Space = 18;
 % P.L2_Space = 6.35;
 P.D_Space = 20;
@@ -113,12 +122,11 @@ PM = Telescope(P);
 view(0,0);
 
 %%
-% Test ICOS_beam verison of Telescope:
+% Test ICOS_beam verison of Telescope using the current L2_Space:
 P = Telescope.props;
 P.visible = 0;
 P.evaluate_endpoints = 3;
 P.beam_diameter = 0.4;
-%P.beam_divergence = 0.3;
 P.L1_Space = 18;
 P.D_Space = 20;
 IB = ICOS_beam(@Telescope, P);
@@ -129,3 +137,21 @@ IB.Sample('beam_samples', 500, ...
             'mnc', 'Tele');
 %
 ff = IB.Integrate;
+close(ff([1,3,4]));
+ff1 = ff(2);
+%%
+% And the optimized L2_Space:
+P.L2_Space = 6.78;
+IB = ICOS_beam(@Telescope, P);
+IB.Sample('beam_samples', 500, ...
+            'opt_n', 3, ...
+            'n_optics', 3, 'Track_Power', 0, ...
+            'beam_divergence', 0.3, ...
+            'mnc', 'Tele');
+ff = IB.Integrate;
+close(ff([1,3,4]));
+ff2 = ff(2);
+figure(ff2);
+cl = get(gca,'Clim');
+figure(ff1);
+set(gca,'Clim',cl);
