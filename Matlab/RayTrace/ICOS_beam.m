@@ -4,7 +4,7 @@ classdef ICOS_beam < handle
   % dimensions. This class should work with any
   % class derived from opt_model_p. The properties
   % for the model must include:
-  %   y0, z0, dy, dz, beam_dy, beam_dz, beam_diameter
+  %   y0, z0, dy, dz, beam_dy, beam_dz, beam_diameter, dydy, dzdz
   %   T (trasmittance)
   % See also: ICOS_beam.ICOS_beam, ICOS_beam.Sample,
   % ICOS_beam.PowerSummary, ICOS_beam.Animate, ICOS_beam.Integrate,
@@ -117,8 +117,8 @@ classdef ICOS_beam < handle
       X = rand(Nsamples,1);
       r = IB.P.beam_diameter*sqrt(-log(X))/2;
       th = 2*pi*rand(Nsamples,1);
-      Dy = r.*cos(th);
-      Dz = r.*sin(th);
+      Dy = cos(th);
+      Dz = sin(th);
       ResLen = Nsamples*IB.IBP.NPI*IB.IBP.Herriott_passes;
       IB.Res.N = 0;
       IB.Res.D = zeros(ResLen, 3);
@@ -129,8 +129,11 @@ classdef ICOS_beam < handle
       IB.Res.NPasses = zeros(Nsamples,1);
       IB.Res.perimeter = [];
       IB.Res.Int(length(IB.IBP.Dyz)).img = [];
-      IB.Res.Dy = Dy;
-      IB.Res.Dz = Dz;
+      IB.Res.Dy = r.*Dy;
+      IB.Res.Dz = r.*Dz;
+      dd = sind(IB.IBP.beam_divergence)*r*2/IB.P.beam_diameter;
+      IB.Res.dydy = dd.*Dy;
+      IB.Res.dzdz = dd.*Dz;
       IB.Res.Warn.n_rays = 0;
       IB.Res.Warn.resovf = 0;
       IB.Res.Warn.resovf2 = 0;
@@ -148,8 +151,10 @@ classdef ICOS_beam < handle
             i, Nsamples);
           break;
         else
-          P.beam_dy = Dy(i);
-          P.beam_dz = Dz(i);
+          P.beam_dy = IB.Res.Dy(i);
+          P.beam_dz = IB.Res.Dz(i);
+          P.dydy = IB.Res.dydy(i);
+          P.dzdz = IB.Res.dzdz(i);
           PM = IB.model(P);
           if IB.IBP.opt_n < 1 || IB.IBP.opt_n > length(PM.M.Optic)
             error('MATLAB:HUARP:OpticOOR', 'Invalid Optic Number');

@@ -69,13 +69,23 @@ classdef Telescope < opt_model_p
       P.D_dY = 0;
       P.D_dZ = 0;
       P.beam_diameter = 0.4;
+      % The following 7 parameters define an interface relevant to
+      % ICOS_beam
+      P.y0 = 0;
+      P.z0 = 0;
+      P.beam_dy = 0;
+      P.beam_dz = 0;
+      P.dy = 0;
+      P.dz = 0;
+      P.T = 1; % Transmittance, required by ICOS_beam
+      % These three parameters invoke a different interface that provides
+      % different visualization modes via opt_model and analysis via
+      % opt_model_p. This interface is invoked when beam_n_th and beam_n_r
+      % are non-zero.
       P.beam_divergence = 0;
-      P.beam_n_th = 12;
-      P.beam_n_r = 5;
-%       P.Beam_y = 0;
-%       P.Beam_z = P.beam_diameter/2;
-%       P.Beam_dy = 0;
-%       P.Beam_dz = 0;
+      P.beam_n_th = 0;
+      P.beam_n_r = 0;
+      
       isp_meniscuses;
       
       P.max_rays = 60;
@@ -96,7 +106,7 @@ classdef Telescope < opt_model_p
       end
       lenses_n = P.optics_n;
       air_n = 1;
-      P.max_rays = P.beam_n_th*P.beam_n_r*n_optics;
+      % P.max_rays = 5;
       M = opt_model(n_optics, P.max_rays);
       M.Spot_Size = P.beam_diameter;
       M.visible = P.visible;
@@ -126,24 +136,13 @@ classdef Telescope < opt_model_p
       end
       M.Optic{opt_n} = detector(P.D_l, [opt_X,P.D_dY,P.D_dZ], [-1,0,0], ...
         P.visible && visibility(opt_n), 15);
-      divl = sind(P.beam_divergence);
-      if P.beam_n_r < 1
-        rs = P.beam_diameter/2;
-      else
-        rs = linspace(0,P.beam_diameter/2,P.beam_n_r);
-      end
       if P.propagate
-        for r = rs
-          for th = [0:P.beam_n_th-1]*pi*2/P.beam_n_th
-            Oincident = [-P.L1_Space,r*cos(th),r*sin(th)];
-            Dincident = [1,0,0] + (2/P.beam_diameter)*divl*Oincident;
-            Eincident = Oincident + P.L1_Space*Dincident;
-            M.push_ray(opt_ray(Oincident, Dincident), 0, 0, 1);
-            M.propagate;
-            if r == 0
-              break;
-            end
-          end
+        if P.beam_n_r > 0 && P.beam_n_th > 0
+        else
+          Oincident = [-P.L1_Space,P.y0+P.beam_dy,P.z0+P.beam_dz];
+          Dincident = [1,P.dy+P.dydy,P.dz+P.dzdz];
+          Eincident = Oincident + P.L1_Space*Dincident;
+          M.push_ray(opt_ray(Oincident, Dincident), 0, 0, 1);
         end
       end
     end

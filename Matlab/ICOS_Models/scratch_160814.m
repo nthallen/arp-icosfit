@@ -111,3 +111,21 @@ P.L2_Space = 6.78;
 P.visible = 1;
 PM = Telescope(P);
 view(0,0);
+
+%%
+% Test ICOS_beam verison of Telescope:
+P = Telescope.props;
+P.visible = 0;
+P.evaluate_endpoints = 3;
+P.beam_diameter = 0.4;
+%P.beam_divergence = 0.3;
+P.L1_Space = 18;
+P.D_Space = 20;
+IB = ICOS_beam(@Telescope, P);
+IB.Sample('beam_samples', 500, ...
+            'opt_n', 3, ...
+            'n_optics', 3, 'Track_Power', 0, ...
+            'beam_divergence', 0.3, ...
+            'mnc', 'Tele');
+%
+ff = IB.Integrate;
