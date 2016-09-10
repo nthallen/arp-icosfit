@@ -1,4 +1,4 @@
-function T = scantime( scannum );
+function T = scantime( scannum )
 % T = scantime( scannum );
 PT = load_mat_files('PT');
 v = find(diff(PT.ScanNum)>0)+1;

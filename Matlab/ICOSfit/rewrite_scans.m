@@ -1,5 +1,5 @@
-function rewrite_scans(ibase,obase,M)
-% rewrite_scans(ibase,obase,M);
+function rewrite_scans(ibase,obase,M,index)
+% rewrite_scans(ibase,obase,M[,starting_index);
 % This program is useful if spectra are inverted. It is better to fix it in hardware. 
 % Should be customized for each axis and probably a specific version should be made 
 % and copied into local directories.
@@ -12,8 +12,9 @@ end
 if nargin < 3 || isempty(M)
     M = [ 0 0 1; 0 1 0; 1 0 0];
 end
-    
-index = 1;
+if nargin < 4 || isempty(index)
+  index = 1;
+end
 while 1
   pi = mlf_path(ibase,index);
   [fi,hdr] = loadbin(pi);

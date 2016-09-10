@@ -182,7 +182,7 @@ if nargin == 0 || strcmp(op,'init')
 
     % Automatically include enabled lines at full strength
     if max(lines(:,1)) > length(Ndens)
-      Ndens = [ Ndens ones(1,length(Ndens)-max(lines(:,1))) ];
+      Ndens = [ Ndens ones(1,max(lines(:,1))-length(Ndens)) ];
     end
     if any(Ndens(lines(:,1))==0)
       Ndens(lines(Ndens(lines(:,1))==0,1)) = 1;
