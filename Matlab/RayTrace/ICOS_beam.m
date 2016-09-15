@@ -366,8 +366,13 @@ classdef ICOS_beam < handle
         end
         % ICOS analysis
         Iin_Actual = P2_Actual * T;
-        I_loss_pct = 100*(IB.Res.Pwr.R2_3.O+IB.Res.Pwr.R3_2.O)/ ...
-          (Iin_Actual*Nsamples);
+        if isfield(IB.Res.Pwr,'R3_2')
+          I_loss_pct = 100*(IB.Res.Pwr.R2_3.O+IB.Res.Pwr.R3_2.O)/ ...
+            (Iin_Actual*Nsamples);
+        else
+          I_loss_pct = 100*IB.Res.Pwr.R2_3.O/ ...
+            (Iin_Actual*Nsamples);
+        end
         if nargout == 0
           fprintf(1,'ICOS cell loss: %.1f%%\n', I_loss_pct);
         end

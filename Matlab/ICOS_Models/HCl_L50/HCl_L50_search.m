@@ -137,3 +137,168 @@ draw_targets(P,[6.00, 1.554]);
 %%
 fname = [IB.IBP.mnc '_target.png'];
 print(gcf,'-dpng',fname,'-r600');
+
+%%
+% Redo ICOS_beam analysis with beam_diameter and beam_divergence as
+% predicted by the telescope model
+IS.ISopt.mnc = 'HCl_L50_B16_Rw3_rd08_th14.0_D12';
+IS.ISopt.beam_diameter = 1.6;
+IS.analyze('HR',0,'T',.005,'RD1_margin',2,'r1',3*2.54/2,'r2',3*2.54/2, ...
+  'beam_diameter', 1.6, 'beam_divergence', 1.2);
+%%
+
+ff = IB.Integrate;
+%%
+IS.ISopt.mnc = 'HCl_L50_B7_Rw3_rd08_th14.0_D0';
+IS.ISopt.beam_diameter = 0.75;
+IS.analyze('HR',0,'T',.005,'RD1_margin',2,'r1',3*2.54/2,'r2',3*2.54/2, ...
+  'beam_diameter', 0.75, 'beam_divergence', 0);
+%%
+% This comparison suggests that the ICOS alignment is insensitive to
+% beam size and divergence, which is really suprising to me.
+load('IB_HCl_L50_B16_Rw3_rd08_th14.0_D12.4_50x100.mat');
+ff = IB.Integrate;
+close(ff([1 3 4]));
+ff1 = ff(2);
+figure(ff1);
+ax1 = gca;
+load('IB_HCl_L50_B7_Rw3_rd08_th14.0_D0.4_50x100.mat');
+ff = IB.Integrate;
+close(ff([1 3 4]));
+ff2 = ff(2);
+figure(ff2);
+ax2 = gca;
+xl = get(ax2,'xlim');
+yl = get(ax2,'ylim');
+set(ax1,'xlim',xl);
+set(ax1,'ylim',yl);
+cl = get(ax2,'Clim');
+set(ax1,'clim',cl);
+%%
+IS.res2(4).sel = 1;
+IS.res2(7).sel = 0;
+for B = 1:5
+  for D = 0:3
+    IS.ISopt.mnc = sprintf('HCl_L50_B%d_Rw3_D%d',B,D);
+    IS.ISopt.beam_diameter = B/10;
+    IS.analyze('HR',0,'T',.005,'RD1_margin',2,'r1',3*2.54/2,'r2',3*2.54/2, ...
+      'beam_diameter', IS.ISopt.beam_diameter, 'beam_divergence', D);
+    IBfile = sprintf('IB_%s.4_50x100.mat', IS.ISopt.mnc);
+    load(IBfile);
+    ff = IB.Integrate;
+    close(ff([1,3,4]));
+  end
+end
+%%
+res = collect_results('files','IS_HCl_L50_B*_Rw3_D*.mat');
+res = res([res.index]==4);
+for i=1:length(res)
+  B = sscanf(res(i).mnc, 'HCl_L50_B%d_Rw3_D%d');
+  res(i).beam_diameter = B(1)/10;
+  res(i).beam_divergence = B(2);
+end
+%%
+scatter([res.beam_diameter],[res.beam_divergence],[],[res.max_pwr]);
+xlabel('beam\_diameter');
+ylabel('beam\_divergence');
+CB = colorbar;
+CBL = get(CB,'label');
+set(CBL,'string','max\_pwr');
+%%
+diams = [res.beam_diameter];
+divs = [res.beam_divergence];
+pwr = [res.max_pwr];
+figure;
+udiams = unique(diams);
+for diam = udiams
+  v = [res.beam_diameter] == diam;
+  plot(divs(v),pwr(v),'*-');
+  hold on;
+end
+hold off;
+xlabel('Divergence degrees');
+ylabel('max\_pwr');
+legend(num2str(udiams'));
+title('Power by beam diameter');
+%%
+figure;
+udivs = unique(divs);
+for div = udivs
+  v = [res.beam_divergence] == div;
+  plot(diams(v),pwr(v),'*-');
+  hold on;
+end
+hold off;
+xlabel('Beam Diameter');
+ylabel('max\_pwr');
+legend(num2str(udivs'));
+title('Power by beam divergence');
+
+%%
+% Model on-axis alignment with M1 removed
+load('IS_HCl_L50_B1_Rw3_D0.mat');
+chdir('M2');
+B = 1.6;
+D = 1.2;
+IS.ISopt.mnc = sprintf('HCl_L50_M2_B%d_Rw3_D%.1f',B*10,D);
+IS.ISopt.beam_diameter = B;
+IS.res2(7).sel = 0;
+IS.res2(4).sel = 1;
+IS.analyze('HR',0,'T',.005,'RD1_margin',2,'r1',3*2.54/2,'r2',3*2.54/2, ...
+  'beam_diameter', IS.ISopt.beam_diameter, 'beam_divergence', D, ...
+  'y0', 0, 'z0', 0, 'dy', 0, 'dz', 0,'ICOS_passes',1000);
+IBfile = sprintf('IB_%s.4_1000x100.mat', IS.ISopt.mnc);
+load(IBfile);
+ff = IB.Integrate;
+close(ff([1,3,4]));
+chdir('..');
+%%
+% Model on-axis alignment with M1 removed with telescope focused
+load('IS_HCl_L50_B1_Rw3_D0.mat');
+chdir('M2');
+B = 0.8;
+D = 0;
+IS.ISopt.mnc = sprintf('HCl_L50_M2F_B%d_Rw3_D%.1f',B*10,D);
+IS.ISopt.beam_diameter = B;
+IS.res2(7).sel = 0;
+IS.res2(4).sel = 1;
+IS.analyze('HR',0,'T',.005,'RD1_margin',2,'r1',3*2.54/2,'r2',3*2.54/2, ...
+  'beam_diameter', IS.ISopt.beam_diameter, 'beam_divergence', D, ...
+  'y0', 0, 'z0', 0, 'dy', 0, 'dz', 0,'ICOS_passes',1000);
+IBfile = sprintf('IB_%s.4_1000x100.mat', IS.ISopt.mnc);
+load(IBfile);
+ff = IB.Integrate;
+close(ff([1,3,4]));
+chdir('..');
+%%
+% Model on-axis alignment with both mirrors
+load('IS_HCl_L50_B1_Rw3_D0.mat');
+B = 1.6;
+D = 1.2;
+IS.ISopt.mnc = sprintf('HCl_L50_OO_B%d_Rw3_D%.1f',B*10,D);
+IS.ISopt.beam_diameter = B;
+IS.res2(7).sel = 0;
+IS.res2(4).sel = 1;
+IS.analyze('HR',0,'T',.005,'RD1_margin',2,'r1',3*2.54/2,'r2',3*2.54/2, ...
+  'beam_diameter', IS.ISopt.beam_diameter, 'beam_divergence', D, ...
+  'y0', 0, 'z0', 0, 'dy', 0, 'dz', 0,'ICOS_passes',50);
+IBfile = sprintf('IB_%s.4_50x100.mat', IS.ISopt.mnc);
+load(IBfile);
+ff = IB.Integrate;
+close(ff([1,3,4]));
+%%
+% Model on-axis alignment with both mirrors
+load('IS_HCl_L50_B1_Rw3_D0.mat');
+B = 0.8;
+D = 0;
+IS.ISopt.mnc = sprintf('HCl_L50_OO_B%d_Rw3_D%.1f',B*10,D);
+IS.ISopt.beam_diameter = B;
+IS.res2(7).sel = 0;
+IS.res2(4).sel = 1;
+IS.analyze('HR',0,'T',.005,'RD1_margin',2,'r1',3*2.54/2,'r2',3*2.54/2, ...
+  'beam_diameter', IS.ISopt.beam_diameter, 'beam_divergence', D, ...
+  'y0', 0, 'z0', 0, 'dy', 0, 'dz', 0,'ICOS_passes',50);
+IBfile = sprintf('IB_%s.4_50x100.mat', IS.ISopt.mnc);
+load(IBfile);
+ff = IB.Integrate;
+% close(ff([1,3,4]));

@@ -8,7 +8,9 @@ P.visible = 0;
 P.evaluate_endpoints = 3;
 P.beam_n_r = 1;
 P.beam_n_th = 12;
-% P.L2_Space = 6.088;
+P.L1_Space = 17; % As measured 8/15/16
+P.L2_Space = 6.237; % As measured 8/15/16
+% P.D_Space = 37; % As measured 8/15/16
 PM = Telescope(P,'beam_diameter',[0.1 0.2 0.3 0.4 0.5]);
 PM.plot_results('max_divergence');
 %%
@@ -97,9 +99,9 @@ P.beam_diameter = 0.4;
 P.beam_divergence = 0.3; % degrees
 P.beam_n_r = 1;
 P.beam_n_th = 12;
-P.L1_Space = 18;
-% P.L2_Space = 6.35;
-P.D_Space = 20;
+P.L1_Space = 17;
+P.L2_Space = 6.24; % As measured 8/15/16
+P.D_Space = 37; % Actually it's more like 37, but hard to visualize
 PM = Telescope(P);
 view(0,0);
 %%
@@ -128,7 +130,8 @@ P.visible = 0;
 P.evaluate_endpoints = 3;
 P.beam_diameter = 0.4;
 P.L1_Space = 18;
-P.D_Space = 20;
+P.L2_Space = 6.24;
+P.D_Space = 37;
 IB = ICOS_beam(@Telescope, P);
 IB.Sample('beam_samples', 500, ...
             'opt_n', 3, ...
