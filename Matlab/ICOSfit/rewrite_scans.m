@@ -15,13 +15,18 @@ end
 if nargin < 4 || isempty(index)
   index = 1;
 end
-while 1
-  pi = mlf_path(ibase,index);
+scans = listscans(ibase);
+scans = scans(scans >= index);
+for i=1:length(scans)
+  scan = scans(i);
+  pi = mlf_path(ibase,scan);
   [fi,hdr] = loadbin(pi);
-  if isempty(fi); break; end
-  po = mlf_path(obase,index);
-  fo = fi * M;
-  mlf_mkdir(obase,index);
-  writebin( po, fo, hdr );
-  index = index+1;
+  if isempty(fi)
+    warning('File not found: %d => %s', scan, ibase);
+  else
+    po = mlf_path(obase,scan);
+    fo = fi * M;
+    mlf_mkdir(obase,scan);
+    writebin( po, fo, hdr );
+  end
 end
