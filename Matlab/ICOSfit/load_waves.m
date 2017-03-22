@@ -15,7 +15,7 @@ if ~isdigit(rundir(end))
         [ ICOSfit_cfg.Matlab_Path filesep rundir ], ...
         [ ICOSfit_cfg.Matlab_Path filesep rundir '/Base' ] ];
 end
-for j = 1:length(dirs);
+for j = 1:length(dirs)
   path = [ dirs{j} '/' ICOSfit_cfg.WavesFile ];
   if exist(path,'file')
     % I did this before with 'run()', but run doesn't deal

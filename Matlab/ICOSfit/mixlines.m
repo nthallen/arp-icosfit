@@ -86,7 +86,7 @@ for i = 1:length(isos)
   ylabel(sprintf('[%s]/[M] ppm', char(names(i))));
   set(gca, 'XTickLabel', [] );
   grid;
-  la = legend( nu_text(visos(i,:),:), -1);
+  la = legend( nu_text(visos(i,:),:),'Location','EastOutside');
   lap = get(la, 'position');
   a1p = get(a1, 'position' );
   a1p(3) = lap(1) - a1p(1);
