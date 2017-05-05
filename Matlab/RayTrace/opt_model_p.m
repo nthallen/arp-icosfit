@@ -125,7 +125,7 @@ classdef opt_model_p
         end
         frame = getframe(gcf);
         writeVideo(PM.writerObj, frame);
-      elseif isfield(P, 'pause') && P.pause;
+      elseif isfield(P, 'pause') && P.pause
         drawnow;
         shg;
         pause;

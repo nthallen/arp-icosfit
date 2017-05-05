@@ -9,6 +9,7 @@ classdef opt_surface
     n_int
     n_ext
     visible
+    alternate % boolean
     % emission_threshold
   end
   
@@ -25,6 +26,7 @@ classdef opt_surface
       surf.n_int = n_int;
       surf.n_ext = n_ext;
       surf.visible = true;
+      surf.alternate = false;
       % surf.emission_threshold = 0;
     end
     
@@ -32,6 +34,9 @@ classdef opt_surface
       [Pintercept,Vnormal] = surf.intercept(Rincident);
       % Pintercept is Rincident extended to the intersection point
       if isempty(Pintercept)
+        if surf.alternate
+          Rincident = [];
+        end
         if ~isempty(Rincident)
           Pintercept = surf.intercept_plane(Rincident);
           if ~isempty(Pintercept)

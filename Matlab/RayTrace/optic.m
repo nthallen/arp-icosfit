@@ -9,6 +9,7 @@ classdef optic
     max_passes % limits propagation
     visible % boolean
     edges_visible % boolean
+    alternate % boolean
 %         If Ray direction dot optic direction < 0
 %         we can assume the ray will hit Surface(1) first
 %         Hence optic.Direction can be considered the
@@ -25,11 +26,14 @@ classdef optic
       opt.visible = vis;
       opt.edges_visible = vis;
       opt.Surface = cell(2,1);
+      opt.alternate = false;
     end
     
     function [Rincident, Rreflect, Rinternal, Rtransmit] = propagate(opt, Rincident)
       opt.Surface{1}.visible = opt.visible;
       opt.Surface{2}.visible = opt.visible;
+      opt.Surface{1}.alternate = opt.alternate;
+      opt.Surface{2}.alternate = opt.alternate;
       if dot(Rincident.D, opt.D) < 0
         order = [1 2];
       else

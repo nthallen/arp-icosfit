@@ -36,26 +36,35 @@ classdef Herriott_Mirror < HRmirror
     
     function [Rincident, Rreflect, Rinternal, Rtransmit] = propagate(HM, Rincident)
       [Rincident, Rreflect, Rinternal, Rtransmit] = HM.propagate@HRmirror(Rincident);
-      if isempty(HM.aperature_point)
-        HM.aperature_point = Rincident.E;
-        Rtransmit = Rincident;
-        Rtransmit.O = Rtransmit.E;
-        Rreflect = [];
-        Rinternal = [];
-      else
-        da = Rincident.E - HM.aperature_point;
-        lda = dot(da, HM.D);
-        rda = da - lda*HM.D;
-        r = sqrt(sum(rda.^2));
-        if r < HM.aperature_radius
-          d = dot(Rincident.E-Rincident.O,Rincident.D);
-          Rincident.E = Rincident.O + (d+1)*Rincident.D;
-          Rincident.Inside = -1; % Not inside, but not "outside"
-          if HM.visible
-            Rincident.draw;
-          end
+      if ~isempty(Rincident)
+        if isempty(HM.aperature_point)
+          HM.aperature_point = Rincident.E;
+          Rtransmit = Rincident;
+          Rtransmit.O = Rtransmit.E;
           Rreflect = [];
-          Rtransmit = [];
+          Rinternal = [];
+        else
+          try
+            da = Rincident.E - HM.aperature_point;
+          catch
+            error('Something broke');
+          end
+          lda = dot(da, HM.D);
+          rda = da - lda*HM.D;
+          r = sqrt(sum(rda.^2));
+          if r < HM.aperature_radius
+            d = dot(Rincident.E-Rincident.O,Rincident.D);
+            Rincident.E = Rincident.O + (d+1)*Rincident.D;
+            Rincident.Inside = -1; % Not inside, but not "outside"
+            if HM.visible
+              Rincident.draw;
+            end
+            Rreflect = [];
+            Rtransmit = [];
+          end
+        end
+        if HM.alternate && Rincident.Inside < 1
+          Rincident = [];
         end
       end
     end

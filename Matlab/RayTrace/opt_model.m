@@ -5,9 +5,10 @@ classdef opt_model < handle
     visible % whether or not to draw
     Rays
     n_rays
-    Spot_Size % diameter in cm
+    Spot_Size % diameter in cm. Used for overlap estimation
     n_points_overlap
     Inside
+    User
   end
   
   properties
@@ -53,39 +54,52 @@ classdef opt_model < handle
       if M.visible
         set(gca,'dataaspectratio',[1 1 1]);
       end
+      inc_n = 0; % need a default
       while M.ray_stack_idx > 0 && M.n_rays < M.max_rays
         RS = M.pop_ray;
-        Rincident = RS.ray;
+        % Rincident = RS.ray;
         opt_n = RS.to_obj;
         if opt_n > 0 && opt_n <= length(M.Optic)
           [Rincident, Rreflect, ~, Rtransmit] = ...
-            M.Optic{RS.to_obj}.propagate(Rincident);
-          inc_n = M.save_ray(Rincident, RS.n_inc, opt_n);
-          max_passes = M.Optic{RS.to_obj}.max_passes;
-          if RS.from_obj < RS.to_obj % Forward transmission
-            next_opt = RS.to_obj + 1;
-            if max_passes > 0
-              if ~isempty(Rreflect)
-                Rreflect.pass(end) = Rreflect.pass(end) + 1;
-                if Rreflect.pass(end) > max_passes
-                  Rreflect = [];
+            M.Optic{opt_n}.propagate(RS.ray);
+          if RS.from_obj < opt_n
+            next_opt = opt_n + 1;
+            prev_opt = opt_n - 1;
+          else
+            next_opt = opt_n - 1;
+            prev_opt = opt_n + 1;
+          end
+          if M.Optic{opt_n}.alternate && isempty(Rincident)
+            M.push_ray(RS.ray, inc_n, RS.from_obj, next_opt);
+          else
+            inc_n = M.save_ray(Rincident, RS.n_inc, opt_n);
+            max_passes = M.Optic{opt_n}.max_passes;
+            if RS.from_obj < opt_n % Forward transmission
+              if max_passes > 0
+                if ~isempty(Rreflect)
+                  Rreflect.pass(end) = Rreflect.pass(end) + 1;
+                  if Rreflect.pass(end) > max_passes
+                    Rreflect = [];
+                  end
+                end
+                if ~isempty(Rtransmit)
+                  Rtransmit.pass(end+1) = 1;
                 end
               end
-              if ~isempty(Rtransmit)
-                Rtransmit.pass(end+1) = 1;
-              end
+            else % backwards transmission
+              Rtransmit = []; % suppress all backwards transmissions
             end
-          else % backwards transmission
-            next_opt = RS.to_obj - 1;
-            Rtransmit = []; % suppress all backwards transmissions
+            M.push_ray(Rreflect, inc_n, opt_n, prev_opt);
+            M.push_ray(Rtransmit, inc_n, opt_n, next_opt);
           end
-          M.push_ray(Rreflect, inc_n, opt_n, RS.from_obj);
-          M.push_ray(Rtransmit, inc_n, opt_n, next_opt);
         end
       end
     end
     
-    function redraw(M)
+    function redraw(M, ray_select)
+      % M.redraw();
+      % M.redraw(ray_select);
+      %   ray_select is a row vector identifying which rays to draw
       if M.visible
         clf;
         for i=1:length(M.Optic)
@@ -96,7 +110,10 @@ classdef opt_model < handle
         end
         set(gca,'dataaspectratio',[1 1 1]);
         % drawnow;
-        for i=1:M.n_rays
+        if nargin < 2
+          ray_select = 1:M.n_rays;
+        end
+        for i=ray_select
           M.Rays(i).ray.draw;
           % drawnow;
         end

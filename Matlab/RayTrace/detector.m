@@ -5,6 +5,13 @@ classdef detector < optic
   
   methods
     function det = detector(l, O, D, vis, theta)
+      % det = detector(l, O, D, vis, theta);
+      % Models a square detector element
+      % l: linear size
+      % O: origin vector
+      % D: direction vector
+      % vis: visability boolean
+      % theta: [Optional] Acceptance angle in degrees
       if nargin < 5
         theta = 0;
       end

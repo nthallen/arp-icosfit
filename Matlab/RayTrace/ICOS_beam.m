@@ -5,7 +5,7 @@ classdef ICOS_beam < handle
   % class derived from opt_model_p. The properties
   % for the model must include:
   %   y0, z0, dy, dz, beam_dy, beam_dz, beam_diameter, dydy, dzdz
-  %   T (trasmittance)
+  %   T (trasmittance), HR (Herriott Reflectivity)
   % See also: ICOS_beam.ICOS_beam, ICOS_beam.Sample,
   % ICOS_beam.PowerSummary, ICOS_beam.Animate, ICOS_beam.Integrate,
   % ICOS_beam.display, ICOS_beam.draw, ICOS_beam.png
@@ -34,7 +34,7 @@ classdef ICOS_beam < handle
       IB.IBP.n_optics = 5;
       IB.IBP.NPI = IB.IBP.ICOS_passes;
       IB.IBP.beam_samples = 100;
-      IB.IBP.beam_divergence = 0;
+      IB.IBP.beam_divergence = 0; % degrees
       IB.IBP.dyz = 0.01;
       IB.IBP.Dyz = [0.01 0.2];
       IB.IBP.opt_n = 0;
@@ -140,7 +140,7 @@ classdef ICOS_beam < handle
       if IB.IBP.Track_Power
         IB.Res.Pwr = [];
       end
-      P = IB.P;
+      Pc = IB.P;
       % IB.IBP.evaluate_endpoints = 0;
       TStart = tic;
       Treport = 0;
@@ -151,12 +151,13 @@ classdef ICOS_beam < handle
             i, Nsamples);
           break;
         else
-          P.beam_dy = IB.Res.Dy(i);
-          P.beam_dz = IB.Res.Dz(i);
-          P.dydy = IB.Res.dydy(i);
-          P.dzdz = IB.Res.dzdz(i);
-          PM = IB.model(P);
-          if IB.IBP.opt_n < 1 || IB.IBP.opt_n > length(PM.M.Optic)
+          Pc.beam_dy = IB.Res.Dy(i);
+          Pc.beam_dz = IB.Res.Dz(i);
+          Pc.dydy = IB.Res.dydy(i);
+          Pc.dzdz = IB.Res.dzdz(i);
+          PM = IB.model(Pc);
+          if ~isempty(IB.IBP.opt_n) && ...
+              (IB.IBP.opt_n < 1 || IB.IBP.opt_n > length(PM.M.Optic))
             error('MATLAB:HUARP:OpticOOR', 'Invalid Optic Number');
           end
           if IB.IBP.n_optics ~= length(PM.M.Optic)
@@ -169,12 +170,16 @@ classdef ICOS_beam < handle
               'n_rays >= max_rays (maxed out): accuracy will be limited');
             IB.Res.Warn.n_rays = IB.Res.Warn.n_rays+1;
           end
-          if isempty(IB.Res.perimeter)
+          if isempty(IB.Res.perimeter) && ~isempty(IB.IBP.opt_n)
             IB.Res.perimeter = PM.M.Optic{IB.IBP.opt_n}.Surface{1}.perimeter;
           end
           Ri = 1:PM.M.n_rays;
           
-          vf = find([PM.M.Rays(Ri).n_opt] == IB.IBP.opt_n);
+          if isempty(IB.IBP.opt_n)
+            vf = Ri;
+          else
+            vf = find([PM.M.Rays(Ri).n_opt] == IB.IBP.opt_n);
+          end
           nvf = length(vf);
           IB.Res.NPasses(i) = nvf;
           if IB.Res.N+nvf > ResLen
@@ -201,60 +206,7 @@ classdef ICOS_beam < handle
             IB.Res.Sample(IB.Res.N) = i;
           end
           if IB.IBP.Track_Power
-            % Summarize power associated with all optics
-            pre_opt = [0,PM.M.Rays([PM.M.Rays(Ri(2:end)).n_inc]).n_opt];
-            cur_opt = [PM.M.Rays(Ri).n_opt];
-            A = [pre_opt' cur_opt'];
-            [B,~,ib] = unique(A,'rows');
-            % ib(pass > IB.IBP.NPI) = 0;
-            RP = zeros(size(Ri'));
-            inside = zeros(size(Ri'));
-            outside = zeros(size(Ri'));
-            ap_exit = zeros(size(Ri'));
-            % Categorize all the rays
-            for Pi=1:length(Ri)
-              ray = PM.M.Rays(Ri(Pi)).ray;
-              RP(Pi) = ray.P;
-              inside(Pi) = ray.Inside > 0;
-              ap_exit(Pi) = ray.Inside < 0;
-              outside(Pi) = ray.Inside == 0;
-            end
-            % Now loop through the transitions
-            for Pi=1:size(B,1)
-              fld = sprintf('R%d_%d', B(Pi,1), B(Pi,2));
-              if ~isfield(IB.Res.Pwr, fld)
-                if strcmp(fld, 'R2_1')
-                  IB.Res.Pwr.(fld) = struct('I',0,'O',0,'NI',0,'NO',0, ...
-                    'E1',0,'NE1',0,'EO',0,'NEO',0);
-                else
-                  IB.Res.Pwr.(fld) = struct('I',0,'O',0,'NI',0,'NO',0);
-                end
-              end
-              transitionV = ib == Pi; % boolean of rays that match trans.
-              for pre = 'IO'
-                if pre == 'I'
-                  icond = inside;
-                else
-                  icond = outside;
-                end
-                IB.Res.Pwr.(fld).(pre) = IB.Res.Pwr.(fld).(pre) + ...
-                  sum(RP(transitionV & icond));
-                IB.Res.Pwr.(fld).(['N' pre]) = IB.Res.Pwr.(fld).(['N' pre]) + ...
-                  sum(transitionV & icond);
-              end
-              if strcmp(fld, 'R2_1')
-                ei = find(ap_exit,1);
-                if ~isempty(ei)
-                  if sum(transitionV) > 1
-                    IB.Res.Pwr.R2_1.EO = IB.Res.Pwr.R2_1.EO + RP(ei);
-                    IB.Res.Pwr.R2_1.NEO = IB.Res.Pwr.R2_1.NEO+1;
-                  else
-                    IB.Res.Pwr.R2_1.E1 = IB.Res.Pwr.R2_1.E1 + RP(ei);
-                    IB.Res.Pwr.R2_1.NE1 = IB.Res.Pwr.R2_1.NE1+1;
-                  end
-                end
-              end
-            end
+            IB.SamplePower(PM);
           end
         end
         TIter = toc(TStart);
@@ -262,6 +214,64 @@ classdef ICOS_beam < handle
           fprintf(1,'%.1f: Iteration: %d Passes: %d Total: %d\n', TIter, ...
             i, IB.Res.NPasses(i), IB.Res.N);
           Treport = TIter;
+        end
+      end
+    end
+    
+    function IB = SamplePower(IB, PM)
+      % Summarize power associated with all optics
+      Ri = 1:PM.M.n_rays;
+      pre_opt = [0,PM.M.Rays([PM.M.Rays(Ri(2:end)).n_inc]).n_opt];
+      cur_opt = [PM.M.Rays(Ri).n_opt];
+      A = [pre_opt' cur_opt'];
+      [B,~,ib] = unique(A,'rows');
+      % ib(pass > IB.IBP.NPI) = 0;
+      RP = zeros(size(Ri'));
+      inside = zeros(size(Ri'));
+      outside = zeros(size(Ri'));
+      ap_exit = zeros(size(Ri'));
+      % Categorize all the rays
+      for Pi=1:length(Ri)
+        ray = PM.M.Rays(Ri(Pi)).ray;
+        RP(Pi) = ray.P;
+        inside(Pi) = ray.Inside > 0;
+        ap_exit(Pi) = ray.Inside < 0;
+        outside(Pi) = ray.Inside == 0;
+      end
+      % Now loop through the transitions
+      for Pi=1:size(B,1)
+        fld = sprintf('R%d_%d', B(Pi,1), B(Pi,2));
+        if ~isfield(IB.Res.Pwr, fld)
+          if strcmp(fld, 'R2_1')
+            IB.Res.Pwr.(fld) = struct('I',0,'O',0,'NI',0,'NO',0, ...
+              'E1',0,'NE1',0,'EO',0,'NEO',0);
+          else
+            IB.Res.Pwr.(fld) = struct('I',0,'O',0,'NI',0,'NO',0);
+          end
+        end
+        transitionV = ib == Pi; % boolean of rays that match trans.
+        for pre = 'IO'
+          if pre == 'I'
+            icond = inside;
+          else
+            icond = outside;
+          end
+          IB.Res.Pwr.(fld).(pre) = IB.Res.Pwr.(fld).(pre) + ...
+            sum(RP(transitionV & icond));
+          IB.Res.Pwr.(fld).(['N' pre]) = IB.Res.Pwr.(fld).(['N' pre]) + ...
+            sum(transitionV & icond);
+        end
+        if strcmp(fld, 'R2_1')
+          ei = find(ap_exit,1);
+          if ~isempty(ei)
+            if sum(transitionV) > 1
+              IB.Res.Pwr.R2_1.EO = IB.Res.Pwr.R2_1.EO + RP(ei);
+              IB.Res.Pwr.R2_1.NEO = IB.Res.Pwr.R2_1.NEO+1;
+            else
+              IB.Res.Pwr.R2_1.E1 = IB.Res.Pwr.R2_1.E1 + RP(ei);
+              IB.Res.Pwr.R2_1.NE1 = IB.Res.Pwr.R2_1.NE1+1;
+            end
+          end
         end
       end
     end
@@ -331,7 +341,7 @@ classdef ICOS_beam < handle
         % Herriott Cell Analysis
         if isfield(IB.Res.Pwr,'R1_2')
           P2_Actual = (IB.Res.Pwr.R0_2.I + IB.Res.Pwr.R1_2.I)/Nsamples;
-          Hgain = Nsamples*P2_Actual/(IB.Res.Pwr.R0_2.I+IB.Res.Pwr.R0_2.O);
+          % Hgain = Nsamples*P2_Actual/(IB.Res.Pwr.R0_2.I+IB.Res.Pwr.R0_2.O);
         else
           P2_Actual = IB.Res.Pwr.R0_2.I/Nsamples;
         end
@@ -562,7 +572,7 @@ classdef ICOS_beam < handle
           else
             thOK = ones(size(Ei))>0;
           end
-          Ptotal = sum(IB.Res.P(Ei))/Nsamples;
+          % Ptotal = sum(IB.Res.P(Ei))/Nsamples;
           for yi = 1:nY
             TIter = toc(Tstart);
             if TIter - Treport > 10
@@ -646,11 +656,11 @@ classdef ICOS_beam < handle
       % I'm taking a shortcut, assuming normal the detector is normal to
       % the optical axis.
       Itheta = acosd(IB.Res.D(1:IB.Res.N,1));
-      P = IB.Res.P(1:IB.Res.N);
-      Ptotal = sum(P);
+      Pwr = IB.Res.P(1:IB.Res.N);
+      Ptotal = sum(Pwr);
       r = max(abs(IB.Res.E(1:IB.Res.N,[2 3])),[],2);
       [Ithetas,I] = sort(Itheta);
-      Ps = P(I);
+      Ps = Pwr(I);
       rs = r(I);
       max_rs = max(rs);
       min_rs = min(rs);
@@ -668,7 +678,7 @@ classdef ICOS_beam < handle
       ylabel('percent power on detector');
     end
     
-    function display(IB)
+    function disp(IB)
       % IB.display
       % Overrides how ICOS_beam object is displayed. This is probably not
       % the right way to do this, but it seems to work.
@@ -695,20 +705,20 @@ classdef ICOS_beam < handle
       % PM = IB.draw(options)
       % Renders the underlying optical model. Options can adjust any of the
       % parameters in the IB.P model definition structure.
-      P = IB.P;
-      P.visible = 1;
+      Pc = IB.P;
+      Pc.visible = 1;
       % P.visibility = [];
       i = 1;
       while i < length(varargin)
-        if isfield(P, varargin{i})
-          P.(varargin{i}) = varargin{i+1};
+        if isfield(Pc, varargin{i})
+          Pc.(varargin{i}) = varargin{i+1};
         else
           error('MATLAB:HUARP:InvalidOption', ...
             'Invalid option: "%s"', varargin{i});
         end
         i = i+2;
       end
-      PM = IB.model(P);
+      PM = IB.model(Pc);
       if nargout > 0
         PM_o = PM;
       end
