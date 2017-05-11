@@ -1,11 +1,11 @@
 %%
 cd C:\Users\nort.ARP\Documents\SW\arp-icosfit\Matlab\ICOS_Models
 %%
-P = WhiteCell.props(25,2);
-P.visible = 1;
+P = WhiteCell.props(25,5);
+P.visible = 0;
 P.beam_samples = 100;
 P.beam_divergence = 2;
-P.M0_Ddz = .2/25;
+P.M0_Ddz = .2/25; % tilt the primary mirror
 % P.M0_roc = 27;
 P.Cell_Length = 25;
 % P.visibility = [1 1 0 0];
@@ -69,6 +69,7 @@ P.pause=0;
 P.view = [-90,0];
 PM = WhiteCell(P,'M2_fy', -(0:.01:0.5));
 %%
+% This is obsolete, as I've abandoned ICOS_beam for this analysis
 P.visible = 0;
 passes = [];
 sizes = [];
@@ -125,7 +126,7 @@ PM = WhiteCell(P,'M0_Ddz',(0:.1:1)*.2/25,'beam_divergence',0:.2:2);
 %%
 P.beam_divergence = 1;
 P.M0_Ddz = .2/25;
-PM = WhiteCell(P,'M12_Ddz',(-1:.04:1)*2);
+PM = WhiteCell(P,'M1_Ddz',(-1:.04:1)*0.5);
 %%
 figure;
 PM.plot_results('Ipower');
@@ -151,13 +152,51 @@ loss = 1 - power./[1; power(1:end-1)];
 %%
 figure;
 plot(power,'*');
+xlabel('Pass');
+ylabel('Power');
+title(sprintf('M0\\_Ddz = %.4f divergence = %.1f', P.M0_Ddz, P.beam_divergence));
 %%
 figure;
 plot(spot_dia,'*r');
 xlabel('Pass');
 ylabel('Spot Diameter cm');
+title(sprintf('M0\\_Ddz = %.4f divergence = %.1f', P.M0_Ddz, P.beam_divergence));
 %%
 figure;
 plot(loss*100,'*r');
 xlabel('Pass');
 ylabel('% Loss');
+title(sprintf('M0\\_Ddz = %.4f divergence = %.1f', P.M0_Ddz, P.beam_divergence));
+%%
+%%
+% Try using evaluate_endpoints to investigate M0 tilt
+P = WhiteCell.props(25,2);
+P.visible = 0;
+P.beam_samples = 100;
+P.beam_divergence = 2; % degree
+P.M0_Ddz = .2/25; % tilt the primary mirror
+%P.dzdz = .05;
+% P.M0_roc = 27;
+P.Cell_Length = 25;
+P.evaluate_endpoints = 8;
+P.rng_state = rng;
+% See if tilting M1 can correct for the power loss
+P.evaluate_endpoints = 8;
+%%
+P.visible = 1;
+PM = WhiteCell(P);
+%%
+PM = WhiteCell(P,'M2_Ddz',.1 * (-1:.1:1));
+%%
+PM = WhiteCell(P,'M1_dy',P.M1_dy + .1 * (-1:.1:1));
+%%
+PM = WhiteCell(P,'dzdz', .03 * (-1:.05:1),'M1_dy',P.M1_dy + .1 * (-1:.1:1));
+%%
+figure;
+PM.plot_results('Ipower');
+%%
+figure;
+PM.plot_results('Opower');
+%%
+figure;
+PM.plot_results('spot_dia');

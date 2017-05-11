@@ -252,8 +252,8 @@ classdef WhiteCell < opt_model_p
       dd = sind(P.beam_divergence)*r*2/P.beam_diameter;
       dy = r.*Dy;
       dz = r.*Dz;
-      dydy = dd.*Dy;
-      dzdz = dd.*Dz;
+      dydy = dd.*Dy + P.dydy;
+      dzdz = dd.*Dz + P.dzdz;
       TStart = tic;
       Treport = 0;
       for i = 1:Nsamples
