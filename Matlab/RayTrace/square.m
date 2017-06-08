@@ -9,6 +9,19 @@ classdef square < opt_surface
   
   methods
     function sq = square(l, O, D, T, R, ni, ne, theta)
+      % sq = square(l, O, D, T, R, ni, ne);
+      % sq = square(l, O, D, T, R, ni, ne, theta);
+      % l: linear size
+      % O: origin vector
+      % D: direction vector point out of external side
+      % T: Transmittance
+      % R: Reflectance
+      % ni: Internal index of refraction
+      % ne: External index of refraction
+      % theta: Acceptance angle in degrees (optional, defaults to 90)
+      %
+      % Note: this square is missing rotation around the normal
+      % vector. It must be extended when that flexibility is required.
       sq = sq@opt_surface(O, D, T, R, ni, ne);
       sq.l = l;
       

@@ -74,7 +74,8 @@ classdef opt_model < handle
           else
             inc_n = M.save_ray(Rincident, RS.n_inc, opt_n);
             max_passes = M.Optic{opt_n}.max_passes;
-            if RS.from_obj < opt_n % Forward transmission
+            if M.Optic{opt_n}.allow_reverse_transmission || ...
+                RS.from_obj < opt_n % Forward transmission
               if max_passes > 0
                 if ~isempty(Rreflect)
                   Rreflect.pass(end) = Rreflect.pass(end) + 1;
@@ -86,8 +87,8 @@ classdef opt_model < handle
                   Rtransmit.pass(end+1) = 1;
                 end
               end
-            else % backwards transmission
-              Rtransmit = []; % suppress all backwards transmissions
+            else % reverse transmission not allowed
+              Rtransmit = [];
             end
             M.push_ray(Rreflect, inc_n, opt_n, prev_opt);
             M.push_ray(Rtransmit, inc_n, opt_n, next_opt);

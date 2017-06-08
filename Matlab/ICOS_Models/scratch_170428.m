@@ -1,13 +1,26 @@
 %%
+% White cell exercises
 cd C:\Users\nort.ARP\Documents\SW\arp-icosfit\Matlab\ICOS_Models
 %%
-P = WhiteCell.props(25,5);
-P.visible = 0;
-P.beam_samples = 100;
-P.beam_divergence = 2;
-P.M0_Ddz = .2/25; % tilt the primary mirror
+P = WhiteCell.props(25,1);
+P.visible = 1;
+P.beam_samples = 300;
+P.max_rays = P.beam_samples*8*P.N4;
+P.beam_divergence = 6.2; % degrees
+%P.M0_Ddz = .2/25; % tilt the primary mirror
 % P.M0_roc = 27;
 P.Cell_Length = 25;
+
+% 6mm x 9mm FL
+P.Lens_dx = 0.3; % Distance from LED
+P.Lens_r = 0.5;
+P.Lens_CT = 0.27;
+P.Lens_ROC = 0.78;
+% 12.5mm x 50mm FL
+P.Lens_r = 1.25;
+P.Lens_CT = .566;
+P.Lens_ROC = 4.494;
+
 % P.visibility = [1 1 0 0];
 P.evaluate_endpoints = 0;
 PM = WhiteCell(P);
@@ -149,7 +162,7 @@ for i=1:max_pass
   spot_dia(i) = Res.spot_dia;
 end
 loss = 1 - power./[1; power(1:end-1)];
-%%
+%
 figure;
 plot(power,'*');
 xlabel('Pass');
