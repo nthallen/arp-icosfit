@@ -29,21 +29,35 @@ R2 = 1000;
 % HM1 = ed_rim_catalog;
 % RR1 = unique([HM1.R_cm]);
 %
+RR1 = 100; % What we have in stock
 B = 0.2;
 Rw1 = B*3/2; %look into further
 ICOS_margin = 0.2;
-mnc = sprintf('HCl_RIM_B%d_Rw%1d_rd%02d_th%.1f', round(B*10), ...
+mnc = sprintf('HCl_RIM100_B%d_Rw%1d_rd%02d_th%.1f', round(B*10), ...
   round(Rw1*10), floor(rd*100), th);
 %%
+% This search is highly constrained based on previous exploratory
+% searches. At this point, we have selected the RIM, M1 and M2, so the
+% search space is quite small. We have also provided locally modified
+% versions of isp_catalog.m and custom_lenses.m to limit the focusing
+% search to optics we have already purchased.
 SR = ICOS_sr_search('mnc',mnc,'L',L_lim,'R1',R1,'R2',R2,'Rw1',Rw1, ...
-  'B', B, 'rd', rd, 'th', th);
+  'B', B, 'rd', rd, 'th', th, 'RR1', RR1);
 SR.enumerate
 %%
 SR.build_tolerance
 SR.design_tolerance
 SR.explore_build_tolerance
 %%
+% By examination, this is the one that match's Nick's summary
+SR.select(14);
+%%
 SR.focus('focus_visible',0,'max_lens_radius',10);
+SR.savefile;
+%%
+% RD1_margin selected to push RIM to 3". r1 & r2 set for 2" mirrors minus a
+% 1/8" margin. Mirror transmission is based on measurements from 6/13/17
+IS.analyze('HR',.98,'T',250e-6,'RD1_margin',1.8,'r1',7*2.54/8,'r2',7*2.54/8);
 %%
 IS = ICOS_search('mnc',mnc,'L_lim',L_lim,'R1',R1,'R2',R2,'Rw1',Rw1, ...
   'beam_diameter', B, 'RL_lim',[5, 50]);
