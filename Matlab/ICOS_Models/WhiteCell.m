@@ -13,6 +13,19 @@ classdef WhiteCell < opt_model_p
   %  5*: Exit window (notch)through M0
   %  6*: M1 Alignment Mirror
   %  7: M2 Alignment Mirror
+  % Optics 170621:
+  %  1: Detector
+  %  2*: Post-LED Lens
+  %  Housing:
+  %    3*: Entrance aperture .25" cirular window
+  %    4*: Housing wall circular dump
+  %    5*: Exit aperture .25" circular window
+  %  M0:
+  %    6*: Entrance window (notch) through M0
+  %    7*: M0 Mirror
+  %    8*: Exit window (notch)through M0
+  %  9*: M1 Alignment Mirror
+  %  10: M2 Alignment Mirror
   %  
   % The salient features include:
   %   Cell length
@@ -61,11 +74,13 @@ classdef WhiteCell < opt_model_p
       opt_n = zeros(max_pass,1);
       opt_n(1) = 2;
       opt_n(2) = 3;
-      opt_n(4:2:max_pass) = 4;
-      opt_n(3:4:max_pass) = 6;
-      opt_n(5:4:max_pass) = 7;
-      opt_n(2+4*PM.M.User.N4) = 5;
-      opt_n(3+4*PM.M.User.N4) = 1;
+      opt_n(3) = 6;
+      opt_n(5:2:max_pass) = 7;
+      opt_n(4:4:max_pass) = 9;
+      opt_n(6:4:max_pass) = 10;
+      opt_n(3+4*PM.M.User.N4) = 8;
+      opt_n(4+4*PM.M.User.N4) = 5;
+      opt_n(5+4*PM.M.User.N4) = 1;
       %opt_n(2:2:max_pass) = 2;
       %opt_n(4*PM.M.User.N4) = 1;
       %opt_n(1:4:max_pass) = 3;
@@ -160,24 +175,28 @@ classdef WhiteCell < opt_model_p
       P.M0_Ddy = 0; % offset of direction
       P.M0_Ddz = 0;
       
-      P.Ap_y = P.M0_r_max - P.M0_Nl/2;
-      P.Ap_z = P.M0_Nl/2;
-      P.Ap_r = 0.125*2.54; % When I implement that
-      
-      P.LED_x = -2.54;
-      P.Lens_dx = 0.3; % Distance from LED
+      P.LED_dx = 0.3;
+      P.Lens_dx = 3; % Distance from housing edge
       % 6mm x 9mm FL
       P.Lens_r = 0.1;
       P.Lens_CT = 0.27;
       P.Lens_ROC = 0.78;
+      P.Lens_EFL = 0.9;
       P.Lens_type = 'double_convex';
-      % 12.5mm x 50mm FL
+      
+      P.EnAp_y = P.M0_r_max - P.M0_Nl/2;
+      P.EnAp_z = P.M0_Nl/2;
+      P.EnAp_r = 0.125*2.54; % When I implement that
+      
+      P.Entrance_r = .125*2.54;
+      P.Housing_r = P.M0_r_max+1;
+      P.Housing_CT = (0.44 + 0.125)*2.54;
       
       P.M1_r = 3*P.M0_r_max/8;
       P.M1_roc = P.M0_roc;
       P.M1_dy = +P.M1_r+.125*2.54; % position of M1
       P.M1_dz = 0;
-      P.M1_fy = P.Ap_y/(2*N4);
+      P.M1_fy = P.EnAp_y/(2*N4);
       P.M1_fz = 0;
       P.M1_CT = 0.5;
       P.M1_Ddz = 0;
@@ -187,12 +206,12 @@ classdef WhiteCell < opt_model_p
       P.M2_roc = P.M1_roc;
       P.M2_dy = -P.M2_r-.125*2.54; % position of M2
       P.M2_dz = 0;
-      P.M2_fy = -P.Ap_y/(2*N4); % location of the focal point at M0
+      P.M2_fy = -P.EnAp_y/(2*N4); % location of the focal point at M0
       P.M2_fz = 0;
       P.M2_CT = 0.5;
       P.M2_Ddz = 0;
 
-      % y0,z0,dy and dz will be determined by the Ap_y, Ap_z, and
+      % y0,z0,dy and dz will be determined by the EnAp_y, Ap_z, and
       % M1_dy. beam_d[yz] and d[yz]d[yz] can be used to explore
       % bad alignment.
       % P.y0 = 0; % derive from P.Ap_[yz]
@@ -205,7 +224,7 @@ classdef WhiteCell < opt_model_p
       P.dzdz = 0;
       
       P.Det_l = 0.56;
-      P.Det_x = -1.0;
+      P.Det_dx = 0.25*2.54;
       
       P.beam_diameter = 0.17*2.54; % (was 0.3;)
       P.beam_samples = 100;
@@ -224,7 +243,7 @@ classdef WhiteCell < opt_model_p
     end
     
     function M = P_model(P)
-      n_optics = 7;
+      n_optics = 10;
       visibility = P.visible * ones(n_optics,1);
       if length(P.visibility) <= n_optics
         visibility(1:length(P.visibility)) = P.visibility;
@@ -234,70 +253,85 @@ classdef WhiteCell < opt_model_p
       M.Spot_Size = P.beam_diameter;
       M.visible = P.visible;
 
-      M0_InAp = [0,P.Ap_y,P.Ap_z]; % The inlet center
-      M0_OutAp = [0,-P.Ap_y,P.Ap_z]; % The inlet center
+      M0_InAp = [-P.M0_CT,P.EnAp_y,P.EnAp_z]; % The inlet center
+      M0_OutAp = [-P.M0_CT,-P.EnAp_y,P.EnAp_z]; % The inlet center
       
-      M.Optic{4} = HRmirror('M0', P.M0_r_max, P.M0_roc, P.M0_CT, 0, P.HR, ...
-        [0, P.M0_Ody,P.M0_Odz], [1,P.M0_Ddy,P.M0_Ddz], ...
-        1, 1, P.visible && visibility(4));
+      M.Optic{3} = circular_window(P.EnAp_r, P.Housing_CT, M0_InAp, ...
+        [1, 0, 0], P.visible && visibility(3));
+      M.Optic{3}.alternate = true;
+      M.Optic{4} = circular_dump(P.Housing_r, P.Housing_CT, ...
+        [-P.M0_CT,0,0], [1, 0, 0], P.visible && visibility(4));
       M.Optic{4}.alternate = true;
+      M.Optic{5} = circular_window(P.EnAp_r, P.Housing_CT, M0_OutAp, ...
+        [1, 0, 0], P.visible && visibility(5));
+      M.Optic{5}.alternate = true;
+      M.Optic{5}.allow_reverse_transmission = true;
+      
+      
+      M.Optic{7} = HRmirror('M0', P.M0_r_max, P.M0_roc, P.M0_CT, 0, P.HR, ...
+        [0, P.M0_Ody,P.M0_Odz], [1,P.M0_Ddy,P.M0_Ddz], ...
+        1, 1, P.visible && visibility(7));
+      M.Optic{7}.alternate = true;
       
       Nh = sqrt(P.M0_Nl*(2-P.M0_Nl)); % Notch height
       Nl = max(P.M0_Nl,Nh);
       Ny = P.M0_r_max - P.M0_Nl + Nl/2;
       Nz = Nl/2;
-      M.Optic{3} = square_window(Nl, P.M0_CT,[0,Ny,Nz],[1,0,0], ...
-        P.visible && visibility(3));
-      M.Optic{3}.alternate = true;
-      M.Optic{5} = square_window(Nl, P.M0_CT,[0,-Ny,Nz],[1,0,0], ...
-        P.visible && visibility(5));
-      M.Optic{5}.alternate = true;
-      M.Optic{5}.allow_reverse_transmission = true;
+      M.Optic{6} = square_window(Nl, P.M0_CT,[0,Ny,Nz],[1,0,0], ...
+        P.visible && visibility(6));
+      M.Optic{6}.alternate = true;
+      M.Optic{8} = square_window(Nl, P.M0_CT,[0,-Ny,Nz],[1,0,0], ...
+        P.visible && visibility(8));
+      M.Optic{8}.alternate = true;
+      M.Optic{8}.allow_reverse_transmission = true;
       
 
       MD = [-P.Cell_Length, P.M1_fy-P.M1_dy, P.M1_fz-P.M1_dz+P.M12_Ddz+P.M1_Ddz];
       MD = MD/sqrt(sum(MD.^2));
       M1_O = [P.Cell_Length, P.M1_dy, P.M1_dz];
-      M.Optic{6} = HRmirror('M1', P.M1_r, P.M1_roc, P.M1_CT, 0, P.HR, ...
+      M.Optic{9} = HRmirror('M1', P.M1_r, P.M1_roc, P.M1_CT, 0, P.HR, ...
         M1_O, MD, 1, 1, ...
-        P.visible && visibility(6));
-      M.Optic{6}.alternate = true;
-      M.Optic{6}.max_passes = 1000;
+        P.visible && visibility(9));
+      M.Optic{9}.alternate = true;
+      M.Optic{9}.max_passes = 1000;
       
       MD = [-P.Cell_Length, P.M2_fy-P.M2_dy, P.M2_fz-P.M2_dz+P.M12_Ddz+P.M2_Ddz];
       MD = MD/sqrt(sum(MD.^2));
       M2_O = [P.Cell_Length,P.M2_dy,P.M2_dz];
-      M.Optic{7} = HRmirror('M2', P.M2_r, P.M2_roc, P.M2_CT, 0, P.HR, ...
+      M.Optic{10} = HRmirror('M2', P.M2_r, P.M2_roc, P.M2_CT, 0, P.HR, ...
         M2_O, MD, 1, 1, ...
-        P.visible && visibility(7));
-      M.Optic{7}.max_passes = 1000;
+        P.visible && visibility(10));
+      M.Optic{10}.max_passes = 1000;
       
-      Lens_x = P.LED_x + P.Lens_dx;
-      Lens_D = M0_InAp-M1_O;
+      Lens_x = -P.M0_CT-P.Housing_CT-P.Lens_dx-P.Lens_CT;
+      % M0_InAp is the center of the inside end of the enterance aperture 
+      % M0_InAp1 is the center of the enterance aperature tube
+      M0_InAp1 = M0_InAp-[P.Housing_CT/2,0,0];
+      Lens_D = M0_InAp1-M1_O;
+      % Lens_O is the lens origin
+      Lens_O = M1_O + Lens_D*(M1_O(1)-Lens_x)/(M1_O(1)+P.M0_CT+P.Housing_CT/2);
+      LED_O = M1_O + Lens_D*(M1_O(1)-Lens_x+P.LED_dx)/(M1_O(1)+P.M0_CT+P.Housing_CT/2);
       Lens_D = Lens_D/sqrt(sum(Lens_D.^2));
-      Lens_O = M0_InAp - Lens_x*Lens_D;
-%     M.Optic{2} = circular_window(P.Lens_r, P.Lens_CT, Lens_O, Lens_D, ...
-%       P.visible && visibility(2));
 % ni fused silica @ 255 nm = 1.51
       if strcmp(P.Lens_type,'double_convex')
         M.Optic{2} = double_convex(P.Lens_r, P.Lens_ROC, P.Lens_ROC, ...
-          P.Lens_CT, 0.9, 'L1', Lens_O, Lens_D, 1.51, 1, ...
+          P.Lens_CT, P.Lens_EFL, 'L1', Lens_O, Lens_D, 1.51, 1, ...
           P.visible && visibility(2));
       elseif strcmp(P.Lens_type,'plano_convex')
         M.Optic{2} = plano_convex(P.Lens_r, P.Lens_ROC, ...
-          P.Lens_CT, 0.9, 'L1', Lens_O, Lens_D, 1.51, 1, ...
+          P.Lens_CT, P.Lens_EFL, 'L1', Lens_O, Lens_D, 1.51, 1, ...
           P.visible && visibility(2));
       else
         error('Invalid lens_type');
       end
       M.Optic{2}.alternate = true;
       
-      LED_O = M0_InAp - P.LED_x*Lens_D;
       LED_D = Lens_D/Lens_D(1); % denormalized to provide dy, dz
 
+      Det_x = -P.Housing_CT-P.M0_CT-0.25*2.54;
       detD = M2_O - M0_OutAp;
       detD = detD/sqrt(sum(detD.^2));
-      detO = M0_OutAp + P.Det_x * detD;
+      detO = M0_OutAp + Det_x * detD;
       M.Optic{1} = detector(P.Det_l,detO,detD,P.visible && visibility(1),45);
       
       if isfield(P,'rng_state')

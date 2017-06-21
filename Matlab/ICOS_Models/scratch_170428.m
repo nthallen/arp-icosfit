@@ -11,7 +11,8 @@ P.beam_divergence = 6.2; % degrees
 % P.M0_roc = 27;
 P.Cell_Length = 25;
 
-P.Lens_dx = 0.1; % Distance from LED
+P.Lens_dx = 3.0; % Distance from the housing inner wall
+P.LED_dx = 0.3; % Distance from the lens
 
 % % 6mm x 9mm FL
 % P.Lens_r = 0.5;
@@ -28,7 +29,6 @@ P.Lens_type = 'double_convex';
 P.Lens_ROC = 3.0;
 
 % Results from optimization:
-P.LED_x = -3; % Same results at least out to -4
 P.Lens_ROC = 1.9;
 
 % Attempt to use Edmunds part 12mm x 18mm FL plano convex
@@ -40,14 +40,14 @@ P.Lens_type = 'plano_convex';
 P.Lens_r = 0.6;
 P.Lens_ROC = 1.763;
 P.Lens_CT = 0.437;
+P.Lens_EFL = 2.0;
 P.Lens_type = 'double_convex';
 % 12mm x 24mm double convex #49-253
 P.Lens_r = 0.6;
 P.Lens_ROC = 2.151;
 P.Lens_CT = 0.310;
+P.Lens_EFL = 2.4;
 P.Lens_type = 'double_convex';
-P.Lens_dx = 0.35; P.LED_x = -5;
-P.Lens_dx = 0.25; P.LED_x = -6;
 
 % P.visibility = [1 1 0 0];
 P.evaluate_endpoints = 0;
