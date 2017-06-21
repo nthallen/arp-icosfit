@@ -2,70 +2,97 @@
 % White cell exercises
 cd C:\Users\nort.ARP\Documents\SW\arp-icosfit\Matlab\ICOS_Models
 %%
-P = WhiteCell.props(25,1);
+P = WhiteCell.props(25,5);
 P.visible = 1;
-P.beam_samples = 300;
-P.max_rays = P.beam_samples*8*P.N4;
+P.beam_samples = 100;
+% P.max_rays = P.beam_samples*8*P.N4;
 P.beam_divergence = 6.2; % degrees
 %P.M0_Ddz = .2/25; % tilt the primary mirror
 % P.M0_roc = 27;
 P.Cell_Length = 25;
 
-% 6mm x 9mm FL
-P.Lens_dx = 0.3; % Distance from LED
+P.Lens_dx = 0.1; % Distance from LED
+
+% % 6mm x 9mm FL
+% P.Lens_r = 0.5;
+% P.Lens_CT = 0.27;
+% P.Lens_ROC = 0.78;
+% % 12.5mm x 50mm FL
+% P.Lens_r = 1.25;
+% P.Lens_CT = .566;
+% P.Lens_ROC = 4.494;
+
+% Leaving the rez here
 P.Lens_r = 0.5;
-P.Lens_CT = 0.27;
-P.Lens_ROC = 0.78;
-% 12.5mm x 50mm FL
-P.Lens_r = 1.25;
-P.Lens_CT = .566;
-P.Lens_ROC = 4.494;
+P.Lens_type = 'double_convex';
+P.Lens_ROC = 3.0;
+
+% Results from optimization:
+P.LED_x = -3; % Same results at least out to -4
+P.Lens_ROC = 1.9;
+
+% Attempt to use Edmunds part 12mm x 18mm FL plano convex
+P.Lens_r = 0.6;
+P.Lens_ROC = 0.825;
+P.Lens_CT = 0.400;
+P.Lens_type = 'plano_convex';
+% 12mm x 20mm double convex
+P.Lens_r = 0.6;
+P.Lens_ROC = 1.763;
+P.Lens_CT = 0.437;
+P.Lens_type = 'double_convex';
+% 12mm x 24mm double convex #49-253
+P.Lens_r = 0.6;
+P.Lens_ROC = 2.151;
+P.Lens_CT = 0.310;
+P.Lens_type = 'double_convex';
+P.Lens_dx = 0.35; P.LED_x = -5;
+P.Lens_dx = 0.25; P.LED_x = -6;
 
 % P.visibility = [1 1 0 0];
 P.evaluate_endpoints = 0;
+%%
+P.rng_state = rng;
+%%
 PM = WhiteCell(P);
 %xlim([-2 2]);
 %%
-% This analysis was moved into the model
-rays = 1:PM.M.n_rays;
-zs = find([ PM.M.Rays(rays).n_inc ] == 0);
-pass = rays-interp1(zs,zs,rays,'previous','extrap')+1;
-clear zs
-%
-% Now I want to calculate the spot size and power on each pass
-max_pass = max(pass);
-opt_n = zeros(max_pass,1);
-opt_n(2:2:max_pass) = 2;
-opt_n(4*P.N4) = 1;
-opt_n(1:4:max_pass) = 3;
-opt_n(3:4:max_pass) = 4;
+P.beam_samples = 1000;
+P.visible = 0;
+P.rng_state = rng;
+PM = WhiteCell(P);
 %%
-% This analysis was moved into evaluate_endpoints
-n_opt = [PM.M.Rays(rays).n_opt];
-Ipower = zeros(max_pass,1);
-Opower = zeros(max_pass,1);
-sizes = zeros(max_pass,1);
-position = zeros(max_pass,3);
-for i = 1:max_pass
-  % fprintf(1,'Pass = %d\n', i);
-  vf = find(pass == i);
-  xyz = zeros(length(vf),3);
-  for j=1:length(vf)
-    vfi = vf(j);
-    % fprintf(1, 'j = %d vf(j) = %d\n', j, vfi);
-    ray = PM.M.Rays(vfi).ray;
-    xyz(j,:) = ray.E;
-    if opt_n(i) == n_opt(vfi) && ray.Inside
-      Ipower(i) = Ipower(i) + ray.P;
-    else
-      Opower(i) = Opower(i) + ray.P;
-    end
-  end
-  sizes(i) = sqrt(var(xyz(:,2))+var(xyz(:,3)));
-  position(i,:) = mean(xyz) - PM.M.Optic{opt_n(i)}.O;
+% Look at power per pass
+opt_n = PM.evaluate_passes;
+max_pass = length(opt_n);
+power = zeros(max_pass,1);
+spot_dia = power;
+for i=1:max_pass
+  P.evaluate_endpoints = i;
+  Res = PM.evaluate_endpoints(P);
+  power(i) = Res.Ipower;
+  spot_dia(i) = Res.spot_dia;
 end
-Ipower = Ipower/P.beam_samples;
-Opower = Opower/P.beam_samples;
+loss = 1 - power./[1; power(1:end-1)];
+%
+figure;
+plot(power,'*');
+xlabel('Pass');
+ylabel('Power');
+title(sprintf('M0\\_Ddz = %.4f divergence = %.1f', P.M0_Ddz, P.beam_divergence));
+%%
+figure;
+passes = 1:max_pass;
+plot(passes,spot_dia,'*r',[1,max_pass],[1,1]*0.25*2.54/2,[1,max_pass],[1,1]*P.M1_r);
+xlabel('Pass');
+ylabel('Spot Diameter cm');
+title(sprintf('M0\\_Ddz = %.4f divergence = %.1f', P.M0_Ddz, P.beam_divergence));
+%%
+figure;
+plot(loss*100,'*r');
+xlabel('Pass');
+ylabel('% Loss');
+title(sprintf('M0\\_Ddz = %.4f divergence = %.1f', P.M0_Ddz, P.beam_divergence));
 %% and draw the figure with individual passes
 i = 1;
 %%
@@ -77,6 +104,16 @@ if i == max(PM.M.User.pass)
 else
   i = i+1;
 end
+%%
+P.visible = 0;
+P.evaluate_endpoints = 3;
+PM = WhiteCell(P,'Lens_dx', [0.1:0.1:1.0]);
+%%
+P.evaluate_endpoints = 6;
+PM6 = WhiteCell(P,'Lens_dx', [0.1:0.1:1.0]);
+%%
+P.evaluate_endpoints = 1;
+PM1 = WhiteCell(P,'Lens_dx', [0.1:0.1:1.0]);
 %%
 P.pause=0;
 P.view = [-90,0];
@@ -150,37 +187,6 @@ PM.plot_results('Opower');
 figure;
 PM.plot_results('spot_dia');
 %%
-% Look at power per pass
-opt_n = PM.evaluate_passes;
-max_pass = length(opt_n);
-power = zeros(max_pass,1);
-spot_dia = power;
-for i=1:max_pass
-  P.evaluate_endpoints = i;
-  Res = PM.evaluate_endpoints(P);
-  power(i) = Res.Ipower;
-  spot_dia(i) = Res.spot_dia;
-end
-loss = 1 - power./[1; power(1:end-1)];
-%
-figure;
-plot(power,'*');
-xlabel('Pass');
-ylabel('Power');
-title(sprintf('M0\\_Ddz = %.4f divergence = %.1f', P.M0_Ddz, P.beam_divergence));
-%%
-figure;
-plot(spot_dia,'*r');
-xlabel('Pass');
-ylabel('Spot Diameter cm');
-title(sprintf('M0\\_Ddz = %.4f divergence = %.1f', P.M0_Ddz, P.beam_divergence));
-%%
-figure;
-plot(loss*100,'*r');
-xlabel('Pass');
-ylabel('% Loss');
-title(sprintf('M0\\_Ddz = %.4f divergence = %.1f', P.M0_Ddz, P.beam_divergence));
-%%
 %%
 % Try using evaluate_endpoints to investigate M0 tilt
 P = WhiteCell.props(25,2);
@@ -213,3 +219,52 @@ PM.plot_results('Opower');
 %%
 figure;
 PM.plot_results('spot_dia');
+%%
+% Play with opt_model_p and evaluate endpoints
+% P.evaluate_endpoits specifies which *pass* to look at, rather than
+% which optic.
+%  Try moving the LED forward. The minimum x position at M0 is -P.M0_CT
+% The lens has P.Lens_CT, and we have P.Lens_dx before the LED, which is at
+% LED_x. So the maximum value for LED_x is -P.M0_CT-P.Lens_CT-P.Lens_dx
+LED_x_max = -P.M0_CT-P.Lens_CT-P.Lens_dx;
+LED_x_max = -2;
+LED_x_min = -4;
+P.visible = 0;
+P.beam_samples = 100;
+P.evaluate_endpoints = 23; % 3 is M1, 23 is detector
+P.rng_state = rng;
+PM = WhiteCell(P, 'LED_x', LED_x_min + [0:.1:1]*(LED_x_max-LED_x_min), ...
+  'Lens_ROC', [1.5:0.1:2.5]);
+%%
+figure;
+PM.plot_results('Ipower');
+%%
+[x,y,z,ri,ci] = PM.identify_minimum('-Ipower');
+P.LED_x = x;
+P.Lens_ROC = y;
+P.visible = 1;
+P.beam_samples = 300;
+if isfield(P,'rng_state')
+  P = rmfield(P,'rng_state');
+end
+figure;
+PM2 = WhiteCell(P);
+%%
+P.visible = 0;
+P.beam_samples = 100;
+P.evaluate_endpoints = 23; % 3 is M1, 23 is detector
+P.rng_state = rng;
+P.LED_x = -3;
+PM = WhiteCell(P,'Lens_dx', .1:.1:1, 'Lens_ROC', 1.7:0.1:2.5);
+figure;
+PM.plot_results('Ipower');
+%%
+% Optimize Lens_dx for 24mm FL and LED_x
+P.visible = 0;
+P.beam_samples = 500;
+P.evaluate_endpoints = 23; % 3 is M1, 23 is detector
+P.rng_state = rng;
+P.LED_x = -3;
+PM = WhiteCell(P,'Lens_dx', .2:.05:.6, 'LED_x', -6:.1:-4.5);
+figure;
+PM.plot_results('Ipower');

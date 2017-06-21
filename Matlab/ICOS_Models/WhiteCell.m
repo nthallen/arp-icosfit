@@ -170,6 +170,7 @@ classdef WhiteCell < opt_model_p
       P.Lens_r = 0.1;
       P.Lens_CT = 0.27;
       P.Lens_ROC = 0.78;
+      P.Lens_type = 'double_convex';
       % 12.5mm x 50mm FL
       
       P.M1_r = 3*P.M0_r_max/8;
@@ -209,7 +210,7 @@ classdef WhiteCell < opt_model_p
       P.beam_diameter = 0.17*2.54; % (was 0.3;)
       P.beam_samples = 100;
       P.beam_divergence = 6.2; % degrees
-      P.max_rays = N4*8*P.beam_samples; % round up a bit
+      % P.max_rays = N4*8*P.beam_samples; % round up a bit
       % P.T = 0; % No transmittance
       P.HR = 0.99; % Mirror reflectivity
       P.visible = false;
@@ -228,7 +229,7 @@ classdef WhiteCell < opt_model_p
       if length(P.visibility) <= n_optics
         visibility(1:length(P.visibility)) = P.visibility;
       end
-      M = opt_model(n_optics, P.max_rays);
+      M = opt_model(n_optics, P.N4*8*P.beam_samples);
       M.User.N4 = P.N4;
       M.Spot_Size = P.beam_diameter;
       M.visible = P.visible;
@@ -278,9 +279,17 @@ classdef WhiteCell < opt_model_p
 %     M.Optic{2} = circular_window(P.Lens_r, P.Lens_CT, Lens_O, Lens_D, ...
 %       P.visible && visibility(2));
 % ni fused silica @ 255 nm = 1.51
-      M.Optic{2} = double_convex(P.Lens_r, P.Lens_ROC, P.Lens_ROC, ...
-        P.Lens_CT, 0.9, 'L1', Lens_O, Lens_D, 1.51, 1, ...
-        P.visible && visibility(2));
+      if strcmp(P.Lens_type,'double_convex')
+        M.Optic{2} = double_convex(P.Lens_r, P.Lens_ROC, P.Lens_ROC, ...
+          P.Lens_CT, 0.9, 'L1', Lens_O, Lens_D, 1.51, 1, ...
+          P.visible && visibility(2));
+      elseif strcmp(P.Lens_type,'plano_convex')
+        M.Optic{2} = plano_convex(P.Lens_r, P.Lens_ROC, ...
+          P.Lens_CT, 0.9, 'L1', Lens_O, Lens_D, 1.51, 1, ...
+          P.visible && visibility(2));
+      else
+        error('Invalid lens_type');
+      end
       M.Optic{2}.alternate = true;
       
       LED_O = M0_InAp - P.LED_x*Lens_D;

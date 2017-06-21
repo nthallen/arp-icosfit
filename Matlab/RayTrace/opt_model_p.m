@@ -52,7 +52,7 @@ classdef opt_model_p
           PM.M = PM.P_model(P);
           PM.M.propagate;
           Res = PM.evaluate_endpoints(P);
-          Res.max_rays = P.max_rays;
+          Res.max_rays = PM.M.max_rays;
           if ~isempty(p1)
             Res.(p1) = P.(p1);
           end
@@ -184,6 +184,40 @@ classdef opt_model_p
         end
       end
     end
+    
+    % This is a candidate for promotion to opt_model_p:
+    function [x, y, z, ri, ci] = identify_minimum(PM,metric)
+      if metric(1) == '-'
+        invert = -1;
+        metric = metric(2:end);
+      else
+        invert = 1;
+      end
+      if ~isfield(PM.Results,metric)
+        error('MATLAB:HUARP:NotAMetric', ...
+          '"%s" is not a metric in this model', metric);
+      end
+      if isempty(PM.Results.x)
+        error('MATLAB:HUARP:NoIndepententVariables', ...
+          'There are no independent variables in this model');
+      end
+      metvals = invert * PM.Results.(metric);
+      z = nanmin(nanmin(metvals));
+      [i,j] = find(metvals == z,1);
+      x = PM.Results.(PM.Results.x)(i,j);
+      if ~isempty(PM.Results.y)
+        y = PM.Results.(PM.Results.y)(i,j);
+      else
+        y = [];
+      end
+      if nargout > 3
+        ri = j;
+      end
+      if nargout > 4
+        ci = i;
+      end
+    end
+    
   end
   
   methods (Abstract, Static)
