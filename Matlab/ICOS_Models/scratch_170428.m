@@ -11,7 +11,7 @@ P.beam_divergence = 6.2; % degrees
 % P.M0_roc = 27;
 P.Cell_Length = 25;
 
-P.Lens_dx = 3.0; % Distance from the housing inner wall
+P.Lens_dx = 5.0; % Distance from the housing inner wall
 P.LED_dx = 0.3; % Distance from the lens
 
 % % 6mm x 9mm FL
@@ -54,8 +54,14 @@ P.evaluate_endpoints = 0;
 %%
 P.rng_state = rng;
 %%
+% This is handy for looking at beam through the apertures
+P.visibility = [1,1,1,0,1,0,0,0,0,0];
+%%
 PM = WhiteCell(P);
 %xlim([-2 2]);
+%%
+% This gives a cutaway view through the apertures
+set(gca,'zlim',[-1 P.EnAp_z]);
 %%
 P.beam_samples = 1000;
 P.visible = 0;
@@ -261,10 +267,10 @@ PM.plot_results('Ipower');
 %%
 % Optimize Lens_dx for 24mm FL and LED_x
 P.visible = 0;
-P.beam_samples = 500;
-P.evaluate_endpoints = 23; % 3 is M1, 23 is detector
+P.beam_samples = 1000;
+P.evaluate_endpoints = 25; % 3 is M1, 23 is detector
 P.rng_state = rng;
 P.LED_x = -3;
-PM = WhiteCell(P,'Lens_dx', .2:.05:.6, 'LED_x', -6:.1:-4.5);
+PM = WhiteCell(P,'Lens_dx', 5:.2:7, 'LED_dx', .15:0.03:0.3);
 figure;
 PM.plot_results('Ipower');
