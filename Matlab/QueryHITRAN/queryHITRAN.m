@@ -32,20 +32,29 @@ if nargin == 0
     conn = database('HITRAN',user,pword,'Vendor','MySQL');
   end
   setdbprefs('DataReturnFormat','cellarray')
-  [fields]=fetch(conn,['SHOW FIELDS FROM ' HITRAN_Table]);
-  fields=fields(:,1);
-  [line_obj.tables]=fetch(conn,'SHOW TABLES');
-  setdbprefs('DataReturnFormat','structure')
-  [line_obj.HITRAN]=fetch(conn,['select molec,iso,isotopologue,weight,frac_abun,name,texname from ' MOLEC_INFO_Table]);
+  [fields] = fetch(conn,['SHOW FIELDS FROM ' HITRAN_Table]);
+  fields = fields(:,1);
+  line_obj.tables = fetch(conn,'SHOW TABLES');
+  line_obj.tables = ...
+    line_obj.tables(~strcmpi(line_obj.tables,MOLEC_INFO_Table));
+  setdbprefs('DataReturnFormat', 'structure')
+  [line_obj.HITRAN] = fetch(conn, ...
+    ['select molec,iso,isotopologue,weight,frac_abun,name,texname from ' ...
+      MOLEC_INFO_Table]);
   close(conn);
-  line_obj.fields=fields;
+  line_obj.fields = fields;
   line_obj.sel_fig = 0;
   line_obj.query_results = [];
   for i=1:length(line_obj.HITRAN.molec)
-    eval(['line_obj.select.m' num2str(line_obj.HITRAN.molec(i)) '.i' num2str(line_obj.HITRAN.iso(i)) '=1;']);
+    mnum = ['m' num2str(line_obj.HITRAN.molec(i)) ];
+    inum = ['i' num2str(line_obj.HITRAN.iso(i)) ];
+    line_obj.select.(mnum).(inum) = 1;
+    %eval(['line_obj.select.m' num2str(line_obj.HITRAN.molec(i)) '.i' num2str(line_obj.HITRAN.iso(i)) '=1;']);
   end
   for i=1:max(line_obj.HITRAN.molec)
-    eval(['line_obj.select.m' num2str(i) '.i0 = 0;']);
+    mnum = ['m' num2str(i) ];
+    line_obj.select.(mnum).i0 = 0;
+    % eval(['line_obj.select.m' num2str(i) '.i0 = 0;']);
   end
   %[trop, strat, user]
   line_obj.mixing_ratios=[...
@@ -165,11 +174,15 @@ if nargin == 0
   hs(12)=uicontrol(hp(1),'Style','text','string','HITRAN Table = ');
   pos=get(hs(12),'extent'); height=height-pos(4);
   set(hs(12),'Position',[10 height pos(3) pos(4)]);
-  itable=find(strcmpi(line_obj.tables,line_obj.HITRAN_Table));
-  hs(13)=uicontrol(hp(1),'Style','listbox','string',[line_obj.tables],'max',1,'min',1,'value',itable,'Callback','queryHITRAN(''change_table'')','tag','table_name');
+  itable = find(strcmpi(line_obj.tables,line_obj.HITRAN_Table));
+  hs(13) = uicontrol(hp(1),'Style','popupmenu', ...
+    'string',[line_obj.tables], ...
+    'max',1,'min',1,'value', ...
+    itable,'Callback','queryHITRAN(''change_table'')', ...
+    'tag','table_name');
   xstart=10+pos(3);
   pos=get(hs(13),'extent');
-  set(hs(13),'Position',[xstart height pos(3)+20 pos(4)]);
+  set(hs(13),'Position',[xstart height pos(3)+40 pos(4)]);
   
   
   
@@ -305,11 +318,16 @@ uicontrol( line_obj.sel_fig, 'Style', 'pushbutton','tag','Save','string','Save S
 height=320;
 xstart=10;
   for i = 1:max(line_obj.HITRAN.molec)
-      hc=uicontrol( line_obj.sel_fig, 'Style', 'checkbox','tag',num2str(i),'String','','Position',[xstart,height,20,20]);
+      hc = uicontrol( line_obj.sel_fig, 'Style', 'checkbox', ...
+        'tag',num2str(i), 'String','', ...
+        'Position',[xstart,height,20,20]);
       set(hc,'Value',eval(['line_obj.select.m' num2str(i) '.i0']));
-      hb=uicontrol( line_obj.sel_fig, 'Style', 'pushbutton','tag',num2str(i),...
-          'String',line_obj.HITRAN.name(line_obj.HITRAN.molec == i & line_obj.HITRAN.iso == 1),'CallBack','queryHITRAN(''select_iso'')');
-      pos=get(hb,'extent');
+      hb = uicontrol( line_obj.sel_fig, 'Style', 'pushbutton', ...
+        'tag',num2str(i),...
+        'String', ...
+          line_obj.HITRAN.name(line_obj.HITRAN.molec == i & line_obj.HITRAN.iso == 1), ...
+        'CallBack','queryHITRAN(''select_iso'')');
+      pos = get(hb,'extent');
       set(hb,'Position',[xstart+20,height,pos(3)+20,pos(4)]);
       
       if mod(i,6) == 0
@@ -344,10 +362,11 @@ elseif strcmp(varargin{1},'select_save')
    line_obj=get(ro.parent,'UserData');
    h=findobj(f,'Style','checkbox');
    for i=1:length(h)
-       mol=str2double(get(h(i),'tag'));
-       if ~isempty(mol)
-            eval(['line_obj.select.m' num2str(mol) '.i0=get(h(i),''Value'');']);
-       end
+     mol = str2double(get(h(i),'tag'));
+     if ~isempty(mol)
+       mnum = ['m' num2str(mol)];
+       line_obj.select.(mnum).i0 = get(h(i),'Value');
+     end
    end
    set(ro.parent,'UserData',line_obj);
     
@@ -480,10 +499,24 @@ elseif strcmp(varargin{1},'run_query')
   %mysql(['use ' line_obj.DB])
   tic;
   %eval(['[' params1(1:end-1) ']=mysql(''select ' params2(1:end-1) ' from ' line_obj.HITRAN_Table ' where CONCAT(molec,iso) IN (' sel_molec(1:end-1) ') AND wavenumber BETWEEN ' line_obj.min_wn ' AND ' line_obj.max_wn ' AND intensity >= ' line_obj.cutoff ''');']);
-  query_string = ['line_obj.query_results=fetch(conn,''select ' params2(1:end-1) ' from ' line_obj.HITRAN_Table ' where CONCAT(molec,iso) IN (' sel_molec(1:end-1) ') AND wavenumber BETWEEN ' line_obj.min_wn ' AND ' line_obj.max_wn ' AND intensity >= ' line_obj.cutoff ''');'];
-  eval(['line_obj.query_results=fetch(conn,''select ' params2(1:end-1) ' from ' line_obj.HITRAN_Table ' where CONCAT(molec,iso) IN (' sel_molec(1:end-1) ') AND wavenumber BETWEEN ' line_obj.min_wn ' AND ' line_obj.max_wn ' AND intensity >= ' line_obj.cutoff ''');']);
+  query_string = ['select ' params2(1:end-1) ' from ' line_obj.HITRAN_Table ' where CONCAT(molec,iso) IN (' sel_molec(1:end-1) ')' ];
+  if ~isempty(line_obj.min_wn)
+    query_string = [query_string ' AND wavenumber >= ' line_obj.min_wn ];
+  end
+  if ~isempty(line_obj.max_wn)
+    query_string = [query_string ' AND wavenumber <= ' line_obj.max_wn ];
+  end
+  if ~isempty(line_obj.cutoff)
+    query_string = [query_string ' AND intensity >= ' line_obj.cutoff ];
+  end
+  line_obj.query_results = fetch(conn, query_string);
+  % eval(['line_obj.query_results=fetch(conn,''select ' params2(1:end-1) ' from ' line_obj.HITRAN_Table ' where CONCAT(molec,iso) IN (' sel_molec(1:end-1) ') AND wavenumber BETWEEN ' line_obj.min_wn ' AND ' line_obj.max_wn ' AND intensity >= ' line_obj.cutoff ''');']);
   query_time=toc;
-  lines_selected=length(line_obj.query_results.molec);
+  if isfield(line_obj.query_results,'molec')
+    lines_selected=length(line_obj.query_results.molec);
+  else
+    lines_selected = 0;
+  end
   fprintf('\nQuery Took %.2f seconds.\n Number of line retrieved: %i\n',query_time,lines_selected)
   msgbox(sprintf('Running Query...\nQuery Finished\nQuery Took %.2f seconds.\n Number of line retrieved: %i\n\n',query_time,lines_selected),'Database Query','replace');
 %  mysql('close')
@@ -502,8 +535,8 @@ elseif strcmp(varargin{1},'save_queryHITRAN')
   filename=get(h,'String');
   results=struct2cell(line_obj.query_results);
   fid=fopen(filename,'w');
-  for i=1:size(results{1},1);
-      for j=1:size(results,1);
+  for i=1:size(results{1},1)
+      for j=1:size(results,1)
           if isnumeric(results{j}(i))
             fprintf(fid,'%s ',num2str(results{j}(i)));
           else
@@ -572,12 +605,12 @@ elseif strcmp(varargin{1},'plot_intensity')
   elseif strcmp(varargin{1},'MR_define')
    f=get(get(get(gcbo,'parent'),'Parent'),'Parent');
    line_obj=get(f,'UserData');
-   fmr=figure('visible','off','MenuBar','none',...
+   fmr=figure('visible','on','MenuBar','none',...
         'DeleteFcn','queryHITRAN(''MR_define_deletefig'')',...
         'UserData',f,'tag','MR_define',...
         'Name','Volume Mixing Ratios','NumberTitle','off');
     pos=get(fmr,'Position');
-    set(fmr,'Position',[pos(1) pos(2) pos(3) 530])
+    set(fmr,'Position',[pos(1), pos(2)+pos(4)-530, pos(3), 530])
     pos=get(fmr,'Position');
     height=pos(4)-25;
     xstart=0;
