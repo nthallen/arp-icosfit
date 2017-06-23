@@ -61,7 +61,9 @@ PM = WhiteCell(P);
 %xlim([-2 2]);
 %%
 % This gives a cutaway view through the apertures
-set(gca,'zlim',[-1 P.EnAp_z]);
+set(gca,'zlim',[-P.M0_r_min P.EnAp_z]);
+%%
+set(gca,'xlim',[-10 1]);
 %%
 P.beam_samples = 1000;
 P.visible = 0;
