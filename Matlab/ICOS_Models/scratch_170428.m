@@ -276,3 +276,8 @@ P.LED_x = -3;
 PM = WhiteCell(P,'Lens_dx', 5:.2:7, 'LED_dx', .15:0.03:0.3);
 figure;
 PM.plot_results('Ipower');
+
+%%
+% Figure for CDR, using P from top section
+P.beam_samples = 20;
+PM = WhiteCell(P);
