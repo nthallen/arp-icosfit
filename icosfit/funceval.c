@@ -232,10 +232,16 @@ static float get_molwt( int isotopomer ) {
     case 61: return 16.031300; // CH_4
     case 62: return 17.034655; // C13H4
     case 63: return 17.037476; // CH3D
+    case 81: return 29.997990; // NO
+    case 101: return 45.992905; // NO2
+    case 131: return 17.002741; // OH
     case 151: return 35.976677; //H35Cl
     case 152: return 37.973728; //H37Cl
     case 153: return 36.983; // D35Cl
     case 154: return 38.98; // D37Cl
+    case 201: return 30.010565; // H2C0
+    case 202: return 31.013920; // H213CO
+    case 203: return 32.014812; // H2C18O
     default:
       nl_error( 3,
         "Uncatalogued isotopomer '%d': Edit funceval.c get_molwt()",
