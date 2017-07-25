@@ -50,7 +50,10 @@ if isempty(ISO_DEFS)
   add_iso( 170, 'HI','HI', 1.0, 0, 1e6, 'ppm', 0.1 );
   add_iso( 180, 'ClO','ClO', 1.0, 0, 1e6, 'ppm', 0.1 );
   add_iso( 190, 'OCS','OCS', 1.0, 0, 1e6, 'ppm', 0.1 );
-  add_iso( 200, 'H2CO','H2CO', 1.0, 0, 1e6, 'ppm', 0.1 );
+  add_iso( 200, 'H2CO','H2CO', 1.0, 30, 1e9, 'ppb', 0.1 );
+  add_iso( 201, 'H2CO','H2CO', 0.986237, 30.010565, 1e9, 'ppb', 0.1 );
+  add_iso( 202, 'H2^{13}CO','H2C13O', 0.0110802, 31.013920, 1e9, 'ppb', 0.1 );
+  add_iso( 203, 'H2C^{18}O','H2CO18', 0.00197761, 32.014812, 1e9, 'ppb', 0.1 );
   add_iso( 210, 'HOCl','HOCl', 1.0, 0, 1e6, 'ppm', 0.1 );
   add_iso( 220, 'N2','N2', 1.0, 0, 1e6, 'ppm', 0.1 );
   add_iso( 230, 'HCN','HCN', 1.0, 0, 1e6, 'ppm', 0.1 );
