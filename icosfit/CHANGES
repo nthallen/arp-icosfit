@@ -1,4 +1,11 @@
-2.23:
+2.25: 07/25/2017
+ Added support for additional isotopologues:
+ NO, NO2, OH, HCHO
+
+2.24: 09/10/2016
+ Added support for HCl
+
+2.23: 02/11/2015
  Fixed rounding problem in ICOSfile::wn_sample
  which caused assertion failures.
  Added explicit failure on non-decreasing tuning rate.
