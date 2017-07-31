@@ -28,6 +28,23 @@
 #include <stdint.h>
 typedef uint32_t icos_hdr_t;
 
+#define DOUBLE_PRECISION
+#ifdef DOUBLE_PRECISION
+typedef double ICOS_Float;
+#define RESIZE_INPUT 1
+#define FLOAT_STYLE "D"
+#define FMT_E "le"
+#define FMT_F "lf"
+#define FMT_G "lg"
+#else
+typedef float ICOS_Float;
+#define RESIZE_INPUT 0
+#define FLOAT_STYLE "F"
+#define FMT_E "e"
+#define FMT_F "f"
+#define FMT_G "g"
+#endif
+
 #include <endian.h>
 #if BYTE_ORDER == BIG_ENDIAN
   #define USE_BIG_ENDIAN

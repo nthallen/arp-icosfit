@@ -18,7 +18,7 @@
 
 extern jmp_buf Fit_buf;
 #define DBLE(x) ((double)x)
-#define SNGL(x) ((float)x)
+#define SNGL(x) ((ICOS_Float)x)
 
 const int voigt::gl_idx = 3;
 
@@ -38,71 +38,71 @@ voigt::voigt( int mol, int iso,
 // This formulation for the empirical fit to linewidth is from
 // Liz's old lecture notes (Webster?) and is attributed to
 // Olivero and Longbothum.
-float voigt::line_width(float *a) {
-  float ged = get_param(a, w_idx);
-  float gl = get_param(a, gl_idx);
-  float wid = .5346*gl + sqrt(.2166*gl*gl + .69315*ged*ged);
+ICOS_Float voigt::line_width(ICOS_Float *a) {
+  ICOS_Float ged = get_param(a, w_idx);
+  ICOS_Float gl = get_param(a, gl_idx);
+  ICOS_Float wid = .5346*gl + sqrt(.2166*gl*gl + .69315*ged*ged);
   return wid;
 }
 
-void voigt::init(float*a) {
+void voigt::init(ICOS_Float*a) {
   if ( fix_lwidth) fix_param(gl_idx);
   func_line::init(a);
 }
 
-void voigt::dump_params(float *a, int indent) {
+void voigt::dump_params(ICOS_Float *a, int indent) {
   print_indent( stderr, indent );
-  fprintf( stderr, "Parameters for '%s' %.4f cm-1:\n", name, nu );
+  fprintf( stderr, "Parameters for '%s' %.4" FMT_F " cm-1:\n", name, nu );
   indent += 2;
   print_indent( stderr, indent );
-  fprintf( stderr, "[%2d] dnu: %g cm-1\n", params[l_idx].index,
+  fprintf( stderr, "[%2d] dnu: %" FMT_G " cm-1\n", params[l_idx].index,
     a[params[l_idx].index] );
   print_indent( stderr, indent );
-  fprintf( stderr, "[%2d] Ged: %g cm-1\n", params[w_idx].index,
+  fprintf( stderr, "[%2d] Ged: %" FMT_G " cm-1\n", params[w_idx].index,
     a[params[w_idx].index] );
   print_indent( stderr, indent );
-  fprintf( stderr, "[%2d]   N: %g mol/cm-3\n", params[n_idx].index,
+  fprintf( stderr, "[%2d]   N: %" FMT_G " mol/cm-3\n", params[n_idx].index,
     a[params[n_idx].index] );
   print_indent( stderr, indent );
-  fprintf( stderr, "[%2d]  Gl: %g cm-1\n", params[gl_idx].index,
+  fprintf( stderr, "[%2d]  Gl: %" FMT_G " cm-1\n", params[gl_idx].index,
     a[params[gl_idx].index] );
 }
 
-float voigt::line_start(float*a) {
+ICOS_Float voigt::line_start(ICOS_Float*a) {
   return (nu_P - GlobalData.RightLineMarginMultiplier*line_width(a));
 }
-float voigt::line_end(float *a) {
+ICOS_Float voigt::line_end(ICOS_Float *a) {
   return (nu_P + GlobalData.LeftLineMarginMultiplier*line_width(a));
 }
 
-void voigt::evaluate( float xx, float *a ) {
-  float numdens = get_param(a,n_idx);
-  float gamma_ed = get_param(a,w_idx);
-  float gamma_l = get_param(a,gl_idx);
-  float dnu = get_param(a,l_idx);
+void voigt::evaluate( ICOS_Float xx, ICOS_Float *a ) {
+  ICOS_Float numdens = get_param(a,n_idx);
+  ICOS_Float gamma_ed = get_param(a,w_idx);
+  ICOS_Float gamma_l = get_param(a,gl_idx);
+  ICOS_Float dnu = get_param(a,l_idx);
   int ixx = int(xx);
 
   // X, Y and K now private object members
   X = (ICOSfile::wndata->data[ixx] - nu_P + dnu)/gamma_ed;
   Y = gamma_l/gamma_ed;
   // K Voigt output (Real part)
-  float L; // Imaginery Part (needed for derivatives)
-  float DKDX; // dVoigt/dX
-  float DKDY; // dVoigt/dY
+  ICOS_Float L; // Imaginery Part (needed for derivatives)
+  ICOS_Float DKDX; // dVoigt/dX
+  ICOS_Float DKDY; // dVoigt/dY
 
 // Constants
   // static const double DRTPI = 0.5641895835477563; // 1/SQRT(pi)
-  static const float  RRTPI = 0.56418958;
-  static const float Y0 = 1.5; // for CPF12 algorithm
-  static const float Y0PY0 = Y0+Y0;
-  static const float Y0Q = Y0*Y0;
-  static const float C[6] = {
+  static const ICOS_Float  RRTPI = 0.56418958;
+  static const ICOS_Float Y0 = 1.5; // for CPF12 algorithm
+  static const ICOS_Float Y0PY0 = Y0+Y0;
+  static const ICOS_Float Y0Q = Y0*Y0;
+  static const ICOS_Float C[6] = {
          1.0117281,    -0.75197147, 0.012557727,
        0.010022008, -0.00024206814, 0.00000050084806 };
-  static const float S[6] = {
+  static const ICOS_Float S[6] = {
            1.393237,       0.23115241,  -0.15535147,
        0.0062183662,   0.000091908299,  -0.00000062752596 };
-  static const float T[6] = {
+  static const ICOS_Float T[6] = {
        0.31424038,  0.94778839, 1.5976826,
        2.2795071,   3.0206370,  3.8897249 };
 
@@ -110,14 +110,14 @@ void voigt::evaluate( float xx, float *a ) {
   int J;                                      // Loop variables
   // int RGB, RGC, RGD;                             // y polynomial flags
   // YQ;                             // y^2
-  float ABX, XQ;                      // |x|, x^2
-  // float XLIMA, XLIMB, XLIMC, XLIM4;              // x on region boundaries
-  float MT[6], MQ[6], PT[6], PQ[6];              // Temporary variables
-  float XP[6], XM[6], YP[6], YM[6], MF[6], PF[6];
-  float YP2Y0, YPY0, YPY0Q, YF1, YF2, MFQ, PFQ, D,  U, DUDY, DVDY;
-  // float A0, B1, C0, C2, D0, D1, D2, E0, E2, E4, F1, F3, F5;
-  // float G0, G2, G4, G6, H0, H2, H4, H6, P0, P2, P4, P6, P8;
-  // float Q1, Q3, Q5, Q7, R0, R2, W0, W2, W4, Z0, Z2, Z4, Z6, Z8;
+  ICOS_Float ABX, XQ;                      // |x|, x^2
+  // ICOS_Float XLIMA, XLIMB, XLIMC, XLIM4;              // x on region boundaries
+  ICOS_Float MT[6], MQ[6], PT[6], PQ[6];              // Temporary variables
+  ICOS_Float XP[6], XM[6], YP[6], YM[6], MF[6], PF[6];
+  ICOS_Float YP2Y0, YPY0, YPY0Q, YF1, YF2, MFQ, PFQ, D,  U, DUDY, DVDY;
+  // ICOS_Float A0, B1, C0, C2, D0, D1, D2, E0, E2, E4, F1, F3, F5;
+  // ICOS_Float G0, G2, G4, G6, H0, H2, H4, H6, P0, P2, P4, P6, P8;
+  // ICOS_Float Q1, Q3, Q5, Q7, R0, R2, W0, W2, W4, Z0, Z2, Z4, Z6, Z8;
   double DB;
 
 //**** Start of executable code ****************************************
@@ -281,7 +281,7 @@ void voigt::evaluate( float xx, float *a ) {
    DKDX = SNGL( DB + DB );
   }    // Not region A
   
-  float sed = Ks/gamma_ed;
+  ICOS_Float sed = Ks/gamma_ed;
   params[n_idx].dyda = sed * K;
   sed *= numdens; // Ks*N/Ged
   value = sed * K;
@@ -296,7 +296,7 @@ void voigt::evaluate( float xx, float *a ) {
 // alamda is used to indicate:
 //  alamda < 0 Initialization: set fixed parameters
 //  alamda < -1.5 called once per data set
-//  alamda > 0 Iteration: check floating parameters
+//  alamda > 0 Iteration: check ICOS_Floating parameters
 //  alamda == 0 Finalization: check if redo is required
 // Might be possible to get into oscillation if line gets
 //  re-disabled, but that should be unlikely. If it does
@@ -310,9 +310,9 @@ void voigt::evaluate( float xx, float *a ) {
 //  once more (with rollback) which will presumably take
 //  us back to the larger value, but this time, don't
 //  complain at alamda==0 time.
-int voigt::adjust_params( float alamda, float P, float T, float *a ) {
-  float gamma_l;
-  // const float ln2 = log(2.);
+int voigt::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
+  ICOS_Float gamma_l;
+  // const ICOS_Float ln2 = log(2.);
 
   if ( func_line::adjust_params( alamda, P, T, a ) )
     return 1;
@@ -337,9 +337,9 @@ void voigt::line_fix() {
   func_line::line_fix();
 }
 
-void voigt::line_float() {
-  if ( fix_lwidth == 0 ) float_param(gl_idx);
-  func_line::line_float();
+void voigt::line_ICOS_Float() {
+  if ( fix_lwidth == 0 ) ICOS_Float_param(gl_idx);
+  func_line::line_ICOS_Float();
 }
 
 void voigt::print_intermediates(FILE *fp) {

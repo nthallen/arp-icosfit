@@ -4,7 +4,7 @@
 
 void func_abs::print_config(FILE *fp) {
   func_line *child;
-  fprintf( fp, "CavLen = %.1f;\n", GlobalData.CavityLength );
+  fprintf( fp, "CavLen = %.1" FMT_F ";\n", GlobalData.CavityLength );
   fprintf( fp, "n_abs_params = 1;\nn_abs_line_params = 1;\n" );
   fprintf( fp, "lines = [\n" );
   for ( child = lfirst(); child != 0; child = child->lnext() ) {
@@ -20,14 +20,14 @@ void func_abs::print_intermediates(FILE *fp) {
   }
 }
 
-// static float interpolate( float x0, float x1, float y0, float y1, float x ) {
+// static ICOS_Float interpolate( ICOS_Float x0, ICOS_Float x1, ICOS_Float y0, ICOS_Float y1, ICOS_Float x ) {
 //   return (x-x0)*(y1-y0)/(x1-x0) + y0;
 // }
 
 // Assumes vals is increasing strictly monotonically.
 // Returns the interpolated or extrapolated index of the value
 // ------Currently unused-------------------------------------
-// static float binary_lookup( float *vals, int n_vals, float value ) {
+// static ICOS_Float binary_lookup( ICOS_Float *vals, int n_vals, ICOS_Float value ) {
 //   int low = 0, high = n_vals-1;
 //   if ( value < vals[0] )
 //     return interpolate( vals[0], vals[1], 0., 1., value );
@@ -42,29 +42,29 @@ void func_abs::print_intermediates(FILE *fp) {
 //   return interpolate( vals[low], vals[high], low, high, value );
 // }
 
-int func_abs::adjust_params( float alamda, float P, float T, float *a ) {
+int func_abs::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
   // New: Call adjust_params for all children, since samples/cm-1
   // won't be changing.
-  // static float max_drift_per_sec = 30; // 8
+  // static ICOS_Float max_drift_per_sec = 30; // 8
   int rv = 0;
-  int lines_floating = 0;
+  int lines_ICOS_Floating = 0;
   func_line *child;
   for ( child = lfirst(); child != 0; child = child->lnext() ) {
     if ( child->adjust_params( alamda, P, T, a ) )
       rv = 1;
-    if ( ! child->fixed ) lines_floating++;
+    if ( ! child->fixed ) lines_ICOS_Floating++;
   }
-  if ( lines_floating == 0 && ! param_fixed(0) ) {
+  if ( lines_ICOS_Floating == 0 && ! param_fixed(0) ) {
     nl_error( 0, "Fixing nu_F0" );
     fix_param(0);
     rv = 1;
   }
-  if ( alamda == 0 && lines_floating > 0 && param_fixed(0) ) {
+  if ( alamda == 0 && lines_ICOS_Floating > 0 && param_fixed(0) ) {
     nl_error( 0, "Floating nu_F0" );
-    float_param(0);
+    ICOS_Float_param(0);
     rv = 1;
   }
-  float nu_F0 = get_param(a,0);
+  ICOS_Float nu_F0 = get_param(a,0);
   if (alamda < 0 && GlobalData.input.nu_F0 != 0.) {
     nu_F0 = GlobalData.input.nu_F0;
     set_param( a, 0, nu_F0 );
@@ -89,13 +89,13 @@ int func_abs::adjust_params( float alamda, float P, float T, float *a ) {
   // nu_F0 += GlobalData.input.nu_F0; // No longer required
   { int p1 = 1;
     for ( child = lfirst(); child != 0; child = child->lnext() ) {
-      float dnu = get_param( a, p1 );
+      ICOS_Float dnu = get_param( a, p1 );
       child->set_param( a, child->l_idx, nu_F0 + dnu );
       if ( ! param_fixed(p1)) {
         if ( fabs(dnu) > GlobalData.TolerableDrift ) {
           nl_error( 0,
-            "Increasing threshold for wandering line at %.4f, "
-            "dnu = %.4f", child->nu, dnu );
+            "Increasing threshold for wandering line at %.4" FMT_F
+	    ", dnu = %.4" FMT_F, child->nu, dnu );
           child->line_fix();
           child->S_thresh =
             child->Ks * child->get_param( a, child->n_idx ) /
@@ -114,8 +114,8 @@ void func_abs::fix_linepos( int linenum ) {
   fix_param( linenum*5 - 4 );
 }
 
-void func_abs::float_linepos( int linenum ) {
-  float_param( linenum*5 - 4 );
+void func_abs::ICOS_Float_linepos( int linenum ) {
+  ICOS_Float_param( linenum*5 - 4 );
 }
 
 void func_abs::append_func( func_line *newfunc ) {
@@ -127,7 +127,7 @@ void func_abs::append_func( func_line *newfunc ) {
 // This goes to the general issue of more clearly characterizing
 // what a parameter is. The problem is for func_abs we are
 // abandoning the assumption of independence.
-void func_abs::init(float *a) {
+void func_abs::init(ICOS_Float *a) {
   func_evaluator *child;
   int p1, p2;
 
@@ -159,7 +159,7 @@ void func_abs::init(float *a) {
   }
 }
 
-void func_abs::evaluate(float x, float *a) {
+void func_abs::evaluate(ICOS_Float x, ICOS_Float *a) {
   func_evaluator *child;
   int p1, i;
   
@@ -177,7 +177,7 @@ void func_abs::evaluate(float x, float *a) {
   }
 }
 
-void func_abs::dump_params(float *a, int indent) {
+void func_abs::dump_params(ICOS_Float *a, int indent) {
   func_evaluator *child;
   int indx, p1;
 
@@ -186,14 +186,14 @@ void func_abs::dump_params(float *a, int indent) {
   indent += 2;
   indx = params[0].index;
   print_indent( stderr, indent );
-  fprintf( stderr, "[%2d] nu_F0: %g + nu0(%lg) = %lg\n",
+  fprintf( stderr, "[%2d] nu_F0: %" FMT_G " + nu0(%lg) = %lg\n",
     indx, a[indx], func_line::nu0, a[indx]+func_line::nu0);
   indent += 2;
   p1 = 1;
   for ( child = first; child != 0; child = child->next ) {
     print_indent( stderr, indent );
     indx = params[p1].index;
-    fprintf( stderr, "[%2d] dnu: %g\n", indx, a[indx] );
+    fprintf( stderr, "[%2d] dnu: %" FMT_G "\n", indx, a[indx] );
     child->dump_params( a, indent );
     p1 += 1 + child->n_params;
   }

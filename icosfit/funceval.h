@@ -3,52 +3,53 @@
 
 #include <stdio.h>
 #include <vector>
+#include "config.h"
 
 struct parameter {
   int index;
   int *ia;
-  float init;
-  float dyda;
-  float low;
-  float high;
-  float prev;
+  ICOS_Float init;
+  ICOS_Float dyda;
+  ICOS_Float low;
+  ICOS_Float high;
+  ICOS_Float prev;
 };
 
 class func_evaluator {
   public:
     func_evaluator( const char *name, int n_params = 0 ); 
-    virtual void evaluate( float x, float *a );
-    void init( float *a, int *ia );
-    void init(float *a, int p1);
-    virtual void init(float *a);
-    virtual int adjust_params( float alamda, float P, float T, float *a );
+    virtual void evaluate( ICOS_Float x, ICOS_Float *a );
+    void init( ICOS_Float *a, int *ia );
+    void init(ICOS_Float *a, int p1);
+    virtual void init(ICOS_Float *a);
+    virtual int adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a );
     void append_func( func_evaluator *newfunc );
     inline void link_param( int src, func_evaluator *child, int dest ) {
       child->params[dest].index = params[src].index;
       child->params[dest].ia = params[src].ia;
     }
-    inline float get_param( float *a, int idx ) {
+    inline ICOS_Float get_param( ICOS_Float *a, int idx ) {
       return a[params[idx].index];
     }
-    inline float set_param( float *a, int idx, float value ) {
+    inline ICOS_Float set_param( ICOS_Float *a, int idx, ICOS_Float value ) {
       a[params[idx].index] = value;
       return value;
     }
     inline void fix_param( int idx ) { *params[idx].ia = 0; }
-    inline void float_param( int idx ) { *params[idx].ia = 1; }
+    inline void ICOS_Float_param( int idx ) { *params[idx].ia = 1; }
     inline int param_fixed( int idx ) { return *params[idx].ia == 0; }
-    void clamp_param_high( float *a, int idx );
-    void clamp_param_low( float *a, int idx );
-    void clamp_param_highlow( float *a, int idx );
-    virtual int line_check(int include, float& start, float& end,
-                            float P, float T, float *a);
+    void clamp_param_high( ICOS_Float *a, int idx );
+    void clamp_param_low( ICOS_Float *a, int idx );
+    void clamp_param_highlow( ICOS_Float *a, int idx );
+    virtual int line_check(int include, ICOS_Float& start, ICOS_Float& end,
+                            ICOS_Float P, ICOS_Float T, ICOS_Float *a);
     virtual int skew_samples();
-    virtual void dump_params(float *a, int indent);
+    virtual void dump_params(ICOS_Float *a, int indent);
     void print_indent( FILE *fp, int indent );
 
     int n_params;
     parameter *params;
-    float value;
+    ICOS_Float value;
     const char *name;
     func_evaluator *parent;
     func_evaluator *first;
@@ -69,14 +70,14 @@ class func_aggregate : public func_evaluator {
 class func_product : public func_aggregate {
   public:
     inline func_product() : func_aggregate("product") {}
-    void evaluate(float x, float *a);
+    void evaluate(ICOS_Float x, ICOS_Float *a);
 };
 class func_sum : public func_aggregate {
   public:
     inline func_sum() : func_aggregate("sum") {}
     inline func_sum(char *name) : func_aggregate(name) {}
-    void evaluate(float x, float *a);
-    void evaluate(float x, float *a, int i);
+    void evaluate(ICOS_Float x, ICOS_Float *a);
+    void evaluate(ICOS_Float x, ICOS_Float *a, int i);
 };
 
 class QTdata {
@@ -110,7 +111,7 @@ class func_line : public func_evaluator {
       double delta, unsigned int ipos, double threshold, int fix_w,
       int fix_fp );
     ~func_line();
-    int adjust_params( float alamda, float P, float T, float *a );
+    int adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a );
     static const int l_idx, w_idx, n_idx;
     static int n_lines;
     int line_number;
@@ -118,24 +119,24 @@ class func_line : public func_evaluator {
     int fix_finepos; // 0 = free-ish, 1 = fixed
     int fix_width; // 0 = free-ish, 1 = fixed
     inline func_line *lnext() { return (func_line *)next; }
-    void init(float *a);
-    virtual float line_start(float *a);
-    virtual float line_end(float *a);
+    void init(ICOS_Float *a);
+    virtual ICOS_Float line_start(ICOS_Float *a);
+    virtual ICOS_Float line_end(ICOS_Float *a);
     virtual void line_fix();
-    virtual void line_float();
-    int line_check(int include, float& start, float& end, float P, float T, float *a);
+    virtual void line_ICOS_Float();
+    int line_check(int include, ICOS_Float& start, ICOS_Float& end, ICOS_Float P, ICOS_Float T, ICOS_Float *a);
     void print_config(FILE *fp);
     virtual void print_intermediates(FILE *fp);
     //--------------------------------------------------
     int isotopomer;
     double nu;
-    float nu1, S, G_air, E, n_air, delta;
+    ICOS_Float nu1, S, G_air, E, n_air, delta;
     unsigned int ipos; // was loc...
-    float S_thresh;
-    float molwt;
-    float Ks, nu_P, Corr_Tref;
-    float prev_numdens;
-    float prev_ged;
+    ICOS_Float S_thresh;
+    ICOS_Float molwt;
+    ICOS_Float Ks, nu_P, Corr_Tref;
+    ICOS_Float prev_numdens;
+    ICOS_Float prev_ged;
     int rolledback;
     QTdata *QT;
     static double nu0;
@@ -152,15 +153,15 @@ class func_abs : public func_evaluator {
   public:
     inline func_abs() : func_evaluator("abs") { n_params = 1; }
     void append_func( func_line *newfunc );
-    void init(float *a);
-    void evaluate(float x, float *a);
+    void init(ICOS_Float *a);
+    void evaluate(ICOS_Float x, ICOS_Float *a);
     inline func_line *lfirst() { return (func_line *)first; }
-    int adjust_params(float alamda, float P, float T, float *a);
+    int adjust_params(ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a);
     void print_config(FILE *fp);
     void print_intermediates(FILE *fp);
     void fix_linepos(int linenum);
-    void float_linepos(int linenum);
-    void dump_params(float *a, int indent);
+    void ICOS_Float_linepos(int linenum);
+    void dump_params(ICOS_Float *a, int indent);
 };
 typedef func_abs *func_abs_p;
 typedef func_line *func_line_p;
@@ -177,7 +178,7 @@ class gaussian : public func_line {
           double n_in, double delta_in, int ipos_in, double threshold, int fix_w ) :
        func_line( "gaussian", 3, mol, iso, nu_in, S_in, G_air_in, E_in,
            n_in, delta_in, ipos_in, threshold, fix_w, 1 ) {};
-    void evaluate(float x, float *a);
+    void evaluate(ICOS_Float x, ICOS_Float *a);
 };
 class lorentzian : public func_line {
   public:
@@ -186,7 +187,7 @@ class lorentzian : public func_line {
           double n_in, double delta_in, int ipos_in, double threshold, int fix_w ) :
        func_line( "lorentzian", 3, mol, iso, nu_in, S_in, G_air_in, E_in,
            n_in, delta_in, ipos_in, threshold, fix_w, 1 ) {};
-    void evaluate(float x, float *a);
+    void evaluate(ICOS_Float x, ICOS_Float *a);
 };
 // Based on R.J.Wells' functions
 class voigt : public func_line {
@@ -195,27 +196,27 @@ class voigt : public func_line {
           double nu_in, double S_in, double G_air_in, double E_in,
           double n_in, double delta_in, int ipos_in, double threshold,
           int fix_dw, int fix_lw, int fix_fp );
-    void init(float *a);
-    void evaluate(float x, float *a);
-    float line_width(float*a);
-    float line_start(float*a);
-    float line_end(float*a);
+    void init(ICOS_Float *a);
+    void evaluate(ICOS_Float x, ICOS_Float *a);
+    ICOS_Float line_width(ICOS_Float*a);
+    ICOS_Float line_start(ICOS_Float*a);
+    ICOS_Float line_end(ICOS_Float*a);
     static const int gl_idx; // 3
-    int adjust_params( float alamda, float P, float T, float *a );
+    int adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a );
     void line_fix();
-    void line_float();
-    void dump_params(float *a, int indent);
+    void line_ICOS_Float();
+    void dump_params(ICOS_Float *a, int indent);
     void print_intermediates(FILE *fp);
 
   private:
-    float prev_gl;
-    float prev_y;
-    float X, Y, K;
-    float YQ, XLIMA, XLIMB, XLIMC, XLIM4;
+    ICOS_Float prev_gl;
+    ICOS_Float prev_y;
+    ICOS_Float X, Y, K;
+    ICOS_Float YQ, XLIMA, XLIMB, XLIMC, XLIM4;
     int RGB, RGC, RGD;
-    float A0, B1, C0, C2, D0, D1, D2, E0, E2, E4, F1, F3, F5;
-    float G0, G2, G4, G6, H0, H2, H4, H6, P0, P2, P4, P6, P8;
-    float Q1, Q3, Q5, Q7, R0, R2, W0, W2, W4, Z0, Z2, Z4, Z6, Z8;
+    ICOS_Float A0, B1, C0, C2, D0, D1, D2, E0, E2, E4, F1, F3, F5;
+    ICOS_Float G0, G2, G4, G6, H0, H2, H4, H6, P0, P2, P4, P6, P8;
+    ICOS_Float Q1, Q3, Q5, Q7, R0, R2, W0, W2, W4, Z0, Z2, Z4, Z6, Z8;
     int fix_lwidth;
 };
 inline func_line_p new_voigt( int mol, int iso,
@@ -228,8 +229,8 @@ inline func_line_p new_voigt( int mol, int iso,
 
 class func_quad : public func_evaluator {
   public:
-    func_quad( float q, float l, float c );
-    void evaluate(float x, float *a);
+    func_quad( ICOS_Float q, ICOS_Float l, ICOS_Float c );
+    void evaluate(ICOS_Float x, ICOS_Float *a);
     static const int q_idx, l_idx, c_idx; // 0, 1, 2
 };
 
@@ -249,9 +250,9 @@ class func_base : public func_evaluator {
 class func_base_svdx : public func_base {
   public:
     func_base_svdx( const char *filename );
-    void evaluate( float x, float *a );
+    void evaluate( ICOS_Float x, ICOS_Float *a );
   private:
-    float **baseline;
+    ICOS_Float **baseline;
     int n_pts;
 };
 
@@ -275,8 +276,8 @@ class func_base_svdx : public func_base {
 class func_base_ptbnu : public func_base {
   public:
     func_base_ptbnu( const char *filename );
-    void evaluate( float x, float *a );
-    void init(float *a);
+    void evaluate( ICOS_Float x, ICOS_Float *a );
+    void init(ICOS_Float *a);
   private:
     struct {
       double poly_scale;
@@ -287,16 +288,16 @@ class func_base_ptbnu : public func_base {
       unsigned short poly_coeffs;
       unsigned short poly_of_nu;
     } cfg;
-    float **vectors;
-    float **dvdnu;
-    float **polyvecs;
+    ICOS_Float **vectors;
+    ICOS_Float **dvdnu;
+    ICOS_Float **polyvecs;
 };
 
 class func_base_input : public func_base {
   public:
     func_base_input( func_base *base );
-    void evaluate( float x, float *a );
-    void init(float *a);
+    void evaluate( ICOS_Float x, ICOS_Float *a );
+    void init(ICOS_Float *a);
   private:
 };
 
@@ -310,11 +311,11 @@ class skew_data {
   public:
     skew_data();
     void set_n_params(int n_gp, int n_ap);
-    float g;
-    float *dg; // allocate n_params
-    float *da; // allocate n_params
-    float gN;
-    float Power;
+    ICOS_Float g;
+    ICOS_Float *dg; // allocate n_params
+    ICOS_Float *da; // allocate n_params
+    ICOS_Float gN;
+    ICOS_Float Power;
     int initialized;
 };
 
@@ -327,16 +328,16 @@ class skew_data {
 class func_skew : public func_evaluator {
   public:
     func_skew(func_base *base, func_abs *abs);
-    void init(float *a);
-    void evaluate(float x, float *a);
+    void init(ICOS_Float *a);
+    void evaluate(ICOS_Float x, ICOS_Float *a);
     int skew_samples();
-    void dump_params(float *a, int indent);
+    void dump_params(ICOS_Float *a, int indent);
   private:
-    float N;
+    ICOS_Float N;
     int M;
-    float R2, R2N, P_scale;
+    ICOS_Float R2, R2N, P_scale;
     skew_data *skew; // We will have M of these
-    float prev_x;
+    ICOS_Float prev_x;
     int skewidx;
     int n_base_params, n_abs_params;
     func_base *basep;
@@ -351,11 +352,11 @@ class func_skew : public func_evaluator {
 class func_noskew : public func_evaluator {
   public:
     func_noskew(func_base *base, func_abs *abs);
-    void init(float *a);
-    void evaluate(float x, float *a);
-    void dump_params(float *a, int indent);
+    void init(ICOS_Float *a);
+    void evaluate(ICOS_Float x, ICOS_Float *a);
+    void dump_params(ICOS_Float *a, int indent);
   private:
-    float N_Passes;
+    ICOS_Float N_Passes;
     int n_base_params, n_abs_params;
     func_base *basep;
     func_abs *absp;
@@ -364,14 +365,5 @@ class func_noskew : public func_evaluator {
 #ifndef M_PI
   #define M_PI 3.14159265358979323846
 #endif
-
-#if defined( __QNXNTO__ )
-  extern "C" {
-    extern int isnanf(float) __attribute__((__const__));
-  };
-#else
-  extern int isnanf( float f );
-#endif
-
 
 #endif

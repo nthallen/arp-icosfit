@@ -82,7 +82,7 @@ void ICOS_main() {
         if ( GlobalData.PTformat == 2 ) fitspecs->PTf->calc_wndata();
         if ( fitspecs->fit() != 0 ) {
           fitspecs->write();
-          fprintf(stderr, "Successfully fit %lu: chisq = %f\n",
+          fprintf(stderr, "Successfully fit %lu: chisq = %" FMT_G "\n",
                    fitspecs->IFile->mlf->index,
                    fitspecs->chisq );
         } else {
@@ -145,7 +145,7 @@ fitdata *build_func() {
       "n_input_params = %d;\n"
       "n_base_params = %d;\n"
       "binary = %d;\n"
-      "nu0 = %.0f;\n",
+      "nu0 = %.0" FMT_F ";\n",
       fd->n_input_params,
       abs->params[0].index - 1,
       GlobalData.binary,
@@ -155,13 +155,14 @@ fitdata *build_func() {
     fprintf(fp, "PTEfile = '%s';\n",
       (GlobalData.PTformat == 2 && GlobalData.PTFile) ?
         GlobalData.PTFile : "" );
-    fprintf(fp, "EtalonFSR = %.6f;\n", GlobalData.EtalonFSR);
+    fprintf(fp, "EtalonFSR = %.6" FMT_F ";\n", GlobalData.EtalonFSR);
     if (GlobalData.EtalonFeedback != 0)
-      fprintf(fp, "EtalonFeedback = %.6f;\n", GlobalData.EtalonFeedback);
-    fprintf(fp, "MirrorLoss = %.5e;\n", GlobalData.MirrorLoss);
+      fprintf(fp, "EtalonFeedback = %.6" FMT_F ";\n",
+	  GlobalData.EtalonFeedback);
+    fprintf(fp, "MirrorLoss = %.5" FMT_E ";\n", GlobalData.MirrorLoss);
     fprintf(fp, "N_Passes = %d;\n", GlobalData.N_Passes);
-    fprintf(fp, "SampleRate = %f;\n", GlobalData.SampleRate);
-    fprintf(fp, "SkewTolerance = %.5e;\n", GlobalData.SkewTolerance);
+    fprintf(fp, "SampleRate = %" FMT_F ";\n", GlobalData.SampleRate);
+    fprintf(fp, "SkewTolerance = %.5" FMT_E ";\n", GlobalData.SkewTolerance);
     fprintf(fp, "BackgroundRegion = [ %d %d ];\n",
       GlobalData.BackgroundRegion[0], GlobalData.BackgroundRegion[1]);
     abs->print_config( fp );

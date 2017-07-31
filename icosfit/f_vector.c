@@ -2,9 +2,9 @@
 #include "f_vector.h"
 #include "nortlib.h"
 
-// f_vector is a class of resizable vectors of floats.
+// f_vector is a class of resizable vectors of ICOS_Floats.
 // f_vector *fv = new f_vector( int min, int off );
-//   min is the minimum number of floats for the first allocation.
+//   min is the minimum number of ICOS_Floats for the first allocation.
 //   as the vector grows, it will be in multiples of this size.
 //   off is the index of the first element. It defaults to 0.
 //   1 is the only common value.
@@ -28,25 +28,25 @@ f_vector::f_vector( int min, int off ) {
 void f_vector::clear() { n_data = 0; }
 
 void f_vector::check( int size ) {
-  float *newdata;
+  ICOS_Float *newdata;
   if ( size+offset > datasize ) {
     if ( datasize == 0 )
       datasize = min_size;
     while ( datasize < size+offset && datasize >= 0 ) datasize *= 2;
     if ( datasize <= 0  )
       nl_error( 4, "datasize overflow in f_vector::check" );
-    newdata = new float[datasize];
+    newdata = new ICOS_Float[datasize];
     if ( newdata == 0 ) nl_error( 4, "Out of memory in f_vector::check" );
     if ( data != 0 ) {
 	  if ( n_data > 0 )
-	    memcpy( newdata+offset, data+offset, n_data * sizeof(float) );
+	    memcpy( newdata+offset, data+offset, n_data * sizeof(ICOS_Float) );
 	  delete data;
     }
 	data = newdata;
   }
 }
 
-void f_vector::append( float f ) {
+void f_vector::append( ICOS_Float f ) {
   check(n_data+1);
   data[offset+n_data++] = f;
 }

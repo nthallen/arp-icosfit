@@ -5,13 +5,13 @@
 #include "nrutil.h"
 #include "nortlib.h"
 
-void lfit(float x[], float y[], float sig[], int ndat, float a[], int ia[],
-	int ma, float **covar, float *chisq, void (*funcs)(float, float [], int))
+void lfit(ICOS_Float x[], ICOS_Float y[], ICOS_Float sig[], int ndat, ICOS_Float a[], int ia[],
+	int ma, ICOS_Float **covar, ICOS_Float *chisq, void (*funcs)(ICOS_Float, ICOS_Float [], int))
 {
-	void covsrt(float **covar, int ma, int ia[], int mfit);
-	void gaussj(float **a, int n, float **b, int m);
+	void covsrt(ICOS_Float **covar, int ma, int ia[], int mfit);
+	void gaussj(ICOS_Float **a, int n, ICOS_Float **b, int m);
 	int i,j,k,l,m,mfit=0;
-	float ym,wt,sum,sig2i,**beta,*afunc;
+	ICOS_Float ym,wt,sum,sig2i,**beta,*afunc;
 
 	beta=matrix(1,ma,1,1);
 	afunc=vector(1,ma);

@@ -14,7 +14,7 @@
 static fitdata *crntfit;
 jmp_buf Fit_buf;
 
-void BaseFitFunction( float x, float *afunc, int ma ) {
+void BaseFitFunction( ICOS_Float x, ICOS_Float *afunc, int ma ) {
   int i;
   func_evaluator *bfunc = crntfit->base;
   for ( i = 0; i < ma; i++ ) afunc[i+1] = 0.;
@@ -150,9 +150,9 @@ void fitdata::handle_restart( const char *ofname ) {
           if ( line->param_fixed( line->l_idx ) ) {
             line->fixed = 1;
             if ( line->param_fixed( line->n_idx ) )
-              nl_error( 0, "Line at %.4f is off", line->nu );
+              nl_error( 0, "Line at %.4" FMT_F " is off", line->nu );
             else
-              nl_error( 0, "Line at %.4f is fixed", line->nu );
+              nl_error( 0, "Line at %.4" FMT_F " is fixed", line->nu );
           }
         }
       }
@@ -177,11 +177,11 @@ static FILE *pathopen( const char *path, const char *format, int fileno ) {
   return fp;
 }
 
-int fitdata::adjust_params( float *av ) {
+int fitdata::adjust_params( ICOS_Float *av ) {
   return func->adjust_params( alamda, PTf->P, PTf->T, av );
 }
 
-void print_matrix( float **mat, const char *name, int nrow, int ncol ) {
+void print_matrix( ICOS_Float **mat, const char *name, int nrow, int ncol ) {
   int row, col;
   for ( row = 1; row <= nrow; row++ ) {
     fprintf( stderr, "%s[%d][] = ", name, row );
@@ -191,14 +191,14 @@ void print_matrix( float **mat, const char *name, int nrow, int ncol ) {
         fprintf( stderr, "\n  " );
         cols = 0;
       }
-      fprintf( stderr, "  %12.4g", mat[row][col] );
+      fprintf( stderr, "  %12.4" FMT_G, mat[row][col] );
       cols += 14;
     }
     fprintf( stderr, "\n" );
   }
 }
 
-void print_vector( float *vec, const char *name, int ncol ) {
+void print_vector( ICOS_Float *vec, const char *name, int ncol ) {
   int col;
   fprintf( stderr, "%s[] = ", name );
   int cols = 0;
@@ -207,14 +207,14 @@ void print_vector( float *vec, const char *name, int ncol ) {
       fprintf( stderr, "\n  " );
       cols = 0;
     }
-    fprintf( stderr, "\t%12.4g", vec[col] );
+    fprintf( stderr, "\t%12.4" FMT_G, vec[col] );
     cols += 14;
   }
   fprintf( stderr, "\n" );
 }
 
 int fitdata::fit( ) {
-  float *yin = IFile->sdata->data;
+  ICOS_Float *yin = IFile->sdata->data;
   int i;
 
   // store the object for reference from lower funcs
@@ -240,11 +240,11 @@ int fitdata::fit( ) {
   // if ( child != 0 ) {
   {
     // Wavenumber decreases with sample number
-    float nu_F0 = absorb->get_param( a, 0 ); // + GlobalData.input.nu_F0;
-    float wnStart = IFile->wndata->data[SignalEnd] + nu_F0;
-    float wnEnd = IFile->wndata->data[SignalStart] + nu_F0;
+    ICOS_Float nu_F0 = absorb->get_param( a, 0 ); // + GlobalData.input.nu_F0;
+    ICOS_Float wnStart = IFile->wndata->data[SignalEnd] + nu_F0;
+    ICOS_Float wnEnd = IFile->wndata->data[SignalStart] + nu_F0;
     while ( func->line_check( 0, wnStart, wnEnd, PTf->P, PTf->T, a ) != 0 );
-    float EwnStart = 0., EwnEnd = 0.;
+    ICOS_Float EwnStart = 0., EwnEnd = 0.;
     func->line_check( 1, EwnStart, EwnEnd, PTf->P, PTf->T, a );
     if ( EwnStart != 0. && EwnEnd != 0. ) {
       if ( EwnStart > wnStart ) wnStart = EwnStart;
@@ -306,7 +306,7 @@ int fitdata::fit( ) {
       // quadratic baseline file.
       
       // initialize sig to avoid the lines
-      float nu_F0 = absorb->get_param( a, 0 );
+      ICOS_Float nu_F0 = absorb->get_param( a, 0 );
       for ( i = 1; i <= npts; i++ ) {
         sig[i] = 1;
         func_line *child;
@@ -352,7 +352,8 @@ int fitdata::fit( ) {
         adjust_params( a );
       } else {
         if ( verbose & 32 ) {
-          fprintf( stderr, "chisq = %g, alamda = %g\n", chisq, alamda );
+          fprintf( stderr, "chisq = %" FMT_G ", alamda = %" FMT_G "\n",
+			  chisq, alamda );
           if ( ochisq != 0 ) {
             fprintf( stderr, "ochisq = %lg, chisq/ochisq = %lg\n",
                ochisq, chisq/ochisq );
@@ -409,7 +410,7 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
     // Fit_buf_save = Fit_buf;
     if ( setjmp(Fit_buf) == 0 ) {
       for ( i = 1; i <= npts; i++ ) {
-        float yfit;
+        ICOS_Float yfit;
         func->evaluate( x[i], a );
         yfit = func->value;
         fprintf( vofp, "%12.6le %14.8le %12.6le %12.6le %12.6le %12.6le",
@@ -423,7 +424,7 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
             if ( func->param_fixed(j) )
               fprintf( vofp, " 0" );
             else
-              fprintf( vofp, " %12.6e", func->params[j].dyda );
+              fprintf( vofp, " %12.6" FMT_E, func->params[j].dyda );
           }
         }
         fprintf( vofp, "\n" );

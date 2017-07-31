@@ -1,5 +1,6 @@
 #ifndef GLOBAL_H_INCLUDED
 #define GLOBAL_H_INCLUDED
+#include "config.h"
 #include "funceval.h"
 
 class GlobalData_t {
@@ -10,24 +11,24 @@ class GlobalData_t {
 	unsigned int RestartAt;
 	int PreserveOutput;
 	const char *FitFunction;
-	float MirrorLoss;
-	float EtalonFSR;
-  float EtalonFeedback;
-	// float MinimumFringeSpacing;
-	float TolerableDrift;
-  float LeftLineMargin;
-  float LeftLineMarginMultiplier;
-  float RightLineMargin;
-  float RightLineMarginMultiplier;
-  float LineMarginHysteresis;
-	// float DSFRLimits[2];
-	float CavityLength;
-  float CavityFixedLength;
-	float Sigma;
-	// float TuningRate;
-	float SampleRate;
-	float SkewTolerance;
-	float DefaultTemp;
+	ICOS_Float MirrorLoss;
+	ICOS_Float EtalonFSR;
+  ICOS_Float EtalonFeedback;
+	// ICOS_Float MinimumFringeSpacing;
+	ICOS_Float TolerableDrift;
+  ICOS_Float LeftLineMargin;
+  ICOS_Float LeftLineMarginMultiplier;
+  ICOS_Float RightLineMargin;
+  ICOS_Float RightLineMarginMultiplier;
+  ICOS_Float LineMarginHysteresis;
+	// ICOS_Float DSFRLimits[2];
+	ICOS_Float CavityLength;
+  ICOS_Float CavityFixedLength;
+	ICOS_Float Sigma;
+	// ICOS_Float TuningRate;
+	ICOS_Float SampleRate;
+	ICOS_Float SkewTolerance;
+	ICOS_Float DefaultTemp;
 	unsigned short QCLI_Wave;
 	int binary;
 	const char *ICOSdir;
@@ -49,10 +50,10 @@ class GlobalData_t {
   int BaselineInput; // non-zero if column 3 is  a baseline vector
 	func_abs_p absorb;
 	struct {
-	  float nu_F0;
-    float MirrorLoss;
+	  ICOS_Float nu_F0;
+    ICOS_Float MirrorLoss;
 	} input;
-  float ConvergenceStep;
+  ICOS_Float ConvergenceStep;
   int ConvergenceCount;
   int MaxIterations;
 

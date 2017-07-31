@@ -29,7 +29,7 @@ func_noskew::func_noskew(func_base *base, func_abs *abs) :
 // nu_F0 comes after n_base_params in our list
 // If base->uses_nu_F0, it's first param is linked
 // to abs' first, which is our n_base_params.
-void func_noskew::init(float *a) {
+void func_noskew::init(ICOS_Float *a) {
   func_evaluator *child;
   int p1 = 0;
   int p2;
@@ -57,20 +57,20 @@ void func_noskew::init(float *a) {
   }
 }
 
-void func_noskew::evaluate(float x, float *a) {
+void func_noskew::evaluate(ICOS_Float x, ICOS_Float *a) {
   int i;
   func_evaluator::evaluate( x, a ); // evaluate base and abs
-  float P = basep->value;
-  float Abs = absp->value;
-  if ( isnanf(P) )
+  ICOS_Float P = basep->value;
+  ICOS_Float Abs = absp->value;
+  if ( isnan(P) )
     nl_error(2,"Base(%.0lf) is NaN", x);
-  if ( isnanf(Abs) )
+  if ( isnan(Abs) )
     nl_error(2,"Absorb(%.0lf) is NaN", x);
-  float eNabs = exp( -N_Passes * Abs );
+  ICOS_Float eNabs = exp( -N_Passes * Abs );
   value = P * eNabs;
-  if ( isnanf(value) )
+  if ( isnan(value) )
     nl_error(2,"noskew(%.0lf) is NaN", x);
-  float NPeNabs = - N_Passes * value;
+  ICOS_Float NPeNabs = - N_Passes * value;
 
   for ( i = 0; i < n_base_params; i++ )
     params[i].dyda = eNabs *
@@ -81,7 +81,7 @@ void func_noskew::evaluate(float x, float *a) {
     params[n_base_params].dyda += eNabs * basep->params[0].dyda;
 }
 
-void func_noskew::dump_params(float *a, int indent) {
+void func_noskew::dump_params(ICOS_Float *a, int indent) {
   print_indent( stderr, indent );
   fprintf( stderr, "Parameters for '%s':\n", name );
   indent += 2;

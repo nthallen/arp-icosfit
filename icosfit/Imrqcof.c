@@ -1,27 +1,17 @@
 #include "ICOSfit.h"
 #include <stdio.h>
 #include <setjmp.h>
+#include <math.h>
 #include "nortlib.h" // for debugging only
 #include "nrutil.h"
 
 extern jmp_buf Fit_buf;
 
-#if ! defined( __QNXNTO__ )
-  int isnanf( float f ) {
-    union {
-      float f;
-      long int li;
-    } u;
-    u.f = f;
-    return ( ( u.li & 0x7F800000 ) == 0x7F800000 );
-  }
-#endif
-
 // Here I'm trying to override the object members alpha and beta
 // with method arguments.
-void fitdata::mrqcof( float *av, float **alpha, float *beta ) {
+void fitdata::mrqcof( ICOS_Float *av, ICOS_Float **alpha, ICOS_Float *beta ) {
   int i,j,k,l,m;
-  float wt,sig2i,dy;
+  ICOS_Float wt,sig2i,dy;
 
   for (j=1;j<=mfit;j++) {
     for (k=1;k<=j;k++) alpha[j][k]=0.0;
@@ -30,14 +20,14 @@ void fitdata::mrqcof( float *av, float **alpha, float *beta ) {
   chisq=0.0;
   for (i=1;i<=npts;i++) {
     func->evaluate( x[i], av );
-    if ( isnanf( func->value ) ) {
+    if ( isnan( func->value ) ) {
       nl_error( 2, "evaluate x[%d]=%lf returned NaN", i, x[i] );
       longjmp(Fit_buf, 1);
       // throw 1;
     }
     dy = y[i] - func->value;
     for (j=0; j < ma; j++ ) {
-      if ( isnanf( func->params[j].dyda ) ) {
+      if ( isnan( func->params[j].dyda ) ) {
         nl_error( 2, "evaluate x[%d]=%lf dy/da[%d] returned NaN", i, x[i], j );
         longjmp(Fit_buf, 1);
         // throw 1;

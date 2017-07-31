@@ -30,7 +30,7 @@ class ICOSfile {
     ICOSfile(const char *fbase, const char *obase, int bin );
     int read(unsigned long int fileno);
     FILE *writefp();
-    int wn_sample( float wn );
+    int wn_sample( ICOS_Float wn );
 
     mlf_def_t *mlf;
     mlf_def_t *omlf;
@@ -39,7 +39,7 @@ class ICOSfile {
     f_vector *fdata;
     static f_vector *bdata;
     static f_vector *wndata;
-    static float nu_F0;
+    static ICOS_Float nu_F0;
     static int dFN;
     int binary;
     static const int mindatasize;

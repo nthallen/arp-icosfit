@@ -6,7 +6,7 @@
 #include "funceval.h"
 #include "ptread.h"
 
-#define ICOSFIT_VERSION "2.25"
+#define ICOSFIT_VERSION "2.25" FLOAT_STYLE
 #define ICOSFIT_VERSION_DATE "07/25/2017"
 
 class fitdata {
@@ -22,11 +22,11 @@ class fitdata {
     int npts_vec;
     int ma;
     int *ia;
-    float *a, *x, *y, *sig;
-    float *a_save;
-    float **covar, **alpha;
-    float chisq, ochisq;
-    float alamda;
+    ICOS_Float *a, *x, *y, *sig;
+    ICOS_Float *a_save;
+    ICOS_Float **covar, **alpha;
+    ICOS_Float chisq, ochisq;
+    ICOS_Float alamda;
     func_evaluator *func;
     func_evaluator *base;
     func_abs *absorb;
@@ -44,11 +44,11 @@ class fitdata {
     void write();
     void lwrite( FILE *ofp, FILE *vofp, int fileno );
     int mrqmin( );
-    void mrqcof( float *av, float **alpha, float *beta );
-    int adjust_params( float *av );
+    void mrqcof( ICOS_Float *av, ICOS_Float **alpha, ICOS_Float *beta );
+    int adjust_params( ICOS_Float *av );
   private:
     int mfit, mf_size;
-    float *atry,*beta,*da,**oneda, *dyda;
+    ICOS_Float *atry,*beta,*da,**oneda, *dyda;
 };
 
 // Located in build.cc
@@ -58,7 +58,7 @@ extern fitdata *build_func();
 extern func_abs *load_absorb( char *filename );
 
 // Located in fitfunc.cc
-void print_matrix( float **mat, const char *name, int nrow, int ncol );
-void print_vector( float *vec, const char *name, int ncol );
+void print_matrix( ICOS_Float **mat, const char *name, int nrow, int ncol );
+void print_vector( ICOS_Float *vec, const char *name, int ncol );
 
 #endif

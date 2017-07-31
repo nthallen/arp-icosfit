@@ -271,6 +271,14 @@ int ICOSfile::read( unsigned long int fileno ) {
       nl_error( 2, "%s: Error reading sdata: %s", mlf->fpath, strerror(errno) );
       fclose(fp);
       return 0;
+#if RESIZE_INPUT
+    } else {
+      float *raw = (float*)(sdata->data+sdata->offset);
+      raw = raw - sdata->offset;
+      for (int i = sdata->n_data; i > 0; --i) {
+	sdata->data[i] = raw[i];
+      }
+#endif
     }
     if ( GlobalData.BaselineInput && header[1] >= 3 ) {
       // Skip column 2 (etalon)
@@ -287,6 +295,14 @@ int ICOSfile::read( unsigned long int fileno ) {
         nl_error( 2, "%s: Error reading bdata: %s", strerror(errno) );
         fclose(fp);
         return 0;
+#if RESIZE_INPUT
+      } else {
+	float *raw = (float*)(bdata->data+bdata->offset);
+	raw = raw - bdata->offset;
+	for (int i = bdata->n_data; i > 0; --i) {
+	  bdata->data[i] = raw[i];
+	}
+#endif
       }
     }
   } else {
@@ -328,7 +344,7 @@ int ICOSfile::read( unsigned long int fileno ) {
   // match the laser power function.
   if ( GlobalData.BackgroundRegion[0] <=
        GlobalData.BackgroundRegion[1] ) {
-    float baseline = 0., *yin = sdata->data;
+    ICOS_Float baseline = 0., *yin = sdata->data;
     unsigned int i;
     for ( i = GlobalData.BackgroundRegion[0];
           i <= GlobalData.BackgroundRegion[1];
@@ -345,7 +361,7 @@ int ICOSfile::read( unsigned long int fileno ) {
 // We will now assume that nu_F0 (the free parameter) has been
 // subtracted from wn before the call, and hence wn is suitable
 // for direct lookup in wndata.
-int ICOSfile::wn_sample( float wn ) {
+int ICOSfile::wn_sample( ICOS_Float wn ) {
   // assert( nu_F0 > 0 );
   assert( wndata->n_data >= (int)GlobalData.SignalRegion[1] );
   // Note that wavenumber decreases with sample, so I use 'low'
@@ -354,8 +370,8 @@ int ICOSfile::wn_sample( float wn ) {
   // wn -= nu_F0;
   int low = GlobalData.SignalRegion[1];
   int high = GlobalData.SignalRegion[0];
-  float wnlow = wndata->data[low];
-  float wnhigh = wndata->data[high];
+  ICOS_Float wnlow = wndata->data[low];
+  ICOS_Float wnhigh = wndata->data[high];
   if ( wn <= wnlow ) return low;
   if ( wn >= wnhigh ) return high;
   while ( low > high ) {
@@ -363,7 +379,7 @@ int ICOSfile::wn_sample( float wn ) {
     assert( high <= mid && mid <= low );
     if ( mid == low ) return low;
     if ( mid == high ) return high;
-    float wnmid = wndata->data[mid];
+    ICOS_Float wnmid = wndata->data[mid];
     if ( wn < wnmid ) {
       high = mid;
       wnhigh = wnmid;

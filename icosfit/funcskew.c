@@ -17,8 +17,8 @@ skew_data::skew_data() {
 }
 
 void skew_data::set_n_params(int n_gp, int n_ap ) {
-  dg = new float[n_gp];
-  da = new float[n_ap];
+  dg = new ICOS_Float[n_gp];
+  da = new ICOS_Float[n_ap];
 }
 
 func_skew::func_skew( func_base *base, func_abs *abs ) :
@@ -33,9 +33,9 @@ func_skew::func_skew( func_base *base, func_abs *abs ) :
   n_abs_params = abs->n_params;
   n_params = n_base_params + n_abs_params;
   // initialize the structures here?
-  const float c = 2.99792458e10; // cm/s
+  const ICOS_Float c = 2.99792458e10; // cm/s
   N = c/(2*GlobalData.CavityLength*GlobalData.SampleRate);
-  float R = 1 - GlobalData.MirrorLoss;
+  ICOS_Float R = 1 - GlobalData.MirrorLoss;
   R2 = R*R;
   R2N = pow(R2,N);
   P_scale = (1-R2N)/(1-R2);
@@ -50,7 +50,7 @@ func_skew::func_skew( func_base *base, func_abs *abs ) :
 // Assign the first parameters to base's parameters
 // Then if base->uses_nu_F0, link abs's first parameter
 // to our first (which is base's first, which is nu_F0)
-void func_skew::init(float *a) {
+void func_skew::init(ICOS_Float *a) {
   func_evaluator *child;
   int p1 = 0;
   int p2;
@@ -95,12 +95,12 @@ int func_skew::skew_samples() {
 // function determines the input power, but for useful
 // comparison with the raw data, we need to estimate the
 // output power in the absence of absorption.
-void func_skew::evaluate(float x, float *a) {
-  float xi;
+void func_skew::evaluate(ICOS_Float x, ICOS_Float *a) {
+  ICOS_Float xi;
   int i, j;
   if ( prev_x < 0 || x < prev_x ) {
     if (GlobalData.PTE_MirrorLoss_col) {
-      float R = 1 - GlobalData.input.MirrorLoss;
+      ICOS_Float R = 1 - GlobalData.input.MirrorLoss;
       R2 = R*R;
       R2N = pow(R2,N);
       P_scale = (1-R2N)/(1-R2);
@@ -118,7 +118,7 @@ void func_skew::evaluate(float x, float *a) {
     for ( i = 0; i < M; i++ ) {
       curskew = &skew[i];
       if ( curskew->initialized ) {
-        float *dg = curskew->dg;
+        ICOS_Float *dg = curskew->dg;
         
         curskew->g *= curskew->gN; // eqn. [5]
         curskew->Power *= R2N;
@@ -135,12 +135,12 @@ void func_skew::evaluate(float x, float *a) {
     }
     curskew = &skew[skewidx];
     func_evaluator::evaluate(xi, a); // evaluate base and abs
-    float P  = first->value;
+    ICOS_Float P  = first->value;
     double al = last->value;
-    if ( isnanf(P) ) {
+    if ( isnan(P) ) {
       nl_error(2,"Base(%.0lf) is NaN", xi);
     }
-    if ( isnanf(al) ) {
+    if ( isnan(al) ) {
       nl_error(2,"Absorb(%.0lf) is NaN", xi);
     }
     double be = exp(-al);
@@ -165,10 +165,10 @@ void func_skew::evaluate(float x, float *a) {
     if ( ++skewidx == M ) skewidx = 0;
   }
   value = 0;
-  float P = 0;
+  ICOS_Float P = 0;
   for ( j = 0; j < n_params; j++ ) params[j].dyda = 0;
   for ( i = 0; i < M; i++ ) {
-    float *dg = skew[i].dg;
+    ICOS_Float *dg = skew[i].dg;
     value += skew[i].g;
     P += skew[i].Power;
     for ( j = 0; j < n_params; j++ )
@@ -177,7 +177,7 @@ void func_skew::evaluate(float x, float *a) {
   first->value = P * P_scale; // For diagnostic output
 }
 
-void func_skew::dump_params(float *a, int indent) {
+void func_skew::dump_params(ICOS_Float *a, int indent) {
   print_indent( stderr, indent );
   fprintf( stderr, "Parameters for '%s':\n", name );
   indent += 2;

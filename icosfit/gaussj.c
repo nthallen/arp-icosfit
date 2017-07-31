@@ -3,17 +3,17 @@
 #include "config.h"
 #include "nrutil.h"
 // #define SWAP(a,b) {temp=(a);(a)=(b);(b)=temp;}
-static void SWAP( float *a, float *b ) {
-  float temp = *a;
+static void SWAP( ICOS_Float *a, ICOS_Float *b ) {
+  ICOS_Float temp = *a;
   *a = *b;
   *b = temp;
 }
 
-void gaussj(float **a, int n, float **b, int m)
+void gaussj(ICOS_Float **a, int n, ICOS_Float **b, int m)
 {
   int *indxc,*indxr,*ipiv;
   int i,icol=0,irow=0,j,k,l,ll;
-  float big,dum,pivinv;
+  ICOS_Float big,dum,pivinv;
 
   indxc=ivector(1,n);
   indxr=ivector(1,n);

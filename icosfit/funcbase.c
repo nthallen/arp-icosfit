@@ -9,7 +9,7 @@
 // The baseline data is written in my ICOS-standard binary
 // file format, which uses two 32-bit unsigned ints at
 // the start to specify rows and columns, and then records
-// the remaining data as floats. For the baseline, the first
+// the remaining data as ICOS_Floats. For the baseline, the first
 // element of each column is the parameter initialization.
 
 func_base_svdx::func_base_svdx( const char *filename ) :
@@ -28,15 +28,15 @@ func_base_svdx::func_base_svdx( const char *filename ) :
   n_params = header[1];
   params = new parameter[n_params];
   n_pts = header[0]-1;
-  baseline = new float *[header[1]+1];
+  baseline = new ICOS_Float *[header[1]+1];
   if (baseline == 0) nl_error(3, "Out of memory in func_base" );
   unsigned int i;
   for ( i = 0; i < header[1]; i++ ) {
     /* The first element of each column is the initial parameter */
-    baseline[i] = new float[header[0]];
+    baseline[i] = new ICOS_Float[header[0]];
     if ( baseline[i] == 0 )
       nl_error(3, "Out of memory in func_base");
-    if ( fread_swap32( baseline[i], sizeof(float), header[0], fp )
+    if ( fread_swap32( baseline[i], sizeof(ICOS_Float), header[0], fp )
           != header[0] )
       nl_error( 3, "%s: Error reading baseline: %s", filename,
         strerror(errno) );
@@ -45,7 +45,7 @@ func_base_svdx::func_base_svdx( const char *filename ) :
   fclose(fp);
 }
 
-void func_base_svdx::evaluate( float x, float *a ) {
+void func_base_svdx::evaluate( ICOS_Float x, ICOS_Float *a ) {
   int i;
   int ix = (int)x;
   if ( ix < 1 || ix > n_pts )
@@ -53,8 +53,8 @@ void func_base_svdx::evaluate( float x, float *a ) {
       "x out of range in func_base::evaluate: %d", ix );
   value = 0.;
   for ( i = 0; i < n_params; i++ ) {
-    float ai = get_param( a, i );
-    float bix = baseline[i][ix];
+    ICOS_Float ai = get_param( a, i );
+    ICOS_Float bix = baseline[i][ix];
     value += ai * bix;
     params[i].dyda = bix;
   }
@@ -93,33 +93,46 @@ func_base_ptbnu::func_base_ptbnu( const char *filename ) :
   // Read in initial parameter values
   int i;
   for ( i = 0; i < cfg.n_vectors; i++) {
-    if ( fread_swap32( &params[i+uses_nu_F0].init, sizeof(float), 1, fp ) != 1 )
+    float pval;
+    if ( fread_swap32( &pval, sizeof(ICOS_Float), 1, fp ) != 1 )
       nl_error( 3, "%s: Error reading vector param init: %s", filename,
         strerror(errno));
+    params[i+uses_nu_F0].init = (ICOS_Float)pval;
   }
   for ( i = 0; i < cfg.poly_coeffs; i++ ) {
-    if ( fread_swap32( &params[uses_nu_F0+cfg.n_vectors+i].init, sizeof(float), 1, fp )
+    float pval;
+    if ( fread_swap32( &pval, sizeof(float), 1, fp )
             != 1 )
       nl_error( 3, "%s: Error reading polynomial param init: %s", filename,
         strerror(errno));
+    params[uses_nu_F0+cfg.n_vectors+i].init = (ICOS_Float)pval;
   }
   if ( cfg.n_vectors ) {
-    vectors = new float *[cfg.n_vectors];
+    vectors = new ICOS_Float *[cfg.n_vectors];
     if (vectors == 0) nl_error(3, "Out of memory in func_base_ptbnu" );
     for ( i = 0; i < cfg.n_vectors; i++ ) {
-      vectors[i] = new float[cfg.n_pts];
-      if ( fread_swap32(vectors[i], sizeof(float), cfg.n_pts, fp) != cfg.n_pts )
+      vectors[i] = new ICOS_Float[cfg.n_pts];
+      if ( fread_swap32(vectors[i], sizeof(float), cfg.n_pts, fp) != cfg.n_pts ) {
         nl_error( 3, "%s: Error reading ptb vector: %s", filename,
           strerror(errno));
+#if RESIZE_INPUT
+      } else {
+	float *raw = (float*)vectors[i];
+	ICOS_Float *tgt = vectors[i];
+	for (int ix = cfg.n_pts-1; ix >= 0; --ix) {
+	  tgt[ix] = (ICOS_Float)raw[ix];
+	}
+#endif
+      }
     }
   }
   fclose(fp);
   if ( cfg.n_vectors ) {
-    dvdnu = new float *[cfg.n_vectors];
+    dvdnu = new ICOS_Float *[cfg.n_vectors];
     if ( dvdnu == 0) nl_error(3, "Out of memory allocating dvdnu" );
     for ( i = 0; i < cfg.n_vectors; i++ ) {
-      float *vi, *di;
-      di = dvdnu[i] = new float[cfg.n_pts];
+      ICOS_Float *vi, *di;
+      di = dvdnu[i] = new ICOS_Float[cfg.n_pts];
       vi = vectors[i];
       for (int j = 0; j < cfg.n_pts-1; j++ )
         di[j] = (vi[j+1]-vi[j])/cfg.dnu;
@@ -130,7 +143,7 @@ func_base_ptbnu::func_base_ptbnu( const char *filename ) :
       fprintf( stderr, "Baseline Vectors = [\n" );
       for ( int j = 0; j < cfg.n_pts; j++ ) {
         for ( i = 0; i < cfg.n_vectors; i++ ) {
-          fprintf(stderr, "  %.5e", vectors[i][j] );
+          fprintf(stderr, "  %.5" FMT_E, vectors[i][j] );
         }
         fprintf( stderr, "\n" );
       }
@@ -138,7 +151,7 @@ func_base_ptbnu::func_base_ptbnu( const char *filename ) :
       fprintf( stderr, "Baseline dVdnu = [\n" );
       for ( int j = 0; j < cfg.n_pts; j++ ) {
         for ( i = 0; i < cfg.n_vectors; i++ ) {
-          fprintf(stderr, "  %.5e", dvdnu[i][j] );
+          fprintf(stderr, "  %.5" FMT_E, dvdnu[i][j] );
         }
         fprintf( stderr, "\n" );
       }
@@ -147,7 +160,7 @@ func_base_ptbnu::func_base_ptbnu( const char *filename ) :
   }
 }
 
-void func_base_ptbnu::init( float *a ) {
+void func_base_ptbnu::init( ICOS_Float *a ) {
   int p2;
   for ( p2 = 0; p2 < n_params; p2++ )
     a[params[p2].index] = params[p2].init;
@@ -156,15 +169,15 @@ void func_base_ptbnu::init( float *a ) {
   // Now setup polynomial stuff
   if ( cfg.poly_coeffs > 0 && ! cfg.poly_of_nu ) {
     int nx = GlobalData.SignalRegion[1]+1;
-    polyvecs = new float *[cfg.poly_coeffs-1]; // don't bother with constant
+    polyvecs = new ICOS_Float *[cfg.poly_coeffs-1]; // don't bother with constant
     if ( polyvecs == 0 ) nl_error(3, "Out of memory in func_base_ptbnu::init" );
     for ( int i = 0; i < cfg.poly_coeffs-1; i++ ) {
-      polyvecs[i] = new float[nx];
+      polyvecs[i] = new ICOS_Float[nx];
       if ( polyvecs[i] == 0 ) nl_error( 3, "Out of memory in func_base_ptbnu::init" );
     }
     for ( int j = 0; j < nx; j++ ) {
-      float x = j/cfg.poly_scale;
-      float power = x;
+      ICOS_Float x = j/cfg.poly_scale;
+      ICOS_Float power = x;
       for ( int i = 0; i < cfg.poly_coeffs-1; i++ ) {
         polyvecs[i][j] = power;
         power *= x;
@@ -175,26 +188,27 @@ void func_base_ptbnu::init( float *a ) {
 
 // given x and parameters a, calculate value and
 // params[].dyda
-void func_base_ptbnu::evaluate( float x, float *a ) {
+void func_base_ptbnu::evaluate( ICOS_Float x, ICOS_Float *a ) {
   int ix = int(x);
-  float nu = 0.;
+  ICOS_Float nu = 0.;
 
   value = 0;
   if ( uses_nu_F0 ) {
-    float nu_F0 = get_param(a,0);
+    ICOS_Float nu_F0 = get_param(a,0);
     nu = ICOSfile::wndata->data[ix] + nu_F0;
     params[0].dyda = 0;
   }
   if ( cfg.n_vectors ) {
-    float bins = (nu-cfg.nu0)/cfg.dnu;
+    ICOS_Float bins = (nu-cfg.nu0)/cfg.dnu;
     if ( bins < 0. || bins >= cfg.n_pts )
-      nl_error( 3, "Input nu (%.2f) out of range in func_base_ptbnu::evaluate", nu );
+      nl_error( 3, "Input nu (%.2" FMT_F
+	  ") out of range in func_base_ptbnu::evaluate", nu );
     int nui = (int) floor(bins);
-    float fbin = bins - nui; // fraction of a bin
+    ICOS_Float fbin = bins - nui; // fraction of a bin
     for ( int i = 0; i < cfg.n_vectors; i++ ) {
-      float ai = get_param(a, i+uses_nu_F0);
-      float dvdnui = dvdnu[i][nui];
-      float vnui = vectors[i][nui] + fbin * cfg.dnu * dvdnui;
+      ICOS_Float ai = get_param(a, i+uses_nu_F0);
+      ICOS_Float dvdnui = dvdnu[i][nui];
+      ICOS_Float vnui = vectors[i][nui] + fbin * cfg.dnu * dvdnui;
       value += ai * vnui;
       params[0].dyda += ai * dvdnui;
       params[i+uses_nu_F0].dyda = vnui;
@@ -202,11 +216,11 @@ void func_base_ptbnu::evaluate( float x, float *a ) {
   }
   // Now for the polynomials
   if ( cfg.poly_of_nu ) {
-    float nupower = 1;
-    float prevpower = 1;
+    ICOS_Float nupower = 1;
+    ICOS_Float prevpower = 1;
     for ( int i = 0; i <= cfg.poly_coeffs; i++ ) {
       int pi = i + uses_nu_F0 + cfg.n_vectors;
-      float ai = get_param(a,pi);
+      ICOS_Float ai = get_param(a,pi);
       value += ai * nupower;
       params[pi].dyda = nupower;
       params[0].dyda += i*ai*prevpower;
@@ -218,7 +232,7 @@ void func_base_ptbnu::evaluate( float x, float *a ) {
     params[cfg.n_vectors+uses_nu_F0].dyda = 1;
     for ( int i = 0; i < cfg.poly_coeffs-1; i++ ) {
       int pi = uses_nu_F0 + cfg.n_vectors + 1 + i;
-      float xpower = polyvecs[i][ix];
+      ICOS_Float xpower = polyvecs[i][ix];
       value += get_param(a,pi) * xpower;
       params[pi].dyda = xpower;
     }
@@ -232,7 +246,7 @@ func_base_input::func_base_input( func_base *base ) :
   uses_nu_F0 = base->uses_nu_F0;
 }
 
-void func_base_input::init(float *a) {
+void func_base_input::init(ICOS_Float *a) {
   int p1, p2;
   a[params[uses_nu_F0].index] = 1;
   if ( first->params == 0 )
@@ -246,7 +260,7 @@ void func_base_input::init(float *a) {
   first->init(a);
 }
 
-void func_base_input::evaluate( float x, float *a ) {
+void func_base_input::evaluate( ICOS_Float x, ICOS_Float *a ) {
   int ix = int(x);
   func_evaluator::evaluate( x, a ); // evaluate base
   value = a[params[uses_nu_F0].index]*ICOSfile::bdata->data[ix] + first->value;

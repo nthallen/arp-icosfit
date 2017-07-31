@@ -19,12 +19,12 @@ void nrerror(const char error_text[])
 	// throw 1;
 }
    
-float *vector(long nl, long nh)
-/* allocate a float vector with subscript range v[nl..nh] */
+ICOS_Float *vector(long nl, long nh)
+/* allocate a ICOS_Float vector with subscript range v[nl..nh] */
 {
-	float *v;
+	ICOS_Float *v;
    
-	v=(float *)malloc((size_t) ((nh-nl+1+NR_END)*sizeof(float)));
+	v=(ICOS_Float *)malloc((size_t) ((nh-nl+1+NR_END)*sizeof(ICOS_Float)));
 	if (!v) nrerror("allocation failure in vector()");
 	return v-nl+NR_END;
 }
@@ -73,20 +73,20 @@ double *dvector(long nl, long nh)
 	return v-nl+NR_END;
 }
    
-float **matrix(long nrl, long nrh, long ncl, long nch)
-/* allocate a float matrix with subscript range m[nrl..nrh][ncl..nch] */
+ICOS_Float **matrix(long nrl, long nrh, long ncl, long nch)
+/* allocate a ICOS_Float matrix with subscript range m[nrl..nrh][ncl..nch] */
 {
 	long i, nrow=nrh-nrl+1,ncol=nch-ncl+1;
-	float **m;
+	ICOS_Float **m;
 	/* allocate pointers to rows */
-	m=(float **) malloc((size_t)((nrow+NR_END)*sizeof(float*)));
+	m=(ICOS_Float **) malloc((size_t)((nrow+NR_END)*sizeof(ICOS_Float*)));
 
 	if (!m) nrerror("allocation failure 1 in matrix()");
 	m += NR_END;
 	m -= nrl;
    
 	/* allocate rows and set pointers to them */
-	m[nrl]=(float *)malloc((size_t)((nrow*ncol+NR_END)*sizeof(float)));
+	m[nrl]=(ICOS_Float *)malloc((size_t)((nrow*ncol+NR_END)*sizeof(ICOS_Float)));
 
 	if (!m[nrl]) nrerror("allocation failure 2 in matrix()");
 
@@ -152,7 +152,7 @@ int **imatrix(long nrl, long nrh, long ncl, long nch)
 	return m;
 }
    
-float **submatrix(float **a, long oldrl, long oldrh, long oldcl, long
+ICOS_Float **submatrix(ICOS_Float **a, long oldrl, long oldrh, long oldcl, long
 oldch,
 	long newrl, long newcl)
 /* point a submatrix [newrl..][newcl..] to a[oldrl..oldrh][oldcl..oldch]
@@ -160,10 +160,10 @@ oldch,
 {
 	long i,j,nrow=oldrh-oldrl+1,ncol=oldcl-newcl;
 
-float **m;
+ICOS_Float **m;
    
 	/* allocate array of pointers to rows */
-	m=(float **) malloc((size_t) ((nrow+NR_END)*sizeof(float*)));
+	m=(ICOS_Float **) malloc((size_t) ((nrow+NR_END)*sizeof(ICOS_Float*)));
 	if (!m) nrerror("allocation failure in submatrix()");
 	m += NR_END;
 	m -= newrl;
@@ -175,18 +175,18 @@ float **m;
 	return m;
 }
    
-float **convert_matrix(float *a, long nrl, long nrh, long ncl, long nch)
-/* allocate a float matrix m[nrl..nrh][ncl..nch] that points to the matrix
+ICOS_Float **convert_matrix(ICOS_Float *a, long nrl, long nrh, long ncl, long nch)
+/* allocate a ICOS_Float matrix m[nrl..nrh][ncl..nch] that points to the matrix
 declared in the standard C manner as a[nrow][ncol], where nrow=nrh-nrl+1
 and ncol=nch-ncl+1. The routine should be called with the address
 &a[0][0] as the first argument. */
 {
 	long i,j,nrow=nrh-nrl+1,ncol=nch-ncl+1;
 
-float **m;
+ICOS_Float **m;
    
 	/* allocate pointers to rows */
-	m=(float **) malloc((size_t) ((nrow+NR_END)*sizeof(float*)));
+	m=(ICOS_Float **) malloc((size_t) ((nrow+NR_END)*sizeof(ICOS_Float*)));
 	if (!m) nrerror("allocation failure in convert_matrix()");
 	m += NR_END;
 	m -= nrl;
@@ -198,30 +198,30 @@ float **m;
 	return m;
 }
    
-float ***f3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long
+ICOS_Float ***f3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long
 ndh)
-/* allocate a float 3tensor with range t[nrl..nrh][ncl..nch][ndl..ndh] */
+/* allocate a ICOS_Float 3tensor with range t[nrl..nrh][ncl..nch][ndl..ndh] */
 {
 	long i,j,nrow=nrh-nrl+1,ncol=nch-ncl+1,ndep=ndh-ndl+1;
-	float ***t;
+	ICOS_Float ***t;
    
 	/* allocate pointers to pointers to rows */
-	t=(float ***) malloc((size_t)((nrow+NR_END)*sizeof(float**)));
+	t=(ICOS_Float ***) malloc((size_t)((nrow+NR_END)*sizeof(ICOS_Float**)));
 
 if (!t) nrerror("allocation failure 1 in f3tensor()");
 	t += NR_END;
 	t -= nrl;
    
 	/* allocate pointers to rows and set pointers to them */
-	t[nrl]=(float **)
-malloc((size_t)((nrow*ncol+NR_END)*sizeof(float*)));
+	t[nrl]=(ICOS_Float **)
+malloc((size_t)((nrow*ncol+NR_END)*sizeof(ICOS_Float*)));
 	if (!t[nrl]) nrerror("allocation failure 2 in f3tensor()");
 	t[nrl] += NR_END;
 	t[nrl] -= ncl;
    
 	/* allocate rows and set pointers to them */
-	t[nrl][ncl]=(float *)
-malloc((size_t)((nrow*ncol*ndep+NR_END)*sizeof(float)));
+	t[nrl][ncl]=(ICOS_Float *)
+malloc((size_t)((nrow*ncol*ndep+NR_END)*sizeof(ICOS_Float)));
 	if (!t[nrl][ncl]) nrerror("allocation failure 3 in f3tensor()");
 	t[nrl][ncl] += NR_END;
 	t[nrl][ncl] -= ndl;
@@ -238,8 +238,8 @@ t[i]=t[i-1]+ncol;
 	return t;
 }
    
-void free_vector(float *v, long nl, long nh)
-/* free a float vector allocated with vector() */
+void free_vector(ICOS_Float *v, long nl, long nh)
+/* free a ICOS_Float vector allocated with vector() */
 {
 	free((FREE_ARG) (v+nl-NR_END));
 }
@@ -269,8 +269,8 @@ void free_dvector(double *v, long nl, long nh)
 }
    
 
-void free_matrix(float **m, long nrl, long nrh, long ncl, long nch)
-/* free a float matrix allocated by matrix() */
+void free_matrix(ICOS_Float **m, long nrl, long nrh, long ncl, long nch)
+/* free a ICOS_Float matrix allocated by matrix() */
 {
 	free((FREE_ARG) (m[nrl]+ncl-NR_END));
 	free((FREE_ARG) (m+nrl-NR_END));
@@ -290,22 +290,22 @@ void free_imatrix(int **m, long nrl, long nrh, long ncl, long nch)
 	free((FREE_ARG) (m+nrl-NR_END));
 }
    
-void free_submatrix(float **b, long nrl, long nrh, long ncl, long nch)
+void free_submatrix(ICOS_Float **b, long nrl, long nrh, long ncl, long nch)
 /* free a submatrix allocated by submatrix() */
 {
 	free((FREE_ARG) (b+nrl-NR_END));
 }
    
-void free_convert_matrix(float **b, long nrl, long nrh, long ncl, long
+void free_convert_matrix(ICOS_Float **b, long nrl, long nrh, long ncl, long
 nch)
 /* free a matrix allocated by convert_matrix() */
 {
 	free((FREE_ARG) (b+nrl-NR_END));
 }
    
-void free_f3tensor(float ***t, long nrl, long nrh, long ncl, long nch,
+void free_f3tensor(ICOS_Float ***t, long nrl, long nrh, long ncl, long nch,
 	long ndl, long ndh)
-/* free a float f3tensor allocated by f3tensor() */
+/* free a ICOS_Float f3tensor allocated by f3tensor() */
 {
 	free((FREE_ARG) (t[nrl][ncl]+ndl-NR_END));
 	free((FREE_ARG) (t[nrl]+ncl-NR_END));

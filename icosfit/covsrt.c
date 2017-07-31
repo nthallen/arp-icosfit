@@ -2,10 +2,10 @@
 /* note #undef's at end of file */
 #define SWAP(a,b) {swap=(a);(a)=(b);(b)=swap;}
 
-void covsrt(float **covar, int ma, int ia[], int mfit)
+void covsrt(ICOS_Float **covar, int ma, int ia[], int mfit)
 {
 	int i,j,k;
-	float swap;
+	ICOS_Float swap;
 
 	for (i=mfit+1;i<=ma;i++)
 		for (j=1;j<=i;j++) covar[i][j]=covar[j][i]=0.0;

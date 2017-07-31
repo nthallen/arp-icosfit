@@ -4,8 +4,8 @@
 #include "nrutil.h"
 
 int fitdata::mrqmin() {
-  void covsrt(float **covar, int ma, int ia[], int mfit);
-  void gaussj(float **a, int n, float **b, int m);
+  void covsrt(ICOS_Float **covar, int ma, int ia[], int mfit);
+  void gaussj(ICOS_Float **a, int n, ICOS_Float **b, int m);
   int j,k,l;
 
   if (alamda < 0.0) {

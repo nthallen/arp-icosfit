@@ -38,7 +38,7 @@ void func_evaluator::append_func( func_evaluator *newfunc ) {
 // When init() is called, we are guaranteed that params have
 // been allocated for this object, but we may still need to
 // allocate params for children of this object.
-void func_evaluator::init(float *a, int p1) {
+void func_evaluator::init(ICOS_Float *a, int p1) {
   func_evaluator *child;
   int p2;
 
@@ -61,7 +61,7 @@ void func_evaluator::init(float *a, int p1) {
   }
 }
 
-void func_evaluator::init(float *a) {
+void func_evaluator::init(ICOS_Float *a) {
   init( a, 0 );
 }
 
@@ -73,7 +73,7 @@ void func_evaluator::init(float *a) {
 // been assembled at this point, so the init(a)
 // methods are a good place to do initializations
 // that need to assume that.
-void func_evaluator::init( float *a, int *ia ) {
+void func_evaluator::init( ICOS_Float *a, int *ia ) {
   int i;
 
   // printf( "func_evaluator::init( %s, a, ia );\n", name );
@@ -90,14 +90,14 @@ void func_evaluator::init( float *a, int *ia ) {
 // real work. This routine just evaluates all the
 // children so their results are available to
 // their parents.
-void func_evaluator::evaluate(float x, float *a) {
+void func_evaluator::evaluate(ICOS_Float x, ICOS_Float *a) {
   func_evaluator *child;
   for ( child = first; child != 0; child = child->next ) {
     child->evaluate(x, a);
   }
 }
 
-int func_evaluator::adjust_params( float alamda, float P, float T, float *a ) {
+int func_evaluator::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
   func_evaluator *child;
   int rv = 0;
 
@@ -112,10 +112,10 @@ int func_evaluator::adjust_params( float alamda, float P, float T, float *a ) {
    It requires that the specified parameter has a high value set.
    It will not take any action if the parameter is fixed.
 */
-void func_evaluator::clamp_param_high( float *a, int idx ) {
+void func_evaluator::clamp_param_high( ICOS_Float *a, int idx ) {
   if ( ! param_fixed(idx) ) {
-    float val = get_param(a,idx);
-    float limit = params[idx].high;
+    ICOS_Float val = get_param(a,idx);
+    ICOS_Float limit = params[idx].high;
     if ( val > limit ) {
       val = (params[idx].prev + limit)/2;
       set_param( a, idx, val );
@@ -128,10 +128,10 @@ void func_evaluator::clamp_param_high( float *a, int idx ) {
    It requires that the specified parameter has a low value set.
    It will not take any action if the parameter is fixed.
 */
-void func_evaluator::clamp_param_low( float *a, int idx ) {
+void func_evaluator::clamp_param_low( ICOS_Float *a, int idx ) {
   if ( ! param_fixed(idx) ) {
-    float val = get_param(a,idx);
-    float limit = params[idx].low;
+    ICOS_Float val = get_param(a,idx);
+    ICOS_Float limit = params[idx].low;
     if ( val < limit ) {
       val = (params[idx].prev + limit)/2;
       set_param( a, idx, val );
@@ -144,10 +144,10 @@ void func_evaluator::clamp_param_low( float *a, int idx ) {
    It requires that the specified parameter has a high value set.
    It will not take any action if the parameter is fixed.
 */
-void func_evaluator::clamp_param_highlow( float *a, int idx ) {
+void func_evaluator::clamp_param_highlow( ICOS_Float *a, int idx ) {
   if ( ! param_fixed(idx) ) {
-    float val = get_param(a,idx);
-    float limit = params[idx].high;
+    ICOS_Float val = get_param(a,idx);
+    ICOS_Float limit = params[idx].high;
     if ( val > limit ) {
       val = (params[idx].prev + limit)/2;
       set_param( a, idx, val );
@@ -176,11 +176,11 @@ void func_aggregate::append_func( func_evaluator *newfunc ) {
 // sum
 //  Allow inheritance with a number of fixed parameters.
 //---------------------------------------------------------
-void func_sum::evaluate(float x, float *a) {
+void func_sum::evaluate(ICOS_Float x, ICOS_Float *a) {
   evaluate( x, a, 0 );
 }
 
-void func_sum::evaluate(float x, float *a, int i) {
+void func_sum::evaluate(ICOS_Float x, ICOS_Float *a, int i) {
   int j;
   func_evaluator *child;
 
@@ -196,7 +196,7 @@ void func_sum::evaluate(float x, float *a, int i) {
 //---------------------------------------------------------
 // product
 //---------------------------------------------------------
-void func_product::evaluate(float x, float *a) {
+void func_product::evaluate(ICOS_Float x, ICOS_Float *a) {
   int i = 0, j;
   func_evaluator *child, *child2;
 
@@ -205,7 +205,7 @@ void func_product::evaluate(float x, float *a) {
   for ( child = first; child != 0; child = child->next )
     value *= child->value;
   for ( child = first; child != 0; child = child->next ) {
-    float prod;
+    ICOS_Float prod;
     if ( child->value == 0. ) {
       prod = 1.;
       for ( child2 = first; child2 != 0; child2 = child2->next )
@@ -216,7 +216,7 @@ void func_product::evaluate(float x, float *a) {
   }
 }
 
-static float get_molwt( int isotopomer ) {
+static ICOS_Float get_molwt( int isotopomer ) {
   switch (isotopomer) {
     case 11: return 18.011000; // H_2O
     case 12: return 20.014811; // H_2{}^{18}O
@@ -314,7 +314,7 @@ func_line::~func_line() {
   delete(QT);
 }
 
-void func_line::init(float *a) {
+void func_line::init(ICOS_Float *a) {
   if (fix_width) fix_param( w_idx );
   if (QT == 0)
     QT = new QTdata(isotopomer);
@@ -323,14 +323,16 @@ void func_line::init(float *a) {
 
 void func_line::print_config( FILE *fp ) {
   fprintf( fp,
-    "  %d %d %.6lf %.4e %.4f %.4f %.2f %.6f %d\n",
+    "  %d %d %.6lf %.4" FMT_E
+    " %.4" FMT_F " %.4" FMT_F
+    " %.2" FMT_F " %.6" FMT_F " %d\n",
     isotopomer/10, isotopomer%10, nu1+nu0, S, G_air, E,
     n_air, delta, n_params );
 }
 
 void func_line::print_intermediates(FILE *fp) {}
 
-int func_line::adjust_params( float alamda, float P, float T, float *a ) {
+int func_line::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
   // Eliminated a check for drifting. Taken care of in func_abs.
   if ( alamda < -1.5 ) {
     double Spt = S * QT->evaluate(T) * exp(-C2*E/T) * (1-exp(-C2*nu/T))
@@ -339,11 +341,11 @@ int func_line::adjust_params( float alamda, float P, float T, float *a ) {
     nu_P = nu1 + delta * P/760.;
     rolledback = 0;
   }
-  float numdens = get_param( a, n_idx );
+  ICOS_Float numdens = get_param( a, n_idx );
   // if ( numdens < 0. ) numdens = set_param( a, n_idx, prev_numdens/2. );
   // prev_numdens = numdens;
-  float gamma_ed;
-  // const float ln2 = log(2.);
+  ICOS_Float gamma_ed;
+  // const ICOS_Float ln2 = log(2.);
   if ( param_fixed( w_idx ) ) {
     if ( alamda < 0 ) {
       // The following formula comes from Liz's old lecture notes
@@ -361,7 +363,7 @@ int func_line::adjust_params( float alamda, float P, float T, float *a ) {
       gamma_ed = get_param(a, w_idx);
     }
   } else {
-    const float min_ged = 1e-3;
+    const ICOS_Float min_ged = 1e-3;
     gamma_ed = get_param(a, w_idx);
     if ( gamma_ed <= min_ged )
       gamma_ed = set_param(a, w_idx, (prev_ged-min_ged)/2 + min_ged );
@@ -373,21 +375,21 @@ int func_line::adjust_params( float alamda, float P, float T, float *a ) {
   }
   if ( fixed ) {
     if ( alamda == 0 ) {
-      float strength = gamma_ed > 0 ? Ks * numdens / gamma_ed : 0.;
+      ICOS_Float strength = gamma_ed > 0 ? Ks * numdens / gamma_ed : 0.;
       if ( strength > S_thresh * 4. ) {
         if ( rolledback < 2 ) {
-          nl_error( 0, "Floating line %d (strength %g)",
+          nl_error( 0, "Floating line %d (strength %" FMT_G ")",
                       line_number, strength );
-          line_float();
+          line_ICOS_Float();
           return 1;
-        } else nl_error( 0, "NOT re-floating line %d",
+        } else nl_error( 0, "NOT re-ICOS_Floating line %d",
                   line_number );
       }
     }
   } else {
-    float strength = gamma_ed > 0 ? Ks * numdens / gamma_ed : 0.;
+    ICOS_Float strength = gamma_ed > 0 ? Ks * numdens / gamma_ed : 0.;
     if ( strength <= S_thresh ) {
-      nl_error( 0, "Fixing line %d (strength %g)",
+      nl_error( 0, "Fixing line %d (strength %" FMT_G ")",
                     line_number, strength );
       line_fix();
       if (alamda >= 0 ) rolledback++;
@@ -397,15 +399,15 @@ int func_line::adjust_params( float alamda, float P, float T, float *a ) {
   return 0;
 }
 
-float func_line::line_start(float *a) {
+ICOS_Float func_line::line_start(ICOS_Float *a) {
   return (nu_P - GlobalData.RightLineMarginMultiplier*get_param(a, w_idx));
 }
-float func_line::line_end(float *a) {
+ICOS_Float func_line::line_end(ICOS_Float *a) {
   return (nu_P + GlobalData.LeftLineMarginMultiplier*get_param(a, w_idx));
 }
 
-int func_evaluator::line_check(int include, float& start, float& end,
-                float P, float T, float *a) {
+int func_evaluator::line_check(int include, ICOS_Float& start, ICOS_Float& end,
+                ICOS_Float P, ICOS_Float T, ICOS_Float *a) {
   if ( first != 0 && first->line_check( include, start, end, P, T, a ) )
     return 1;
   if ( next != 0 && next->line_check( include, start, end, P, T, a ) )
@@ -431,7 +433,7 @@ int func_evaluator::skew_samples() {
 // at times of failure. The default version simply lists
 // all the parameters and their values without recursing
 // to children, but overrides can delegate to children.
-void func_evaluator::dump_params(float *a, int indent) {
+void func_evaluator::dump_params(ICOS_Float *a, int indent) {
   int i;
   print_indent( stderr, indent );
   fprintf( stderr, "Parameters for '%s':\n", name );
@@ -439,7 +441,7 @@ void func_evaluator::dump_params(float *a, int indent) {
   for ( i = 0; i < n_params; i++ ) {
     int indx = params[i].index;
     print_indent( stderr, indent );
-    fprintf( stderr, "[%2d] %g\n", indx, a[indx] );
+    fprintf( stderr, "[%2d] %" FMT_G "\n", indx, a[indx] );
   }
 }
 
@@ -465,15 +467,15 @@ void func_evaluator::print_indent( FILE *fp, int indent ) {
 // is set to 1 to indicate the 'include' step. Here the
 // boundaries are expanded to include all the lines which
 // are still 'on'.
-int func_line::line_check(int include, float& start, float& end,
-                    float P, float T, float *a ) {
-  float ls = line_start(a);
-  float le = line_end(a);
+int func_line::line_check(int include, ICOS_Float& start, ICOS_Float& end,
+                    ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
+  ICOS_Float ls = line_start(a);
+  ICOS_Float le = line_end(a);
   func_line *next = lnext();
   if ( ! include ) {
     int rv = -1;
     if ( ! fixed && ( ls < start || le > end ) ) {
-      float save_thresh = S_thresh;
+      ICOS_Float save_thresh = S_thresh;
       line_fix();
       S_thresh = Ks * get_param(a, n_idx)*2/get_param(a, w_idx);
       adjust_params( -1, P, T, a );
@@ -483,27 +485,27 @@ int func_line::line_check(int include, float& start, float& end,
         nl_error(0, "Raised threshold on line %d near boundary",
                       line_number );
       } else {
-        nl_error( 0, "Fixing line %d (%.4f,%.4f)",
+        nl_error( 0, "Fixing line %d (%.4" FMT_F ",%.4" FMT_F ")",
                           line_number, ls, le );
         S_thresh = save_thresh;
       }
     }
     if ( le < start || ls > end ) {
-      float lem = le+GlobalData.LeftLineMargin;
-      float lsm = ls-GlobalData.RightLineMargin;
+      ICOS_Float lem = le+GlobalData.LeftLineMargin;
+      ICOS_Float lsm = ls-GlobalData.RightLineMargin;
       rv = 0;
       if ( ls < start && lem - GlobalData.LineMarginHysteresis > start ) {
         start = lem; rv = 1;
         if ( GlobalData.Verbosity & 2 )
-          nl_error( 0, "Exclude: Updated start to %.4f", start );
+          nl_error( 0, "Exclude: Updated start to %.4" FMT_F, start );
       }
       if ( le > end && lsm + GlobalData.LineMarginHysteresis < end ) {
         end = lsm; rv = 1;
         if ( GlobalData.Verbosity & 2 )
-          nl_error( 0, "Exclude: Updated end to %.4f", end );
+          nl_error( 0, "Exclude: Updated end to %.4" FMT_F, end );
       }
       if ( ! param_fixed(n_idx) ) {
-        nl_error( 0, "Turning off line %d (%.4f,%.4f)",
+        nl_error( 0, "Turning off line %d (%.4" FMT_F ",%.4" FMT_F ")",
                           line_number, ls, le );
         fix_param(n_idx);
         set_param( a, n_idx, 0. );
@@ -514,10 +516,10 @@ int func_line::line_check(int include, float& start, float& end,
     if ( next != 0 && next->line_check( include, start, end, P, T, a ) )
       return 1;
     if ( rv < 0 && param_fixed(n_idx) ) {
-      nl_error( 0, "Turning on line %d (%.4f,%.4f)",
+      nl_error( 0, "Turning on line %d (%.4" FMT_F ",%.4" FMT_F ")",
                           line_number, ls, le );
-      float_param(n_idx);
-      // We don't actually line_float() until the fit raises the
+      ICOS_Float_param(n_idx);
+      // We don't actually line_ICOS_Float() until the fit raises the
       // number density high enough.
     }
   } else {
@@ -541,11 +543,11 @@ void func_line::line_fix() {
   fixed = 1;
 }
 
-void func_line::line_float() {
+void func_line::line_ICOS_Float() {
   func_abs *p = (func_abs *)parent;
-  // float_param(l_idx);
-  if ( fix_finepos == 0 ) p->float_linepos(line_number);
-  if ( fix_width == 0 ) float_param(w_idx);
+  // ICOS_Float_param(l_idx);
+  if ( fix_finepos == 0 ) p->ICOS_Float_linepos(line_number);
+  if ( fix_width == 0 ) ICOS_Float_param(w_idx);
   fixed = 0;
 }
 
@@ -564,23 +566,23 @@ void func_line::line_float() {
 // This form of the gaussian is normalized in
 // various ways presumably to match the lorentzian.
 // ### This needs to be fixed for cm-1 scale
-void gaussian::evaluate(float x, float *a) {
-  static const float four_log_2 = 4 * log(2.);
-  static const float fl2_pi = sqrt(four_log_2/M_PI);
-  float dnu = a[params[l_idx].index];
-  float w = a[params[w_idx].index];
-  float s = a[params[n_idx].index];
+void gaussian::evaluate(ICOS_Float x, ICOS_Float *a) {
+  static const ICOS_Float four_log_2 = 4 * log(2.);
+  static const ICOS_Float fl2_pi = sqrt(four_log_2/M_PI);
+  ICOS_Float dnu = a[params[l_idx].index];
+  ICOS_Float w = a[params[w_idx].index];
+  ICOS_Float s = a[params[n_idx].index];
   assert( s >= 0. );
-  float w2 = w * w;
-  float v1 = fl2_pi * s / w;
+  ICOS_Float w2 = w * w;
+  ICOS_Float v1 = fl2_pi * s / w;
   int xx = int(x);
-  float diff = ICOSfile::wndata->data[xx] - nu_P + dnu;
-  float diff2 = diff * diff;
-  float v2 = exp( - diff2 * four_log_2 / w2 );
+  ICOS_Float diff = ICOSfile::wndata->data[xx] - nu_P + dnu;
+  ICOS_Float diff2 = diff * diff;
+  ICOS_Float v2 = exp( - diff2 * four_log_2 / w2 );
   value = v1 * v2;
   params[n_idx].dyda = fl2_pi * v2 / w;
   params[l_idx].dyda = 2*v1*v2*diff*four_log_2/w2;
-  float v3 = fl2_pi * s * v2 / w2;
+  ICOS_Float v3 = fl2_pi * s * v2 / w2;
   params[w_idx].dyda = -(v3/w) + v3 * 2 * diff2 * four_log_2 / w2;
 }
 
@@ -588,14 +590,14 @@ void gaussian::evaluate(float x, float *a) {
 // lorentzian
 //---------------------------------------------------------
 // ### This needs to be fixed for wavenumber scale
-void lorentzian::evaluate(float x, float *a) {
-  float dnu = a[params[l_idx].index];
-  float w = a[params[w_idx].index];
-  float s = a[params[n_idx].index];
+void lorentzian::evaluate(ICOS_Float x, ICOS_Float *a) {
+  ICOS_Float dnu = a[params[l_idx].index];
+  ICOS_Float w = a[params[w_idx].index];
+  ICOS_Float s = a[params[n_idx].index];
   int xx = int(x);
-  float diff = ICOSfile::wndata->data[xx] - nu_P + dnu;
-  float v1 = M_PI * ( 4 * diff *diff + w * w );
-  float v12 = v1 * v1;
+  ICOS_Float diff = ICOSfile::wndata->data[xx] - nu_P + dnu;
+  ICOS_Float v1 = M_PI * ( 4 * diff *diff + w * w );
+  ICOS_Float v12 = v1 * v1;
   value = 2 * w * s / v1;
   params[n_idx].dyda = 2 * w / v1;
   params[l_idx].dyda = 16*M_PI*w*s*diff / v12;
@@ -611,16 +613,16 @@ void lorentzian::evaluate(float x, float *a) {
 //----------------------------------------------------------
 const int func_quad::q_idx = 0, func_quad::l_idx = 1, func_quad::c_idx = 2;
 
-func_quad::func_quad(float q, float l, float c) : func_evaluator("quad",3) {
+func_quad::func_quad(ICOS_Float q, ICOS_Float l, ICOS_Float c) : func_evaluator("quad",3) {
   params[q_idx].init = q;
   params[l_idx].init = l;
   params[c_idx].init = c;
 }
 
-void func_quad::evaluate(float x, float *a) {
-  float q = a[params[q_idx].index];
-  float l = a[params[l_idx].index];
-  float c = a[params[c_idx].index];
+void func_quad::evaluate(ICOS_Float x, ICOS_Float *a) {
+  ICOS_Float q = a[params[q_idx].index];
+  ICOS_Float l = a[params[l_idx].index];
+  ICOS_Float c = a[params[c_idx].index];
   value = q*x*x + l*x + c;
   params[q_idx].dyda = x*x;
   params[l_idx].dyda = x;
