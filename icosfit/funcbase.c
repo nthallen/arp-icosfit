@@ -94,7 +94,7 @@ func_base_ptbnu::func_base_ptbnu( const char *filename ) :
   int i;
   for ( i = 0; i < cfg.n_vectors; i++) {
     float pval;
-    if ( fread_swap32( &pval, sizeof(ICOS_Float), 1, fp ) != 1 )
+    if ( fread_swap32( &pval, sizeof(float), 1, fp ) != 1 )
       nl_error( 3, "%s: Error reading vector param init: %s", filename,
         strerror(errno));
     params[i+uses_nu_F0].init = (ICOS_Float)pval;
