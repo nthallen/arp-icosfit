@@ -175,9 +175,11 @@ classdef ICOS_Model6 < opt_model_p
       P.r1 = 1.5*2.54; % mirror radius
       P.R1 = 75;
       P.CT1 = 0.6; % mirror center thickness
+      P.M1dy = 0;
       P.r2 = .75*2.54;
       P.R2 = -25.4;
       P.CT2 = .6;
+      P.M2dy = 0;
 
       % Focusing lenses
       P.Lenses = {};
@@ -259,14 +261,19 @@ classdef ICOS_Model6 < opt_model_p
       M = opt_model(n_optics, P.max_rays);
       M.Spot_Size = P.beam_diameter;
       M.visible = P.visible;
+      if isfield(P,'M1dy')
+        M1dy = P.M1dy;
+      else
+        M1dy = 0;
+      end
       %M.Optic{1} = HRmirror('HM', P.Hr, P.HRC, CT, 0, P.HR, ...
       %  [-P.herriott_spacing 0 0], [1 0 0], n_air, n_air, P.visible);
       if isfield(P,'dP') && ~isempty(P.dP)
         M.Optic{2} = HRmirrorP('M1', P.r1, P.R1, P.CT1, T, 1-T, [0 0 0], ...
-          [1 0 0], mirrors_n, n_air, P.visible && visibility(2),P.dP);
+          [1 M1dy 0], mirrors_n, n_air, P.visible && visibility(2),P.dP);
       else
         M.Optic{2} = HRmirror('M1', P.r1, P.R1, P.CT1, T, 1-T, [0 0 0], ...
-          [1 0 0], mirrors_n, n_air, P.visible && visibility(2));
+          [1 M1dy 0], mirrors_n, n_air, P.visible && visibility(2));
       end
       % Ignore rays transmitted back through ICOS mirror:
       % M.Optic{2}.Surface{2}.emission_threshold = 2*T^2;
@@ -279,12 +286,17 @@ classdef ICOS_Model6 < opt_model_p
         M2T = T;
         M2R = 1-T;
       end
+      if isfield(P,'M2dy')
+        M2dy = P.M2dy;
+      else
+        M2dy = 0;
+      end
       if isfield(P,'dP') && ~isempty(P.dP)
         M.Optic{3} = HRmirrorP('M2', P.r2, P.R2, P.CT2, M2T, M2R, [d 0 0], ...
-          [-1 0 0], mirrors_n, n_air, P.visible && visibility(3),P.dP);
+          [-1 M2dy 0], mirrors_n, n_air, P.visible && visibility(3),P.dP);
       else
         M.Optic{3} = HRmirror('M2', P.r2, P.R2, P.CT2, M2T, M2R, [d 0 0], ...
-          [-1 0 0], mirrors_n, n_air, P.visible && visibility(3));
+          [-1 M2dy 0], mirrors_n, n_air, P.visible && visibility(3));
       end
       M.Optic{3}.max_passes = P.ICOS_passes_per_injection;
       M.Optic{3}.edges_visible = P.edges_visible;
