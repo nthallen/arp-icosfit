@@ -3,29 +3,48 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
+#include <set>
 #include "nortlib.h"
 #include "funceval.h"
 #include "global.h"
 #include "ptread.h"
 
-func_evaluator::func_evaluator( const char *sname, int n ) {
-  n_params = n;
-  name = sname;
-  if ( n_params == 0 ) params = 0;
-  else params = new parameter[n_params];
-  first = last = next = parent = 0;
-  // printf("func_evaluator( %s, %d );\n", sname, n );
+int func_evaluator::ia;
+
+/**
+ * ### I think I can avoid preallocating parameters
+ */
+func_evaluator::func_evaluator(const char *sname, bool indexed, int idx) {
+  if (indexed) {
+    char buf[80];
+    snprintf(buf, 80, "%s[%d]", sname, idx);
+    name = nl_strdup(buf);
+  } else {
+    name = sname;
+  }
+  // printf("func_evaluator( %s );\n", name );
 }
 
-void func_evaluator::append_func( func_evaluator *newfunc ) {
+/**
+ * @param newfunc The new argument, appended to args vector.
+ * @param owner if true, newfunc's parent is set
+ */
+void func_evaluator::append_func( func_evaluator *newfunc) {
   // printf( "func_evaluator::append_func(%s, %s)\n", name, newfunc->name );
-  if ( this->last == 0 ) {
-    this->first = this->last = newfunc;
-  } else {
-    this->last->next = newfunc;
-    this->last = newfunc;
+  args->push_back(newfunc);
+  newfunc->adopted(this);
+}
+
+/**
+ * @param new_parent The called object is now a child of the new_parent object
+ * By overloading this function, children can gain access to needed
+ * information from the parents. Specifically, line types can access the
+ * parent func_abs's nu_F0 parameter.
+ */
+void func_evaluator::adopted(func_evaluator *new_parent) {
+  if (parent == 0) {
+    parent = new_parent;
   }
-  newfunc->parent = this;
 }
 
 // func_evaluator::init() initializes the a and ia pointers in
@@ -38,31 +57,78 @@ void func_evaluator::append_func( func_evaluator *newfunc ) {
 // When init() is called, we are guaranteed that params have
 // been allocated for this object, but we may still need to
 // allocate params for children of this object.
-void func_evaluator::init(ICOS_Float *a, int p1) {
-  func_evaluator *child;
-  int p2;
+/**
+ * There are three init() functions, all triggered from the
+ * single init(a, ia) call once at the beginning of fitting.
+ * init(a) is virtual and can be overridden. The default
+ * calls init(a,0), which recursively calls init(a) for
+ * children.
+ *
+ * init(a,ia) is called after the functional structure has been
+ * built. ### I need to revisit exactly what that means for
+ * parameters in this new approach.
+ */
+// void func_evaluator::init(ICOS_Float *a, int p1) {
+  // func_evaluator *child;
+  // int p2;
 
 
-  // printf( "func_evaluator::init(%s, %d); n_params=%d\n", name, p1, n_params );
-  for ( p2 = 0; p2 < n_params; p2++ )
-    a[params[p2].index] = params[p2].init;
-  for ( child = first; child != 0; child = child->next ) {
-    if ( p1 + child->n_params > n_params ) {
-      fprintf( stderr, "Too many child params: n_params = %d\n", n_params );
-      exit(1);
-    }
-    if ( child->params == 0 )
-      child->params = new parameter[child->n_params];
-    for ( p2 = 0; p2 < child->n_params; p2++ ) {
-      link_param( p1, child, p2 );
-      p1++;
-    }
-    child->init(a);
-  }
-}
+  // //printf( "func_evaluator::init(%s, %d); n_params=%d\n", name, p1, n_params );
+  // for ( p2 = 0; p2 < n_params; p2++ )
+    // a[params[p2].index] = params[p2].init;
+  // for ( child = first; child != 0; child = child->next ) {
+    // if ( p1 + child->n_params > n_params ) {
+      // fprintf( stderr, "Too many child params: n_params = %d\n", n_params );
+      // exit(1);
+    // }
+    // if ( child->params == 0 )
+      // child->params = new parameter[child->n_params];
+    // for ( p2 = 0; p2 < child->n_params; p2++ ) {
+      // link_param( p1, child, p2 );
+      // p1++;
+    // }
+    // child->init(a);
+  // }
+// }
 
 void func_evaluator::init(ICOS_Float *a) {
-  init( a, 0 );
+  std::vector<func_evaluator*>::iterator child;
+  std::set<int> pidx;
+  
+  for (child = args.begin(); child < args.end(); ++child) {
+    (*child)->init(a);
+    // child now has params defined
+    std::vector<parameter>::iterator cp;
+    for (cp = (*child)->params.begin(); cp < (*child)->params.end(); ++cp) {
+      pidx.insert(cp->index);
+    }
+  }
+  // Now we know exactly how many and which parameters we depend on
+  std_set<int>::iterator ipidx;
+  int i = 0;
+  for (ipidx = pidx.begin(); ipidx < pidx.end(); ++ipidx, ++i) {
+    params.push_back(parameter(*ipidx));
+  }
+  // Now go back through the children and record where the
+  // child references appear
+  int argi, argpi, pi;
+  for (argi = 0; argi < args.size(); ++argi) {
+    for (argpi = 0; argpi < args[argi]->params.size(); ++argpi) {
+      for (pi = 0; pi < params.size(); ++pi) {
+        if (params[pi].index == args[argi]->params[argpi].index) {
+          params[pi].refs.push_back(paramref(argi, argpi));
+          break;
+        }
+      }
+    }
+  }
+  for (child = args.begin(); child < args.end(); ++child) {
+    int 
+    std::vector<parameter>::iterator cp;
+    for (cp = (*child)->params.begin(); cp < (*child)->params.end(); ++cp) {
+      pidx.insert(cp->index);
+    }
+  }
 }
 
 // a and ia are the 1-based vectors from mrqmin. i.e.
@@ -77,12 +143,8 @@ void func_evaluator::init( ICOS_Float *a, int *ia ) {
   int i;
 
   // printf( "func_evaluator::init( %s, a, ia );\n", name );
-  if ( params == 0 ) params = new parameter[n_params];
-  for ( i = 0; i < n_params; i++ ) {
-    params[i].index = i+1;
-    params[i].ia = &ia[i+1];
-  }
-  init(a); // initialize the children
+  func_parameter::set_ia(ia);
+  init(a); // initialize all func_evaluators
 }
 
 // evaluate is used as a helper function to the
@@ -91,90 +153,114 @@ void func_evaluator::init( ICOS_Float *a, int *ia ) {
 // children so their results are available to
 // their parents.
 void func_evaluator::evaluate(ICOS_Float x, ICOS_Float *a) {
-  func_evaluator *child;
-  for ( child = first; child != 0; child = child->next ) {
-    child->evaluate(x, a);
+  std::vector<func_evaluator*>::iterator child;
+  for (child = args.begin(); child < args.end(); ++child) {
+    (*child)->evaluate(x, a);
   }
 }
 
+/**
+ * @return non-zero if a parameter value has been changed.
+ */
 int func_evaluator::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
-  func_evaluator *child;
+  std::vector<func_evaluator*>::iterator child;
   int rv = 0;
 
-  for ( child = first; child != 0; child = child->next ) {
-    if ( child->adjust_params( alamda, P, T, a ) )
+  for (child = args.begin(); child < args.end(); ++child) {
+    if ( (*child)->adjust_params( alamda, P, T, a ) )
       rv = 1;
   }
   return rv;
 }
 
-/* clamp_param_high() is a method to be called from adjust_params.
-   It requires that the specified parameter has a high value set.
-   It will not take any action if the parameter is fixed.
-*/
-void func_evaluator::clamp_param_high( ICOS_Float *a, int idx ) {
-  if ( ! param_fixed(idx) ) {
-    ICOS_Float val = get_param(a,idx);
-    ICOS_Float limit = params[idx].high;
-    if ( val > limit ) {
-      val = (params[idx].prev + limit)/2;
-      set_param( a, idx, val );
-    }
-    params[idx].prev = val;
-  }
+// /* clamp_param_high() is a method to be called from adjust_params.
+   // It requires that the specified parameter has a high value set.
+   // It will not take any action if the parameter is fixed.
+// */
+// void func_evaluator::clamp_param_high( ICOS_Float *a, int idx ) {
+  // if ( ! param_fixed(idx) ) {
+    // ICOS_Float val = get_param(a,idx);
+    // ICOS_Float limit = params[idx].high;
+    // if ( val > limit ) {
+      // val = (params[idx].prev + limit)/2;
+      // set_param( a, idx, val );
+    // }
+    // params[idx].prev = val;
+  // }
+// }
+
+// /* clamp_param_low() is a method to be called from adjust_params.
+   // It requires that the specified parameter has a low value set.
+   // It will not take any action if the parameter is fixed.
+// */
+// void func_evaluator::clamp_param_low( ICOS_Float *a, int idx ) {
+  // if ( ! param_fixed(idx) ) {
+    // ICOS_Float val = get_param(a,idx);
+    // ICOS_Float limit = params[idx].low;
+    // if ( val < limit ) {
+      // val = (params[idx].prev + limit)/2;
+      // set_param( a, idx, val );
+    // }
+    // params[idx].prev = val;
+  // }
+// }
+
+// /* clamp_param_highlow() is a method to be called from adjust_params.
+   // It requires that the specified parameter has a high value set.
+   // It will not take any action if the parameter is fixed.
+// */
+// void func_evaluator::clamp_param_highlow( ICOS_Float *a, int idx ) {
+  // if ( ! param_fixed(idx) ) {
+    // ICOS_Float val = get_param(a,idx);
+    // ICOS_Float limit = params[idx].high;
+    // if ( val > limit ) {
+      // val = (params[idx].prev + limit)/2;
+      // set_param( a, idx, val );
+    // } else {
+      // limit = params[idx].low;
+      // if ( val < limit ) {
+        // val = (params[idx].prev + limit)/2;
+        // set_param( a, idx, val );
+      // }
+    // }
+    // params[idx].prev = val;
+  // }
+// }
+
+int func_parameter::n_parameters = 0;
+int *func_parameter::ia = 0;
+
+func_parameter::func_parameter(const char *name, ICOS_float init_val,
+        bool indexed, int idx) : func_evaluator(name,indexed,idx) {
+  index = ++n_parameters;
+  init = init_val;
 }
 
-/* clamp_param_low() is a method to be called from adjust_params.
-   It requires that the specified parameter has a low value set.
-   It will not take any action if the parameter is fixed.
-*/
-void func_evaluator::clamp_param_low( ICOS_Float *a, int idx ) {
-  if ( ! param_fixed(idx) ) {
-    ICOS_Float val = get_param(a,idx);
-    ICOS_Float limit = params[idx].low;
-    if ( val < limit ) {
-      val = (params[idx].prev + limit)/2;
-      set_param( a, idx, val );
-    }
-    params[idx].prev = val;
-  }
+func_parameter::init(ICOS_Float *a) {
+  params.push_back(parameter(index));
+  params.back().dyda = 1.0;
+  a[index] = init;
 }
 
-/* clamp_param_highlow() is a method to be called from adjust_params.
-   It requires that the specified parameter has a high value set.
-   It will not take any action if the parameter is fixed.
-*/
-void func_evaluator::clamp_param_highlow( ICOS_Float *a, int idx ) {
-  if ( ! param_fixed(idx) ) {
-    ICOS_Float val = get_param(a,idx);
-    ICOS_Float limit = params[idx].high;
-    if ( val > limit ) {
-      val = (params[idx].prev + limit)/2;
-      set_param( a, idx, val );
-    } else {
-      limit = params[idx].low;
-      if ( val < limit ) {
-        val = (params[idx].prev + limit)/2;
-        set_param( a, idx, val );
-      }
-    }
-    params[idx].prev = val;
-  }
+void func_parameter::evaluate( ICOS_Float x, ICOS_Float *a ){
+  value = a[index];
 }
-
 
 //---------------------------------------------------------
 // aggregate
+//  ### Only used by subclasses that are not used
 //---------------------------------------------------------
 void func_aggregate::append_func( func_evaluator *newfunc ) {
   // printf( "func_aggregate::append_func(%s, %s)\n", name, newfunc->name );
   func_evaluator::append_func(newfunc);
-  n_params += newfunc->n_params;
+  // ### n_params += newfunc->n_params;
 }
 
 //---------------------------------------------------------
 // sum
 //  Allow inheritance with a number of fixed parameters.
+// ### Entire class is not used, but I've updated the code
+// ### as an exercise
 //---------------------------------------------------------
 void func_sum::evaluate(ICOS_Float x, ICOS_Float *a) {
   evaluate( x, a, 0 );
@@ -182,39 +268,45 @@ void func_sum::evaluate(ICOS_Float x, ICOS_Float *a) {
 
 void func_sum::evaluate(ICOS_Float x, ICOS_Float *a, int i) {
   int j;
-  func_evaluator *child;
+  std::vector<parameter>::iterator param;
+  std::vector<func_evaluator*>::iterator child;
 
-  func_evaluator::evaluate(x, a);
   value = 0.;
-  for ( child = first; child != 0; child = child->next ) {
-    value += child->value;
-    for ( j = 0; j < child->n_params; j++ )
-      params[i++].dyda = child->params[j].dyda;
+  for (child = args.begin(); child != args.end(); ++child) {
+    (*child)->evaluate(x,a);
+    value += (*child)->value;
+  }
+  for (param = params.begin(); param != params.end(); ++param) {
+    std::vector<paramref>::iteractor ref;
+    for (ref = param.refs.begin(); ref != param.refs.end(); ++ref) {
+      param->dyda += args[ref->arg_num]->params[ref->param_num].dyda;
+    }
   }
 }
 
 //---------------------------------------------------------
 // product
+//  ### Entire class is unused
 //---------------------------------------------------------
-void func_product::evaluate(ICOS_Float x, ICOS_Float *a) {
-  int i = 0, j;
-  func_evaluator *child, *child2;
+// void func_product::evaluate(ICOS_Float x, ICOS_Float *a) {
+  // int i = 0, j;
+  // func_evaluator *child, *child2;
 
-  func_evaluator::evaluate(x, a);
-  value = 1.;
-  for ( child = first; child != 0; child = child->next )
-    value *= child->value;
-  for ( child = first; child != 0; child = child->next ) {
-    ICOS_Float prod;
-    if ( child->value == 0. ) {
-      prod = 1.;
-      for ( child2 = first; child2 != 0; child2 = child2->next )
-        if ( child2 != child ) prod *= child2->value;
-    } else prod = value / child->value;
-    for ( j = 0; j < child->n_params; j++ )
-      params[i++].dyda = prod * child->params[j].dyda;
-  }
-}
+  // func_evaluator::evaluate(x, a);
+  // value = 1.;
+  // for ( child = first; child != 0; child = child->next )
+    // value *= child->value;
+  // for ( child = first; child != 0; child = child->next ) {
+    // ICOS_Float prod;
+    // if ( child->value == 0. ) {
+      // prod = 1.;
+      // for ( child2 = first; child2 != 0; child2 = child2->next )
+        // if ( child2 != child ) prod *= child2->value;
+    // } else prod = value / child->value;
+    // for ( j = 0; j < child->n_params; j++ )
+      // params[i++].dyda = prod * child->params[j].dyda;
+  // }
+// }
 
 static ICOS_Float get_molwt( int isotopomer ) {
   switch (isotopomer) {
@@ -279,15 +371,15 @@ const double func_line::C2 = 1.4388; // cm K second radiation constant hc/k
 double func_line::nu0 = 0.;
 int func_line::n_lines = 0;
 
-func_line::func_line( const char *name, int np, int mol, int iso,
+func_line::func_line( const char *name, int mol, int iso,
           double nu_in, double S_in, double G_air_in, double E_in,
           double n_in, double delta_in, unsigned int ipos_in, double threshold,
           int fix_w, int fix_fp ) :
-  func_evaluator( name, np ) {
+  func_evaluator(name, true, ++n_lines) {
   params[l_idx].init = 0.;
   params[w_idx].init = 1.;
   params[n_idx].init = 0.;
-  line_number = ++n_lines;
+  line_number = n_lines;
   fixed = 0;
   fix_finepos = fix_fp;
   fix_width = fix_w;
@@ -332,9 +424,25 @@ void func_line::print_config( FILE *fp ) {
 
 void func_line::print_intermediates(FILE *fp) {}
 
+/**
+ * @param alamda The Levenberg-Marquardt lambda parameter
+ * @param P Current pressure in Torr
+ * @param T Current temperature in Kelvin
+ * @param a Pointer to paramater values vector
+ *
+ * According to the description of the Levenberg-Marquardt Method
+ * in Numerical Recipes in C, alamda takes on a few special values.
+ * Values less than zero indicate initialization. alamda is also set
+ * to zero for the final computation of the covariance matrix.
+ * Otherwise it takes values greater than zero. In adjust_params(),
+ * we use alamda primarily to identify initialization steps. In
+ * particular, alamda == -2 on the very first initialization of
+ * the program and then set to -1 at the beginning of each iteration
+ * step.
+ */
 int func_line::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
   // Eliminated a check for drifting. Taken care of in func_abs.
-  if ( alamda < -1.5 ) {
+  if ( alamda < -1.5 ) { // very first initialization
     double Spt = S * QT->evaluate(T) * exp(-C2*E/T) * (1-exp(-C2*nu/T))
             * Corr_Tref;
     Ks = Spt * GlobalData.CavityLength * DRTPI; 
@@ -342,10 +450,11 @@ int func_line::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICO
     rolledback = 0;
   }
   ICOS_Float numdens = get_param( a, n_idx );
-  // if ( numdens < 0. ) numdens = set_param( a, n_idx, prev_numdens/2. );
-  // prev_numdens = numdens;
+  // Negative number densities, although physically nonsensical,
+  // are important for statistical purposes. If we arbitrarily
+  // force the fit to return values >= 0, that pushes the mean
+  // values above zero even when no absorption is present.
   ICOS_Float gamma_ed;
-  // const ICOS_Float ln2 = log(2.);
   if ( param_fixed( w_idx ) ) {
     if ( alamda < 0 ) {
       // The following formula comes from Liz's old lecture notes
@@ -368,10 +477,6 @@ int func_line::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICO
     if ( gamma_ed <= min_ged )
       gamma_ed = set_param(a, w_idx, (prev_ged-min_ged)/2 + min_ged );
     prev_ged = gamma_ed;
-  }
-  if ( alamda < 0 && param_fixed( l_idx ) ) {
-    // I'm pretty sure this is handled by func_abs::adjust_params
-    // set_param( a, l_idx, 0. );
   }
   if ( fixed ) {
     if ( alamda == 0 ) {
@@ -518,7 +623,7 @@ int func_line::line_check(int include, ICOS_Float& start, ICOS_Float& end,
     if ( rv < 0 && param_fixed(n_idx) ) {
       nl_error( 0, "Turning on line %d (%.4" FMT_F ",%.4" FMT_F ")",
                           line_number, ls, le );
-      ICOS_Float_param(n_idx);
+      float_param(n_idx);
       // We don't actually line_ICOS_Float() until the fit raises the
       // number density high enough.
     }
@@ -545,9 +650,9 @@ void func_line::line_fix() {
 
 void func_line::line_ICOS_Float() {
   func_abs *p = (func_abs *)parent;
-  // ICOS_Float_param(l_idx);
-  if ( fix_finepos == 0 ) p->ICOS_Float_linepos(line_number);
-  if ( fix_width == 0 ) ICOS_Float_param(w_idx);
+  // float_param(l_idx);
+  if ( fix_finepos == 0 ) p->float_linepos(line_number);
+  if ( fix_width == 0 ) float_param(w_idx);
   fixed = 0;
 }
 
@@ -610,10 +715,11 @@ void lorentzian::evaluate(ICOS_Float x, ICOS_Float *a) {
 
 //----------------------------------------------------------
 // func_quad: second-order polynomial fit
+//    Currently unused
 //----------------------------------------------------------
 const int func_quad::q_idx = 0, func_quad::l_idx = 1, func_quad::c_idx = 2;
 
-func_quad::func_quad(ICOS_Float q, ICOS_Float l, ICOS_Float c) : func_evaluator("quad",3) {
+func_quad::func_quad(ICOS_Float q, ICOS_Float l, ICOS_Float c) : func_evaluator("quad") {
   params[q_idx].init = q;
   params[l_idx].init = l;
   params[c_idx].init = c;

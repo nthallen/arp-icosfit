@@ -2,13 +2,20 @@
 #include "ICOSfit.h"
 #include "global.h"
 
+func_abs::func_abs() : func_evaluator("abs") {
+  // ### create nu_F0
+}
+
 void func_abs::print_config(FILE *fp) {
-  func_line *child;
+  std::vector<func_evaluator>::iterator *child;
+  func_line *line;
+  
   fprintf( fp, "CavLen = %.1" FMT_F ";\n", GlobalData.CavityLength );
   fprintf( fp, "n_abs_params = 1;\nn_abs_line_params = 1;\n" );
   fprintf( fp, "lines = [\n" );
-  for ( child = lfirst(); child != 0; child = child->lnext() ) {
-    child->print_config( fp );
+  // Skip the first arg, which is nu_F0
+  for (child = ++args.begin(); child != args.end(); ++child) {
+    (*child)->print_config( fp );
   }
   fprintf( fp, "];\n" );
 }
@@ -61,7 +68,7 @@ int func_abs::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS
   }
   if ( alamda == 0 && lines_ICOS_Floating > 0 && param_fixed(0) ) {
     nl_error( 0, "Floating nu_F0" );
-    ICOS_Float_param(0);
+    float_param(0);
     rv = 1;
   }
   ICOS_Float nu_F0 = get_param(a,0);
@@ -114,8 +121,8 @@ void func_abs::fix_linepos( int linenum ) {
   fix_param( linenum*5 - 4 );
 }
 
-void func_abs::ICOS_Float_linepos( int linenum ) {
-  ICOS_Float_param( linenum*5 - 4 );
+void func_abs::float_linepos( int linenum ) {
+  float_param( linenum*5 - 4 );
 }
 
 void func_abs::append_func( func_line *newfunc ) {

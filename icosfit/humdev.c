@@ -26,10 +26,10 @@ voigt::voigt( int mol, int iso,
           double nu_in, double S_in, double G_air_in, double E_in,
           double n_in, double delta_in, int ipos_in, double threshold,
           int fix_dw, int fix_lw, int fix_fp )
-    : func_line( "voigt", 4, mol, iso, nu_in, S_in, G_air_in, E_in,
+    : func_line( "voigt", mol, iso, nu_in, S_in, G_air_in, E_in,
                    n_in, delta_in, ipos_in, threshold, fix_dw,
                    fix_fp ) {
-  params[gl_idx].init = 0.;
+  //params[gl_idx].init = 0.; ### This needs to happen during init()
   prev_gl = 0.;
   prev_y = 0.;
   fix_lwidth = fix_lw;
@@ -291,25 +291,31 @@ void voigt::evaluate( ICOS_Float xx, ICOS_Float *a ) {
   params[gl_idx].dyda = sed * DKDY;
 }
 
-// adjust_params returns non-zero if a change in which
-// parameters are free is mandated.
-// alamda is used to indicate:
-//  alamda < 0 Initialization: set fixed parameters
-//  alamda < -1.5 called once per data set
-//  alamda > 0 Iteration: check ICOS_Floating parameters
-//  alamda == 0 Finalization: check if redo is required
-// Might be possible to get into oscillation if line gets
-//  re-disabled, but that should be unlikely. If it does
-//  happen, it could be detected by keeping track. It is
-//  probably best to leave it disabled if it happens twice.
-//  The logic is: first time it is disabled because it is
-//  getting small. When the width is corrected, it then
-//  turns out to be large. It is then released (without
-//  rollback) but during the continuing fit, it gets
-//  small again. That is probably an error, so fix it
-//  once more (with rollback) which will presumably take
-//  us back to the larger value, but this time, don't
-//  complain at alamda==0 time.
+/** adjust_params
+ * @param alamda The Levenberg-Marquardt lambda parameter
+ * @param P Current pressure in Torr
+ * @param T Current temperature in Kelvin
+ * @param a Pointer to paramater values vector
+ * @return non-zero if a change in which parameters are free is mandated.
+ *
+ * alamda is used to indicate:
+ *  alamda < 0 Initialization: set fixed parameters
+ *  alamda < -1.5 called once per data set
+ *  alamda > 0 Iteration: check ICOS_Floating parameters
+ *  alamda == 0 Finalization: check if redo is required
+ * Might be possible to get into oscillation if line gets
+ *  re-disabled, but that should be unlikely. If it does
+ *  happen, it could be detected by keeping track. It is
+ *  probably best to leave it disabled if it happens twice.
+ *  The logic is: first time it is disabled because it is
+ *  getting small. When the width is corrected, it then
+ *  turns out to be large. It is then released (without
+ *  rollback) but during the continuing fit, it gets
+ *  small again. That is probably an error, so fix it
+ *  once more (with rollback) which will presumably take
+ *  us back to the larger value, but this time, don't
+ *  complain at alamda==0 time.
+ */
 int voigt::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
   ICOS_Float gamma_l;
   // const ICOS_Float ln2 = log(2.);

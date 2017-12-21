@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <math.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "ICOSfit.h"
 #include "global.h"
 
@@ -60,9 +61,9 @@ void func_base_svdx::evaluate( ICOS_Float x, ICOS_Float *a ) {
   }
 }
 
-func_base_ptbnu::func_base_ptbnu( const char *filename ) :
+func_base_ptbnu::func_base_ptbnu(const char *filename, func_parameter *nu_F0) :
     func_base( "func_base_ptbnu" ) {
-  uses_nu_F0 = 0;
+  // uses_nu_F0 = 0;
   // The file format is specified in funceval.h
   FILE *fp = fopen( filename, "r" );
   icos_hdr_t header[2];
@@ -87,9 +88,12 @@ func_base_ptbnu::func_base_ptbnu( const char *filename ) :
   #endif
   if ( cfg.n_vectors > 0 && cfg.n_pts < 2 )
     nl_error(3, "%s: n_pts too small: %d", filename, cfg.n_pts );
-  uses_nu_F0 = (cfg.n_vectors | cfg.poly_of_nu) ? 1 : 0;
-  n_params = uses_nu_F0 + cfg.n_vectors + cfg.poly_coeffs;
-  params = new parameter[n_params];
+  uses_nu_F0 = (cfg.n_vectors || cfg.poly_of_nu) ? 1 : 0;
+  if (uses_nu_F0) {
+    append_func(nu_F0);
+  }
+  // n_params = uses_nu_F0 + cfg.n_vectors + cfg.poly_coeffs;
+  // params = new parameter[n_params];
   // Read in initial parameter values
   int i;
   for ( i = 0; i < cfg.n_vectors; i++) {
@@ -97,7 +101,8 @@ func_base_ptbnu::func_base_ptbnu( const char *filename ) :
     if ( fread_swap32( &pval, sizeof(float), 1, fp ) != 1 )
       nl_error( 3, "%s: Error reading vector param init: %s", filename,
         strerror(errno));
-    params[i+uses_nu_F0].init = (ICOS_Float)pval;
+    append_func(new func_parameter("basevec", (ICOS_Float)pval, true, i));
+    // params[i+uses_nu_F0].init = (ICOS_Float)pval;
   }
   for ( i = 0; i < cfg.poly_coeffs; i++ ) {
     float pval;
@@ -105,7 +110,8 @@ func_base_ptbnu::func_base_ptbnu( const char *filename ) :
             != 1 )
       nl_error( 3, "%s: Error reading polynomial param init: %s", filename,
         strerror(errno));
-    params[uses_nu_F0+cfg.n_vectors+i].init = (ICOS_Float)pval;
+    append_func(new func_parameter("basepoly", (ICOS_Float)pval, true, i));
+    // params[uses_nu_F0+cfg.n_vectors+i].init = (ICOS_Float)pval;
   }
   if ( cfg.n_vectors ) {
     vectors = new ICOS_Float *[cfg.n_vectors];
@@ -117,11 +123,11 @@ func_base_ptbnu::func_base_ptbnu( const char *filename ) :
           strerror(errno));
 #if RESIZE_INPUT
       } else {
-	float *raw = (float*)vectors[i];
-	ICOS_Float *tgt = vectors[i];
-	for (int ix = cfg.n_pts-1; ix >= 0; --ix) {
-	  tgt[ix] = (ICOS_Float)raw[ix];
-	}
+        float *raw = (float*)vectors[i];
+        ICOS_Float *tgt = vectors[i];
+        for (int ix = cfg.n_pts-1; ix >= 0; --ix) {
+          tgt[ix] = (ICOS_Float)raw[ix];
+        }
 #endif
       }
     }
@@ -241,38 +247,51 @@ void func_base_ptbnu::evaluate( ICOS_Float x, ICOS_Float *a ) {
 
 func_base_input::func_base_input( func_base *base ) :
             func_base("func_base_input") {
+  append_func(new func_parameter("k_input",1.0));
   append_func(base);
-  n_params = base->n_params + 1;
-  uses_nu_F0 = base->uses_nu_F0;
+  // n_params = base->n_params + 1;
+  // uses_nu_F0 = base->uses_nu_F0;
 }
 
 void func_base_input::init(ICOS_Float *a) {
-  int p1, p2;
-  a[params[uses_nu_F0].index] = 1;
-  if ( first->params == 0 )
-    first->params = new parameter[first->n_params];
-  if ( uses_nu_F0 )
-    link_param( 0, first, 0 );
-  for ( p1 = 1+uses_nu_F0, p2 = uses_nu_F0; p2 < first->n_params; p2++ ) {
-    link_param( p1, first, p2 );
-    p1++;
+  func_evaluator::init(a);
+  assert(args.size() == 2);
+  assert(args[0]->is_parameter());
+  for (int i = 1; i < params.size(); ++i) {
+    assert(params[i].refs.size() == 1);
+    assert(params[i].refs[0].arg_num == 1);
   }
-  first->init(a);
 }
+  // int p1, p2;
+  // a[params[uses_nu_F0].index] = 1;
+  // if ( first->params == 0 )
+  //   first->params = new parameter[first->n_params];
+  // if ( uses_nu_F0 )
+  //   link_param( 0, first, 0 );
+  // for ( p1 = 1+uses_nu_F0, p2 = uses_nu_F0; p2 < first->n_params; p2++ ) {
+  //   link_param( p1, first, p2 );
+  //   p1++;
+  // }
+  // first->init(a);
+// }
 
 void func_base_input::evaluate( ICOS_Float x, ICOS_Float *a ) {
   int ix = int(x);
-  func_evaluator::evaluate( x, a ); // evaluate base
-  value = a[params[uses_nu_F0].index]*ICOSfile::bdata->data[ix] + first->value;
-  params[uses_nu_F0].dyda = ICOSfile::bdata->data[ix];
-  if ( uses_nu_F0 )
-    params[0].dyda = first->params[0].dyda;
-  int i;
-  for ( i = 1+uses_nu_F0; i < n_params; i++ )
-    params[i].dyda = first->params[i-1].dyda;
+  func_evaluator::evaluate(x, a); // evaluate base
+  value = args[0]->value * ICOSfile::bdata->data[ix] + args[1]->value;
+  // value = a[params[uses_nu_F0].index]*ICOSfile::bdata->data[ix] + first->value;
+  params[0].dyda = ICOSfile::bdata->data[ix];
+  // params[uses_nu_F0].dyda = ICOSfile::bdata->data[ix];
+  std::vector<parameter>::iterator pi;
+  for (pi = ++params.begin(); pi != params.end(); ++pi) {
+    // I can hard code args[1] based on assert() in init()
+    // I also do not need to iterate over refs, as we
+    // asserted that there is only one
+    (*pi).dyda = args[1]->params[(*pi).refs[0].param_num].dyda;
+  }
 }
 
-func_base *pick_base_type( const char *filename ) {
+func_base *pick_base_type(const char *filename, func_parameter *nu_F0) {
   func_base *base;
   FILE *fp = fopen( filename, "r" );
   if ( fp == 0 )
@@ -285,9 +304,9 @@ func_base *pick_base_type( const char *filename ) {
   if (header[0]) {
     base = new func_base_svdx(filename);
   } else if (header[1] == 1) {
-    base = new func_base_ptbnu(filename);
+    base = new func_base_ptbnu(filename, nu_F0);
   } else nl_error( 3, "Unrecognized baseline file format: %s", filename );
   if ( GlobalData.BaselineInput )
-    base = new func_base_input( base );
+    base = new func_base_input(base);
   return base;
 }
