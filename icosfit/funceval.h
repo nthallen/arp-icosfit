@@ -13,7 +13,7 @@ class paramref {
     }
     int arg_num;
     int param_num;
-}
+};
 
 class parameter {
   public:
@@ -28,11 +28,25 @@ class func_evaluator {
     func_evaluator(const char *name, bool indexed = false, int index = 0); 
     virtual void evaluate( ICOS_Float x, ICOS_Float *a );
     void init( ICOS_Float *a, int *ia );
-    // void init(ICOS_Float *a, int p1);
     virtual void init(ICOS_Float *a);
-    virtual int adjust_params(ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a);
     void append_func(func_evaluator *newfunc);
     virtual void adopted(func_evaluator *new_parent);
+    virtual void fix_float_param(bool float_it);
+    virtual bool param_fixed();
+    inline bool param_fixed(int i) { return args[i]->param_fixed(); }
+    inline void fix_param() { fix_float_param(false); }
+    inline void fix_param(int i) { args[i]->fix_param(); }
+    inline void float_param() { fix_float_param(true); }
+    inline void float_param(int i) { args[i]->float_param(); }
+    virtual ICOS_Float get_param(ICOS_Float *a);
+    inline ICOS_Float get_param( ICOS_Float *a, int idx ) {
+      return args[idx]->get_param(a);
+    }
+    virtual ICOS_Float set_param(ICOS_Float *a, ICOS_Float value);
+    inline ICOS_Float set_param(ICOS_Float *a, int idx, ICOS_Float value) {
+      return args[idx]->set_param(a, value);
+    }
+    virtual int adjust_params(ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a);
     virtual int line_check(int include, ICOS_Float& start, ICOS_Float& end,
                             ICOS_Float P, ICOS_Float T, ICOS_Float *a);
     virtual int skew_samples();
@@ -55,27 +69,28 @@ class func_evaluator {
 
 class func_parameter : public func_evaluator {
   public:
-    func_parameter(const char *name, ICOS_float init_val,
+    func_parameter(const char *name, ICOS_Float init_value,
                    bool indexed = false, int index = 0);
     void init(ICOS_Float *a);
+    void fix_float_param(bool float_it);
+    bool param_fixed();
     void evaluate( ICOS_Float x, ICOS_Float *a );
+    void dump_params(ICOS_Float *a, int indent);
     static inline void set_ia(int *ia) { func_parameter::ia = ia; }
     
     // Functions we might need in some form, possibly renamed
-    inline void link_param( int src, func_evaluator *child, int dest ) {
-      child->params[dest].index = params[src].index;
-      child->params[dest].ia = params[src].ia;
-    }
-    inline ICOS_Float get_param( ICOS_Float *a, int idx ) {
-      return a[params[idx].index];
-    }
-    inline ICOS_Float set_param( ICOS_Float *a, int idx, ICOS_Float value ) {
-      a[params[idx].index] = value;
+    // inline void link_param( int src, func_evaluator *child, int dest ) {
+      // child->params[dest].index = params[src].index;
+      // child->params[dest].ia = params[src].ia;
+    // }
+    inline ICOS_Float get_param(ICOS_Float *a) { return a[params[0].index]; }
+    inline ICOS_Float set_param(ICOS_Float *a, ICOS_Float value) {
+      a[params[0].index] = value;
       return value;
     }
-    inline void fix_param( int idx ) { *params[idx].ia = 0; }
-    inline void float_param( int idx ) { *params[idx].ia = 1; }
-    inline int param_fixed( int idx ) { return *params[idx].ia == 0; }
+    // inline void fix_param( int idx ) { ia[params[idx].index] = 0; }
+    // inline void float_param( int idx ) { ia[params[idx].index] = 1; }
+    // inline int param_fixed( int idx ) { return ia[params[idx].index] == 0; }
     void clamp_param_high( ICOS_Float *a, int idx );
     void clamp_param_low( ICOS_Float *a, int idx );
     void clamp_param_highlow( ICOS_Float *a, int idx );
@@ -84,7 +99,7 @@ class func_parameter : public func_evaluator {
     int index; ///< Parameter's global index
   protected:
     bool is_fixed();
-    ICOS_Float init; ///< Initialization value
+    ICOS_Float init_val; ///< Initialization value
     // ICOS_Float low;
     // ICOS_Float high;
     // ICOS_Float prev;
@@ -153,12 +168,13 @@ class func_line : public func_evaluator {
     int fixed; ///< 0 = free, 1 = fixed
     int fix_finepos; ///< 0 = free-ish, 1 = fixed
     int fix_width; ///< 0 = free-ish, 1 = fixed
-    inline func_line *lnext() { return (func_line *)next; }
+    // ### haven't figured out how to deal with this
+    // inline func_line *lnext() { return (func_line *)next; }
     void init(ICOS_Float *a);
     virtual ICOS_Float line_start(ICOS_Float *a);
     virtual ICOS_Float line_end(ICOS_Float *a);
     virtual void line_fix();
-    virtual void line_ICOS_Float();
+    virtual void line_float();
     int line_check(int include, ICOS_Float& start, ICOS_Float& end,
             ICOS_Float P, ICOS_Float T, ICOS_Float *a);
     void print_config(FILE *fp);
@@ -185,13 +201,16 @@ class func_line : public func_evaluator {
 // In Release 2.2, we inherit nu_F0 from func_skew.
 // Each line then has it's own dnu that func_abs owns
 // and its own 4 parameters.
+// ### Just review this comment:
+// ### In Release 3.0, each line has both nu_F0 and dnu.
+// ### Lines own dnu, nu_F0 is owned by func_abs, or maybe func_skew
 class func_abs : public func_evaluator {
   public:
     func_abs();
     void append_func( func_line *newfunc );
     void init(ICOS_Float *a);
     void evaluate(ICOS_Float x, ICOS_Float *a);
-    inline func_line *lfirst() { return (func_line *)first; }
+    // inline func_line *lfirst() { return (func_line *)first; }
     int adjust_params(ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a);
     void print_config(FILE *fp);
     void print_intermediates(FILE *fp);
@@ -240,7 +259,7 @@ class voigt : public func_line {
     static const int gl_idx; // 3
     int adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a );
     void line_fix();
-    void line_ICOS_Float();
+    void line_float();
     void dump_params(ICOS_Float *a, int indent);
     void print_intermediates(FILE *fp);
 
@@ -263,12 +282,12 @@ inline func_line_p new_voigt( int mol, int iso,
                     fix_dw, fix_lw, fix_fp );
 }
 
-class func_quad : public func_evaluator {
-  public:
-    func_quad( ICOS_Float q, ICOS_Float l, ICOS_Float c );
-    void evaluate(ICOS_Float x, ICOS_Float *a);
-    static const int q_idx, l_idx, c_idx; // 0, 1, 2
-};
+// class func_quad : public func_evaluator {
+  // public:
+    // func_quad( ICOS_Float q, ICOS_Float l, ICOS_Float c );
+    // void evaluate(ICOS_Float x, ICOS_Float *a);
+    // static const int q_idx, l_idx, c_idx; // 0, 1, 2
+// };
 
 
 // baseline functions. func_base is a virtual base class

@@ -3,7 +3,7 @@
 #include "global.h"
 
 func_abs::func_abs() : func_evaluator("abs") {
-  // ### create nu_F0
+  append_func(new func_parameter("nu_F0", 0.));
 }
 
 void func_abs::print_config(FILE *fp) {
@@ -135,35 +135,39 @@ void func_abs::append_func( func_line *newfunc ) {
 // what a parameter is. The problem is for func_abs we are
 // abandoning the assumption of independence.
 void func_abs::init(ICOS_Float *a) {
-  func_evaluator *child;
-  int p1, p2;
+  func_evaluator::init();
+  fix_param(0); // nu_F0
+  // ### The lines' init functions now should be responsible
+  // ### for handling initialization line-fixing and setting init_vals
+  // func_evaluator *child;
+  // int p1, p2;
 
 
-  // printf( "func_abs::init(%s); n_params=%d\n", name, n_params );
-  // set_param(a, 0, 0.); // nu_F0 (oops, wrong init)
-  params[0].init = 0.; // nu_F0
-  fix_param(0);
-  p1 = 1; // skip nu_F0
-  for ( child = first; child != 0; child = child->next ) {
-    params[p1].init = 0.;
-    fix_param(p1);
-    p1++;
-    if ( p1 + child->n_params > n_params ) {
-      nl_error( 4, "Too many child params: n_params = %d\n", n_params );
-    }
-    if ( child->params == 0 )
-      child->params = new parameter[child->n_params];
-    for ( p2 = 0; p2 < child->n_params; p2++ ) {
-      link_param( p1, child, p2 );
-      p1++;
-    }
-  }
-  for ( p2 = 0; p2 < n_params; p2++ )
-    a[params[p2].index] = params[p2].init;
-  for ( child = first; child != 0; child = child->next ) {
-    child->init(a);
-    child->fix_param(0);
-  }
+  // // printf( "func_abs::init(%s); n_params=%d\n", name, n_params );
+  // // set_param(a, 0, 0.); // nu_F0 (oops, wrong init)
+  // // params[0].init_val = 0.; // nu_F0
+  // fix_param(0);
+  // p1 = 1; // skip nu_F0
+  // for ( child = first; child != 0; child = child->next ) {
+    // params[p1].init = 0.; // I'm pretty sure this is nu_F0+dnu or something
+    // fix_param(p1);
+    // p1++;
+    // if ( p1 + child->n_params > n_params ) {
+      // nl_error( 4, "Too many child params: n_params = %d\n", n_params );
+    // }
+    // if ( child->params == 0 )
+      // child->params = new parameter[child->n_params];
+    // for ( p2 = 0; p2 < child->n_params; p2++ ) {
+      // link_param( p1, child, p2 );
+      // p1++;
+    // }
+  // }
+  // for ( p2 = 0; p2 < n_params; p2++ )
+    // a[params[p2].index] = params[p2].init;
+  // for ( child = first; child != 0; child = child->next ) {
+    // child->init(a);
+    // child->fix_param(0);
+  // }
 }
 
 void func_abs::evaluate(ICOS_Float x, ICOS_Float *a) {

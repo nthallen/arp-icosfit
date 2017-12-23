@@ -343,9 +343,9 @@ void voigt::line_fix() {
   func_line::line_fix();
 }
 
-void voigt::line_ICOS_Float() {
+void voigt::line_float() {
   if ( fix_lwidth == 0 ) ICOS_Float_param(gl_idx);
-  func_line::line_ICOS_Float();
+  func_line::line_float();
 }
 
 void voigt::print_intermediates(FILE *fp) {

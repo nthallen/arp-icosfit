@@ -244,8 +244,9 @@ int fitdata::fit( ) {
     ICOS_Float wnStart = IFile->wndata->data[SignalEnd] + nu_F0;
     ICOS_Float wnEnd = IFile->wndata->data[SignalStart] + nu_F0;
     while ( func->line_check( 0, wnStart, wnEnd, PTf->P, PTf->T, a ) != 0 );
+    func->line_check( 1, wnStart, wnEnd, PTf->P, PTf->T, a );
     ICOS_Float EwnStart = 0., EwnEnd = 0.;
-    func->line_check( 1, EwnStart, EwnEnd, PTf->P, PTf->T, a );
+    func->line_check( 2, EwnStart, EwnEnd, PTf->P, PTf->T, a );
     if ( EwnStart != 0. && EwnEnd != 0. ) {
       if ( EwnStart > wnStart ) wnStart = EwnStart;
       if ( EwnEnd < wnEnd ) wnEnd = EwnEnd;

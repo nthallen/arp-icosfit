@@ -9,8 +9,6 @@
 #include "global.h"
 #include "ptread.h"
 
-int func_evaluator::ia;
-
 /**
  * ### I think I can avoid preallocating parameters
  */
@@ -31,7 +29,7 @@ func_evaluator::func_evaluator(const char *sname, bool indexed, int idx) {
  */
 void func_evaluator::append_func( func_evaluator *newfunc) {
   // printf( "func_evaluator::append_func(%s, %s)\n", name, newfunc->name );
-  args->push_back(newfunc);
+  args.push_back(newfunc);
   newfunc->adopted(this);
 }
 
@@ -104,14 +102,14 @@ void func_evaluator::init(ICOS_Float *a) {
     }
   }
   // Now we know exactly how many and which parameters we depend on
-  std_set<int>::iterator ipidx;
+  std::set<int>::iterator ipidx;
   int i = 0;
-  for (ipidx = pidx.begin(); ipidx < pidx.end(); ++ipidx, ++i) {
+  for (ipidx = pidx.begin(); ipidx != pidx.end(); ++ipidx, ++i) {
     params.push_back(parameter(*ipidx));
   }
   // Now go back through the children and record where the
   // child references appear
-  int argi, argpi, pi;
+  unsigned int argi, argpi, pi;
   for (argi = 0; argi < args.size(); ++argi) {
     for (argpi = 0; argpi < args[argi]->params.size(); ++argpi) {
       for (pi = 0; pi < params.size(); ++pi) {
@@ -123,9 +121,8 @@ void func_evaluator::init(ICOS_Float *a) {
     }
   }
   for (child = args.begin(); child < args.end(); ++child) {
-    int 
     std::vector<parameter>::iterator cp;
-    for (cp = (*child)->params.begin(); cp < (*child)->params.end(); ++cp) {
+    for (cp = (*child)->params.begin(); cp != (*child)->params.end(); ++cp) {
       pidx.insert(cp->index);
     }
   }
@@ -140,11 +137,39 @@ void func_evaluator::init(ICOS_Float *a) {
 // methods are a good place to do initializations
 // that need to assume that.
 void func_evaluator::init( ICOS_Float *a, int *ia ) {
-  int i;
-
   // printf( "func_evaluator::init( %s, a, ia );\n", name );
   func_parameter::set_ia(ia);
   init(a); // initialize all func_evaluators
+}
+
+/**
+ * @param float true to float, false to fix parameter.
+ * This call is currently illegal unless object is a
+ * func_parameter.
+ */
+void func_evaluator::fix_float_param(bool float_it) {
+  nl_error(3, "Illegal attempt to %s a non-parameter",
+      float_it ? "float" : "fix");
+}
+
+/**
+ * @return true if the parameter is fixed.
+ * This call is currently illegal unless object is a
+ * func_parameter.
+ */
+bool func_evaluator::param_fixed() {
+  nl_error(3, "Illegal attempt to query fixed state of a non-parameter");
+  return false;
+}
+
+ICOS_Float func_evaluator::get_param(ICOS_Float *a) {
+  nl_error(3, "Illegal attempt to query value of a non-parameter");
+  return 0.;
+}
+
+ICOS_Float func_evaluator::set_param(ICOS_Float *a, ICOS_Float value) {
+  nl_error(3, "Illegal attempt to set value of a non-parameter");
+  return 0.;
 }
 
 // evaluate is used as a helper function to the
@@ -230,16 +255,24 @@ int func_evaluator::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T
 int func_parameter::n_parameters = 0;
 int *func_parameter::ia = 0;
 
-func_parameter::func_parameter(const char *name, ICOS_float init_val,
+func_parameter::func_parameter(const char *name, ICOS_Float init_value,
         bool indexed, int idx) : func_evaluator(name,indexed,idx) {
   index = ++n_parameters;
-  init = init_val;
+  init_val = init_value;
 }
 
-func_parameter::init(ICOS_Float *a) {
+void func_parameter::init(ICOS_Float *a) {
   params.push_back(parameter(index));
   params.back().dyda = 1.0;
-  a[index] = init;
+  a[index] = init_val;
+}
+
+void func_parameter::fix_float_param(bool float_it) {
+  ia[params[0].index] = float_it ? 1 : 0;
+}
+
+bool func_parameter::param_fixed() {
+  return ia[params[0].index] == 0;
 }
 
 void func_parameter::evaluate( ICOS_Float x, ICOS_Float *a ){
@@ -250,11 +283,11 @@ void func_parameter::evaluate( ICOS_Float x, ICOS_Float *a ){
 // aggregate
 //  ### Only used by subclasses that are not used
 //---------------------------------------------------------
-void func_aggregate::append_func( func_evaluator *newfunc ) {
-  // printf( "func_aggregate::append_func(%s, %s)\n", name, newfunc->name );
-  func_evaluator::append_func(newfunc);
-  // ### n_params += newfunc->n_params;
-}
+// void func_aggregate::append_func( func_evaluator *newfunc ) {
+  // // printf( "func_aggregate::append_func(%s, %s)\n", name, newfunc->name );
+  // func_evaluator::append_func(newfunc);
+  // // ### n_params += newfunc->n_params;
+// }
 
 //---------------------------------------------------------
 // sum
@@ -262,27 +295,27 @@ void func_aggregate::append_func( func_evaluator *newfunc ) {
 // ### Entire class is not used, but I've updated the code
 // ### as an exercise
 //---------------------------------------------------------
-void func_sum::evaluate(ICOS_Float x, ICOS_Float *a) {
-  evaluate( x, a, 0 );
-}
+// void func_sum::evaluate(ICOS_Float x, ICOS_Float *a) {
+  // evaluate( x, a, 0 );
+// }
 
-void func_sum::evaluate(ICOS_Float x, ICOS_Float *a, int i) {
-  int j;
-  std::vector<parameter>::iterator param;
-  std::vector<func_evaluator*>::iterator child;
+// void func_sum::evaluate(ICOS_Float x, ICOS_Float *a, int i) {
+  // int j;
+  // std::vector<parameter>::iterator param;
+  // std::vector<func_evaluator*>::iterator child;
 
-  value = 0.;
-  for (child = args.begin(); child != args.end(); ++child) {
-    (*child)->evaluate(x,a);
-    value += (*child)->value;
-  }
-  for (param = params.begin(); param != params.end(); ++param) {
-    std::vector<paramref>::iteractor ref;
-    for (ref = param.refs.begin(); ref != param.refs.end(); ++ref) {
-      param->dyda += args[ref->arg_num]->params[ref->param_num].dyda;
-    }
-  }
-}
+  // value = 0.;
+  // for (child = args.begin(); child != args.end(); ++child) {
+    // (*child)->evaluate(x,a);
+    // value += (*child)->value;
+  // }
+  // for (param = params.begin(); param != params.end(); ++param) {
+    // std::vector<paramref>::iteractor ref;
+    // for (ref = param.refs.begin(); ref != param.refs.end(); ++ref) {
+      // param->dyda += args[ref->arg_num]->params[ref->param_num].dyda;
+    // }
+  // }
+// }
 
 //---------------------------------------------------------
 // product
@@ -375,11 +408,14 @@ func_line::func_line( const char *name, int mol, int iso,
           double nu_in, double S_in, double G_air_in, double E_in,
           double n_in, double delta_in, unsigned int ipos_in, double threshold,
           int fix_w, int fix_fp ) :
-  func_evaluator(name, true, ++n_lines) {
-  params[l_idx].init = 0.;
-  params[w_idx].init = 1.;
-  params[n_idx].init = 0.;
+    func_evaluator(name, true, ++n_lines) {
   line_number = n_lines;
+  append_func(new func_parameter("dnu", 0., true, line_number));
+  append_func(new func_parameter("gd", 1., true, line_number));
+  append_func(new func_parameter("N", 0., true, line_number));
+  // params[l_idx].init = 0.;
+  // params[w_idx].init = 1.;
+  // params[n_idx].init = 0.;
   fixed = 0;
   fix_finepos = fix_fp;
   fix_width = fix_w;
@@ -417,9 +453,9 @@ void func_line::print_config( FILE *fp ) {
   fprintf( fp,
     "  %d %d %.6lf %.4" FMT_E
     " %.4" FMT_F " %.4" FMT_F
-    " %.2" FMT_F " %.6" FMT_F " %d\n",
+    " %.2" FMT_F " %.6" FMT_F " %lu\n",
     isotopomer/10, isotopomer%10, nu1+nu0, S, G_air, E,
-    n_air, delta, n_params );
+    n_air, delta, params.size() );
 }
 
 void func_line::print_intermediates(FILE *fp) {}
@@ -485,7 +521,7 @@ int func_line::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICO
         if ( rolledback < 2 ) {
           nl_error( 0, "Floating line %d (strength %" FMT_G ")",
                       line_number, strength );
-          line_ICOS_Float();
+          line_float();
           return 1;
         } else nl_error( 0, "NOT re-ICOS_Floating line %d",
                   line_number );
@@ -513,22 +549,21 @@ ICOS_Float func_line::line_end(ICOS_Float *a) {
 
 int func_evaluator::line_check(int include, ICOS_Float& start, ICOS_Float& end,
                 ICOS_Float P, ICOS_Float T, ICOS_Float *a) {
-  if ( first != 0 && first->line_check( include, start, end, P, T, a ) )
-    return 1;
-  if ( next != 0 && next->line_check( include, start, end, P, T, a ) )
-    return 1;
+
+  std::vector<func_evaluator*>::iterator arg;
+  for (arg = args.begin(); arg != args.end(); ++arg) {
+    if ((*arg)->line_check(include, start, end, P, T, a))
+      return 1;
+  }
   return 0;
 }
 
 int func_evaluator::skew_samples() {
   int rv = 0;
   int frv;
-  if ( first != 0 ) {
-    frv = first->skew_samples();
-    if ( frv > rv ) rv = frv;
-  }
-  if ( next != 0 ) {
-    frv = next->skew_samples();
+  std::vector<func_evaluator*>::iterator arg;
+  for (arg = args.begin(); arg != args.end(); ++arg) {
+    frv = (*arg)->skew_samples();
     if ( frv > rv ) rv = frv;
   }
   return rv;
@@ -539,15 +574,18 @@ int func_evaluator::skew_samples() {
 // all the parameters and their values without recursing
 // to children, but overrides can delegate to children.
 void func_evaluator::dump_params(ICOS_Float *a, int indent) {
-  int i;
   print_indent( stderr, indent );
   fprintf( stderr, "Parameters for '%s':\n", name );
   indent += 2;
-  for ( i = 0; i < n_params; i++ ) {
-    int indx = params[i].index;
-    print_indent( stderr, indent );
-    fprintf( stderr, "[%2d] %" FMT_G "\n", indx, a[indx] );
+  std::vector<func_evaluator*>::iterator arg;
+  for (arg = args.begin(); arg != args.end(); ++arg) {
+    (*arg)->dump_params(a, indent);
   }
+}
+
+void func_parameter::dump_params(ICOS_Float *a, int indent) {
+  print_indent( stderr, indent );
+  fprintf( stderr, "%s = %" FMT_G "\n", name, a[params[0].index]);
 }
 
 void func_evaluator::print_indent( FILE *fp, int indent ) {
@@ -555,7 +593,7 @@ void func_evaluator::print_indent( FILE *fp, int indent ) {
 }
 
 // line_check(include, start, end, P, T, a );
-// operates in two passes. First, include is set to 0 to
+// operates in three passes. First, include is set to 0 to
 // indicate the 'exclude' step. A line is excluded if it
 // hits the start or end boundary, and if so, the boundaries
 // are moved in to also exclude any significant portion
@@ -568,16 +606,27 @@ void func_evaluator::print_indent( FILE *fp, int indent ) {
 // and calling adjust_params. If that helps, then its threshold
 // needs to be raised. If it doesn't help, then turn it off.
 //
+// Next, include is set to 1. Any lines that were previously
+// excluded that now fall within the sample range are re-enabled.
+//
 // Once a final set of lines has been determined, include
-// is set to 1 to indicate the 'include' step. Here the
+// is set to 2 to indicate the 'include' step. Here the
 // boundaries are expanded to include all the lines which
 // are still 'on'.
+//
+// ### A line is determined to be 'on' if the n_idx arg is
+// ### floating. For grouped lines, that is not how it will
+// ### work. Ngrp cannot be zeroed unless all of the lines
+// ### in the group are out of bounds. One way this could be
+// ### done would be to actually fix N for every line and then
+// ### float it if any member line is in range and not fixed.
+// ### Needless to say, the details need to be worked out.
 int func_line::line_check(int include, ICOS_Float& start, ICOS_Float& end,
                     ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
   ICOS_Float ls = line_start(a);
   ICOS_Float le = line_end(a);
-  func_line *next = lnext();
-  if ( ! include ) {
+  // func_line *next = lnext();
+  if ( include == 0 ) {
     int rv = -1;
     if ( ! fixed && ( ls < start || le > end ) ) {
       ICOS_Float save_thresh = S_thresh;
@@ -613,23 +662,29 @@ int func_line::line_check(int include, ICOS_Float& start, ICOS_Float& end,
         nl_error( 0, "Turning off line %d (%.4" FMT_F ",%.4" FMT_F ")",
                           line_number, ls, le );
         fix_param(n_idx);
-        set_param( a, n_idx, 0. );
+        set_param(a, n_idx, 0.); // ### This will need to change with shared N
         line_fix();
       }
       if ( rv != 0 ) return rv;
     }
-    if ( next != 0 && next->line_check( include, start, end, P, T, a ) )
-      return 1;
-    if ( rv < 0 && param_fixed(n_idx) ) {
+    // if ( next != 0 && next->line_check( include, start, end, P, T, a ) )
+      // return 1;
+  }
+  if (include == 1) {
+    if ( ls >= start && le <= end && param_fixed(n_idx) ) {
       nl_error( 0, "Turning on line %d (%.4" FMT_F ",%.4" FMT_F ")",
                           line_number, ls, le );
       float_param(n_idx);
-      // We don't actually line_ICOS_Float() until the fit raises the
+      // We don't actually line_float() until the fit raises the
       // number density high enough.
     }
-  } else {
-    if ( next != 0 && next->line_check( include, start, end, P, T, a ) )
-      return 1;
+  }
+  if (include == 2) {
+    // ### This code suggests that line_check(2,...) could return non-zero,
+    // ### but inspection shows this can't happen, so it appears safe to
+    // ### simply leave calling the other lines to the higher level
+    // if ( next != 0 && next->line_check( include, start, end, P, T, a ) )
+      // return 1;
     if ( ! param_fixed(n_idx) ) {
       if ( start == 0. || ls-GlobalData.RightLineMargin < start )
         start = ls-GlobalData.RightLineMargin;
@@ -648,7 +703,7 @@ void func_line::line_fix() {
   fixed = 1;
 }
 
-void func_line::line_ICOS_Float() {
+void func_line::line_float() {
   func_abs *p = (func_abs *)parent;
   // float_param(l_idx);
   if ( fix_finepos == 0 ) p->float_linepos(line_number);
@@ -717,20 +772,20 @@ void lorentzian::evaluate(ICOS_Float x, ICOS_Float *a) {
 // func_quad: second-order polynomial fit
 //    Currently unused
 //----------------------------------------------------------
-const int func_quad::q_idx = 0, func_quad::l_idx = 1, func_quad::c_idx = 2;
+// const int func_quad::q_idx = 0, func_quad::l_idx = 1, func_quad::c_idx = 2;
 
-func_quad::func_quad(ICOS_Float q, ICOS_Float l, ICOS_Float c) : func_evaluator("quad") {
-  params[q_idx].init = q;
-  params[l_idx].init = l;
-  params[c_idx].init = c;
-}
+// func_quad::func_quad(ICOS_Float q, ICOS_Float l, ICOS_Float c) : func_evaluator("quad") {
+  // params[q_idx].init = q;
+  // params[l_idx].init = l;
+  // params[c_idx].init = c;
+// }
 
-void func_quad::evaluate(ICOS_Float x, ICOS_Float *a) {
-  ICOS_Float q = a[params[q_idx].index];
-  ICOS_Float l = a[params[l_idx].index];
-  ICOS_Float c = a[params[c_idx].index];
-  value = q*x*x + l*x + c;
-  params[q_idx].dyda = x*x;
-  params[l_idx].dyda = x;
-  params[c_idx].dyda = 1;
-}
+// void func_quad::evaluate(ICOS_Float x, ICOS_Float *a) {
+  // ICOS_Float q = a[params[q_idx].index];
+  // ICOS_Float l = a[params[l_idx].index];
+  // ICOS_Float c = a[params[c_idx].index];
+  // value = q*x*x + l*x + c;
+  // params[q_idx].dyda = x*x;
+  // params[l_idx].dyda = x;
+  // params[c_idx].dyda = 1;
+// }
