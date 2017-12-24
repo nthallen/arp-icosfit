@@ -10,7 +10,7 @@
 // The baseline data is written in my ICOS-standard binary
 // file format, which uses two 32-bit unsigned ints at
 // the start to specify rows and columns, and then records
-// the remaining data as ICOS_Floats. For the baseline, the first
+// the remaining data as floats. For the baseline, the first
 // element of each column is the parameter initialization.
 
 func_base_svdx::func_base_svdx( const char *filename ) :
@@ -26,8 +26,8 @@ func_base_svdx::func_base_svdx( const char *filename ) :
   if ( header[0] <= 1 || header[1] <= 0 )
     nl_error( 3, "%s: Invalid header: %ld, %ld", filename,
               header[0], header[1] );
-  n_params = header[1];
-  params = new parameter[n_params];
+  // n_params = header[1];
+  // params = new parameter[n_params];
   n_pts = header[0]-1;
   baseline = new ICOS_Float *[header[1]+1];
   if (baseline == 0) nl_error(3, "Out of memory in func_base" );
@@ -37,23 +37,34 @@ func_base_svdx::func_base_svdx( const char *filename ) :
     baseline[i] = new ICOS_Float[header[0]];
     if ( baseline[i] == 0 )
       nl_error(3, "Out of memory in func_base");
-    if ( fread_swap32( baseline[i], sizeof(ICOS_Float), header[0], fp )
-          != header[0] )
+    if ( fread_swap32( baseline[i], sizeof(float), header[0], fp )
+          != header[0] ) {
       nl_error( 3, "%s: Error reading baseline: %s", filename,
         strerror(errno) );
-    params[i].init = baseline[i][0];
+    } else {
+#if RESIZE_INPUT
+      float *raw = (float*)baseline[i];
+      ICOS_Float *tgt = baseline[i];
+      for (int ix = header[0]-1; ix >= 0; --ix) {
+        tgt[ix] = (ICOS_Float)raw[ix];
+      }
+#endif
+      append_func(new func_parameter("basesvdx",
+        (ICOS_Float)baseline[i][0], true, i));
+      // params[i].init = baseline[i][0];
+    }
   }
   fclose(fp);
 }
 
 void func_base_svdx::evaluate( ICOS_Float x, ICOS_Float *a ) {
-  int i;
+  unsigned int i;
   int ix = (int)x;
   if ( ix < 1 || ix > n_pts )
     nl_error( 3,
       "x out of range in func_base::evaluate: %d", ix );
   value = 0.;
-  for ( i = 0; i < n_params; i++ ) {
+  for (i = 0; i < args.size(); ++i) {
     ICOS_Float ai = get_param( a, i );
     ICOS_Float bix = baseline[i][ix];
     value += ai * bix;
@@ -164,22 +175,18 @@ func_base_ptbnu::func_base_ptbnu(const char *filename, func_parameter *nu_F0) :
       fprintf( stderr, "];\n" );
     }
   }
-}
-
-void func_base_ptbnu::init( ICOS_Float *a ) {
-  int p2;
-  for ( p2 = 0; p2 < n_params; p2++ )
-    a[params[p2].index] = params[p2].init;
-
-  cfg.nu0 -= func_line::nu0;
   // Now setup polynomial stuff
+  // ### Why is this in init().
+  // ### Could it not be in the constructor?
+  cfg.nu0 -= func_line::nu0;
   if ( cfg.poly_coeffs > 0 && ! cfg.poly_of_nu ) {
     int nx = GlobalData.SignalRegion[1]+1;
     polyvecs = new ICOS_Float *[cfg.poly_coeffs-1]; // don't bother with constant
     if ( polyvecs == 0 ) nl_error(3, "Out of memory in func_base_ptbnu::init" );
     for ( int i = 0; i < cfg.poly_coeffs-1; i++ ) {
       polyvecs[i] = new ICOS_Float[nx];
-      if ( polyvecs[i] == 0 ) nl_error( 3, "Out of memory in func_base_ptbnu::init" );
+      if ( polyvecs[i] == 0 )
+        nl_error( 3, "Out of memory in func_base_ptbnu::init" );
     }
     for ( int j = 0; j < nx; j++ ) {
       ICOS_Float x = j/cfg.poly_scale;
@@ -190,6 +197,12 @@ void func_base_ptbnu::init( ICOS_Float *a ) {
       }
     }
   }
+}
+
+void func_base_ptbnu::init( ICOS_Float *a ) {
+  func_evaluator::init(a);
+  if (uses_nu_F0)
+    fix_param(0);
 }
 
 // given x and parameters a, calculate value and
@@ -256,8 +269,9 @@ func_base_input::func_base_input( func_base *base ) :
 void func_base_input::init(ICOS_Float *a) {
   func_evaluator::init(a);
   assert(args.size() == 2);
-  assert(args[0]->is_parameter());
-  for (int i = 1; i < params.size(); ++i) {
+  // This could be is_parameter()
+  assert(args[0].arg->args.size() == 0 && args[0].arg->params.size() == 1);
+  for (unsigned int i = 1; i < params.size(); ++i) {
     assert(params[i].refs.size() == 1);
     assert(params[i].refs[0].arg_num == 1);
   }
@@ -278,7 +292,7 @@ void func_base_input::init(ICOS_Float *a) {
 void func_base_input::evaluate( ICOS_Float x, ICOS_Float *a ) {
   int ix = int(x);
   func_evaluator::evaluate(x, a); // evaluate base
-  value = args[0]->value * ICOSfile::bdata->data[ix] + args[1]->value;
+  value = args[0].arg->value * ICOSfile::bdata->data[ix] + args[1].arg->value;
   // value = a[params[uses_nu_F0].index]*ICOSfile::bdata->data[ix] + first->value;
   params[0].dyda = ICOSfile::bdata->data[ix];
   // params[uses_nu_F0].dyda = ICOSfile::bdata->data[ix];
@@ -287,7 +301,7 @@ void func_base_input::evaluate( ICOS_Float x, ICOS_Float *a ) {
     // I can hard code args[1] based on assert() in init()
     // I also do not need to iterate over refs, as we
     // asserted that there is only one
-    (*pi).dyda = args[1]->params[(*pi).refs[0].param_num].dyda;
+    (*pi).dyda = args[1].arg->params[(*pi).refs[0].param_num].dyda;
   }
 }
 
@@ -305,7 +319,10 @@ func_base *pick_base_type(const char *filename, func_parameter *nu_F0) {
     base = new func_base_svdx(filename);
   } else if (header[1] == 1) {
     base = new func_base_ptbnu(filename, nu_F0);
-  } else nl_error( 3, "Unrecognized baseline file format: %s", filename );
+  } else {
+    nl_error( 3, "Unrecognized baseline file format: %s", filename );
+    return 0; // Can't happen
+  }
   if ( GlobalData.BaselineInput )
     base = new func_base_input(base);
   return base;

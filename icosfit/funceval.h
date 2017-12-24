@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <vector>
+#include <stdint.h>
 #include "config.h"
 
 class paramref {
@@ -23,28 +24,39 @@ class parameter {
     std::vector<paramref> refs;
 };
 
+class func_evaluator;
+
+class argref {
+  public:
+    inline argref(func_evaluator *arg_in, unsigned int rn) :
+      arg(arg_in), refnum(rn) {}
+    func_evaluator *arg;
+    unsigned int refnum;
+};
+
 class func_evaluator {
   public:
     func_evaluator(const char *name, bool indexed = false, int index = 0); 
-    virtual void evaluate( ICOS_Float x, ICOS_Float *a );
+    static void evaluate_all(ICOS_Float x, ICOS_Float *a);
+    virtual void evaluate(ICOS_Float x, ICOS_Float *a);
     void init( ICOS_Float *a, int *ia );
     virtual void init(ICOS_Float *a);
     void append_func(func_evaluator *newfunc);
-    virtual void adopted(func_evaluator *new_parent);
-    virtual void fix_float_param(bool float_it);
+    virtual unsigned int adopted(func_evaluator *new_parent);
+    virtual void fix_float_param(bool float_it, unsigned int refnum);
     virtual bool param_fixed();
-    inline bool param_fixed(int i) { return args[i]->param_fixed(); }
-    inline void fix_param() { fix_float_param(false); }
-    inline void fix_param(int i) { args[i]->fix_param(); }
-    inline void float_param() { fix_float_param(true); }
-    inline void float_param(int i) { args[i]->float_param(); }
-    virtual ICOS_Float get_param(ICOS_Float *a);
+    inline bool param_fixed(int i) {
+      return args[i].arg->param_fixed(); }
+    inline void fix_param(int i) {
+      args[i].arg->fix_float_param(false,args[i].refnum); }
+    inline void float_param(int i) {
+      args[i].arg->fix_float_param(true,args[i].refnum); }
     inline ICOS_Float get_param( ICOS_Float *a, int idx ) {
-      return args[idx]->get_param(a);
+      return args[idx].arg->value;
     }
     virtual ICOS_Float set_param(ICOS_Float *a, ICOS_Float value);
     inline ICOS_Float set_param(ICOS_Float *a, int idx, ICOS_Float value) {
-      return args[idx]->set_param(a, value);
+      return args[idx].arg->set_param(a, value);
     }
     virtual int adjust_params(ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a);
     virtual int line_check(int include, ICOS_Float& start, ICOS_Float& end,
@@ -54,17 +66,19 @@ class func_evaluator {
     void print_indent( FILE *fp, int indent );
 
     // int n_params;
-    std::vector<func_evaluator*> args;
+    std::vector<argref> args;
     std::vector<parameter> params;
     // parameter *params;
     ICOS_Float value;
     const char *name;
     func_evaluator *parent;
+    unsigned int n_references;
     // func_evaluator *first;
     // func_evaluator *last;
     // func_evaluator *next;
   protected:
     static std::vector<func_evaluator*> evaluation_order;
+    bool added_to_eval;
 };
 
 class func_parameter : public func_evaluator {
@@ -72,25 +86,13 @@ class func_parameter : public func_evaluator {
     func_parameter(const char *name, ICOS_Float init_value,
                    bool indexed = false, int index = 0);
     void init(ICOS_Float *a);
-    void fix_float_param(bool float_it);
+    void fix_float_param(bool float_it, unsigned int refnum);
     bool param_fixed();
+    ICOS_Float set_param(ICOS_Float *a, ICOS_Float value);
     void evaluate( ICOS_Float x, ICOS_Float *a );
     void dump_params(ICOS_Float *a, int indent);
     static inline void set_ia(int *ia) { func_parameter::ia = ia; }
     
-    // Functions we might need in some form, possibly renamed
-    // inline void link_param( int src, func_evaluator *child, int dest ) {
-      // child->params[dest].index = params[src].index;
-      // child->params[dest].ia = params[src].ia;
-    // }
-    inline ICOS_Float get_param(ICOS_Float *a) { return a[params[0].index]; }
-    inline ICOS_Float set_param(ICOS_Float *a, ICOS_Float value) {
-      a[params[0].index] = value;
-      return value;
-    }
-    // inline void fix_param( int idx ) { ia[params[idx].index] = 0; }
-    // inline void float_param( int idx ) { ia[params[idx].index] = 1; }
-    // inline int param_fixed( int idx ) { return ia[params[idx].index] == 0; }
     void clamp_param_high( ICOS_Float *a, int idx );
     void clamp_param_low( ICOS_Float *a, int idx );
     void clamp_param_highlow( ICOS_Float *a, int idx );
@@ -98,8 +100,8 @@ class func_parameter : public func_evaluator {
     
     int index; ///< Parameter's global index
   protected:
-    bool is_fixed();
     ICOS_Float init_val; ///< Initialization value
+    uint32_t refs_float; ///< Bit-mapped
     // ICOS_Float low;
     // ICOS_Float high;
     // ICOS_Float prev;
@@ -161,8 +163,10 @@ class func_line : public func_evaluator {
       double delta, unsigned int ipos, double threshold, int fix_w,
       int fix_fp );
     ~func_line();
+    unsigned int adopted(func_evaluator *new_parent);
     int adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a );
-    static const int l_idx, w_idx, n_idx;
+    static const int dnu_idx, w_idx, n_idx;
+    int nu_F0_idx;
     static int n_lines;
     int line_number; ///< 1-based indexing
     int fixed; ///< 0 = free, 1 = fixed
@@ -207,15 +211,15 @@ class func_line : public func_evaluator {
 class func_abs : public func_evaluator {
   public:
     func_abs();
-    void append_func( func_line *newfunc );
+    // void append_func( func_line *newfunc );
     void init(ICOS_Float *a);
     void evaluate(ICOS_Float x, ICOS_Float *a);
     // inline func_line *lfirst() { return (func_line *)first; }
     int adjust_params(ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a);
     void print_config(FILE *fp);
     void print_intermediates(FILE *fp);
-    void fix_linepos(int linenum);
-    void float_linepos(int linenum);
+    // void fix_linepos(int linenum);
+    // void float_linepos(int linenum);
     void dump_params(ICOS_Float *a, int indent);
 };
 typedef func_abs *func_abs_p;
@@ -286,7 +290,7 @@ inline func_line_p new_voigt( int mol, int iso,
   // public:
     // func_quad( ICOS_Float q, ICOS_Float l, ICOS_Float c );
     // void evaluate(ICOS_Float x, ICOS_Float *a);
-    // static const int q_idx, l_idx, c_idx; // 0, 1, 2
+    // static const int q_idx, dnu_idx, c_idx; // 0, 1, 2
 // };
 
 
@@ -294,7 +298,8 @@ inline func_line_p new_voigt( int mol, int iso,
 // (perhaps not technically?)
 class func_base : public func_evaluator {
   public:
-    inline func_base(const char *name = "base") : func_evaluator(name) {}
+    inline func_base(const char *name = "base") :
+      func_evaluator(name), uses_nu_F0(0) {}
     int uses_nu_F0; ///< 0 or 1
 };
 
@@ -329,8 +334,8 @@ class func_base_svdx : public func_base {
 // Can use global SignalRegion to determine range of x
 class func_base_ptbnu : public func_base {
   public:
-    func_base_ptbnu( const char *filename );
-    void evaluate( ICOS_Float x, ICOS_Float *a );
+    func_base_ptbnu(const char *filename, func_parameter *nu_F0);
+    void evaluate(ICOS_Float x, ICOS_Float *a);
     void init(ICOS_Float *a);
   private:
     struct {

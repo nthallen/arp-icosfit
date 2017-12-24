@@ -147,7 +147,7 @@ void fitdata::handle_restart( const char *ofname ) {
       IFile->read( ScanNum ); // To initialize wndata
       { func_line *line;
         for ( line = absorb->lfirst(); line != 0; line = line->lnext() ) {
-          if ( line->param_fixed( line->l_idx ) ) {
+          if ( line->param_fixed( line->dnu_idx ) ) {
             line->fixed = 1;
             if ( line->param_fixed( line->n_idx ) )
               nl_error( 0, "Line at %.4" FMT_F " is off", line->nu );

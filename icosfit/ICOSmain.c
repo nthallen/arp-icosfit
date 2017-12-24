@@ -108,7 +108,7 @@ fitdata *build_func() {
   if ( GlobalData.BaselineFile == 0 )
     nl_error(3, "BaselineFile is now required" );
   func_abs *abs = GlobalData.absorb;
-  base = pick_base_type(GlobalData.BaselineFile, abs);
+  base = pick_base_type(GlobalData.BaselineFile, abs->args[0].arg);
   if ( GlobalData.N_Passes > 0 ) {
     func = new func_noskew( base, abs );
     nl_error( 0, "Using func_noskew()" );

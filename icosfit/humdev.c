@@ -55,8 +55,8 @@ void voigt::dump_params(ICOS_Float *a, int indent) {
   fprintf( stderr, "Parameters for '%s' %.4" FMT_F " cm-1:\n", name, nu );
   indent += 2;
   print_indent( stderr, indent );
-  fprintf( stderr, "[%2d] dnu: %" FMT_G " cm-1\n", params[l_idx].index,
-    a[params[l_idx].index] );
+  fprintf( stderr, "[%2d] dnu: %" FMT_G " cm-1\n", params[dnu_idx].index,
+    a[params[dnu_idx].index] );
   print_indent( stderr, indent );
   fprintf( stderr, "[%2d] Ged: %" FMT_G " cm-1\n", params[w_idx].index,
     a[params[w_idx].index] );
@@ -79,7 +79,7 @@ void voigt::evaluate( ICOS_Float xx, ICOS_Float *a ) {
   ICOS_Float numdens = get_param(a,n_idx);
   ICOS_Float gamma_ed = get_param(a,w_idx);
   ICOS_Float gamma_l = get_param(a,gl_idx);
-  ICOS_Float dnu = get_param(a,l_idx);
+  ICOS_Float dnu = get_param(a,dnu_idx);
   int ixx = int(xx);
 
   // X, Y and K now private object members
@@ -286,7 +286,7 @@ void voigt::evaluate( ICOS_Float xx, ICOS_Float *a ) {
   sed *= numdens; // Ks*N/Ged
   value = sed * K;
   sed /= gamma_ed; // Ks*N/Ged^2
-  params[l_idx].dyda = sed * DKDX;
+  params[dnu_idx].dyda = sed * DKDX;
   params[w_idx].dyda = -sed * ( K + X * DKDX + Y * DKDY );
   params[gl_idx].dyda = sed * DKDY;
 }
@@ -301,7 +301,7 @@ void voigt::evaluate( ICOS_Float xx, ICOS_Float *a ) {
  * alamda is used to indicate:
  *  alamda < 0 Initialization: set fixed parameters
  *  alamda < -1.5 called once per data set
- *  alamda > 0 Iteration: check ICOS_Floating parameters
+ *  alamda > 0 Iteration: check floating parameters
  *  alamda == 0 Finalization: check if redo is required
  * Might be possible to get into oscillation if line gets
  *  re-disabled, but that should be unlikely. If it does
@@ -330,7 +330,7 @@ int voigt::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Fl
       prev_gl = gamma_l;
     }
   } else {
-    gamma_l  = get_param(a, gl_idx);
+    gamma_l = get_param(a, gl_idx);
     if ( gamma_l <= 0. )
       gamma_l = set_param(a, gl_idx, prev_gl/2 );
     prev_gl = gamma_l;
@@ -344,7 +344,7 @@ void voigt::line_fix() {
 }
 
 void voigt::line_float() {
-  if ( fix_lwidth == 0 ) ICOS_Float_param(gl_idx);
+  if ( fix_lwidth == 0 ) float_param(gl_idx);
   func_line::line_float();
 }
 

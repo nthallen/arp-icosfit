@@ -9,6 +9,16 @@
 #include "global.h"
 #include "ptread.h"
 
+std::vector<func_evaluator*> func_evaluator::evaluation_order;
+void func_evaluator::evaluate(ICOS_Float x, ICOS_Float *a) {
+  std::vector<func_evaluator*>::iterator func;
+  for (func = evaluation_order.begin();
+       func != evaluation_order.end();
+       ++func) {
+    (*func)->evaluate(x, a);
+  }
+}
+
 /**
  * ### I think I can avoid preallocating parameters
  */
@@ -20,6 +30,10 @@ func_evaluator::func_evaluator(const char *sname, bool indexed, int idx) {
   } else {
     name = sname;
   }
+  parent = 0;
+  value = 0.;
+  n_references = 0;
+  added_to_eval = false;
   // printf("func_evaluator( %s );\n", name );
 }
 
@@ -29,7 +43,7 @@ func_evaluator::func_evaluator(const char *sname, bool indexed, int idx) {
  */
 void func_evaluator::append_func( func_evaluator *newfunc) {
   // printf( "func_evaluator::append_func(%s, %s)\n", name, newfunc->name );
-  args.push_back(newfunc);
+  args.push_back(argref(newfunc, newfunc->adopted(this)));
   newfunc->adopted(this);
 }
 
@@ -39,10 +53,11 @@ void func_evaluator::append_func( func_evaluator *newfunc) {
  * information from the parents. Specifically, line types can access the
  * parent func_abs's nu_F0 parameter.
  */
-void func_evaluator::adopted(func_evaluator *new_parent) {
+unsigned int func_evaluator::adopted(func_evaluator *new_parent) {
   if (parent == 0) {
     parent = new_parent;
   }
+  return n_references++;
 }
 
 // func_evaluator::init() initializes the a and ia pointers in
@@ -89,15 +104,21 @@ void func_evaluator::adopted(func_evaluator *new_parent) {
   // }
 // }
 
+/**
+ * @param a The initial parameter value vector
+ * Besides finalizing some important internal statistics,
+ * init(a) also defines the evaluation order.
+ */
 void func_evaluator::init(ICOS_Float *a) {
-  std::vector<func_evaluator*>::iterator child;
+  std::vector<argref>::iterator child;
   std::set<int> pidx;
   
-  for (child = args.begin(); child < args.end(); ++child) {
-    (*child)->init(a);
+  if (added_to_eval) return; // Already done this
+  for (child = args.begin(); child != args.end(); ++child) {
+    child->arg->init(a);
     // child now has params defined
     std::vector<parameter>::iterator cp;
-    for (cp = (*child)->params.begin(); cp < (*child)->params.end(); ++cp) {
+    for (cp = child->arg->params.begin(); cp < child->arg->params.end(); ++cp) {
       pidx.insert(cp->index);
     }
   }
@@ -111,21 +132,23 @@ void func_evaluator::init(ICOS_Float *a) {
   // child references appear
   unsigned int argi, argpi, pi;
   for (argi = 0; argi < args.size(); ++argi) {
-    for (argpi = 0; argpi < args[argi]->params.size(); ++argpi) {
+    for (argpi = 0; argpi < args[argi].arg->params.size(); ++argpi) {
       for (pi = 0; pi < params.size(); ++pi) {
-        if (params[pi].index == args[argi]->params[argpi].index) {
+        if (params[pi].index == args[argi].arg->params[argpi].index) {
           params[pi].refs.push_back(paramref(argi, argpi));
           break;
         }
       }
     }
   }
-  for (child = args.begin(); child < args.end(); ++child) {
+  for (child = args.begin(); child != args.end(); ++child) {
     std::vector<parameter>::iterator cp;
-    for (cp = (*child)->params.begin(); cp != (*child)->params.end(); ++cp) {
+    for (cp = child->arg->params.begin(); cp != child->arg->params.end(); ++cp) {
       pidx.insert(cp->index);
     }
   }
+  evaluation_order.push_back(this);
+  added_to_eval = true;
 }
 
 // a and ia are the 1-based vectors from mrqmin. i.e.
@@ -147,7 +170,7 @@ void func_evaluator::init( ICOS_Float *a, int *ia ) {
  * This call is currently illegal unless object is a
  * func_parameter.
  */
-void func_evaluator::fix_float_param(bool float_it) {
+void func_evaluator::fix_float_param(bool float_it, unsigned int refnum) {
   nl_error(3, "Illegal attempt to %s a non-parameter",
       float_it ? "float" : "fix");
 }
@@ -162,11 +185,6 @@ bool func_evaluator::param_fixed() {
   return false;
 }
 
-ICOS_Float func_evaluator::get_param(ICOS_Float *a) {
-  nl_error(3, "Illegal attempt to query value of a non-parameter");
-  return 0.;
-}
-
 ICOS_Float func_evaluator::set_param(ICOS_Float *a, ICOS_Float value) {
   nl_error(3, "Illegal attempt to set value of a non-parameter");
   return 0.;
@@ -177,22 +195,21 @@ ICOS_Float func_evaluator::set_param(ICOS_Float *a, ICOS_Float value) {
 // real work. This routine just evaluates all the
 // children so their results are available to
 // their parents.
-void func_evaluator::evaluate(ICOS_Float x, ICOS_Float *a) {
-  std::vector<func_evaluator*>::iterator child;
-  for (child = args.begin(); child < args.end(); ++child) {
-    (*child)->evaluate(x, a);
-  }
-}
+/**
+ * With version 3, evaluate() no longer recurses, since
+ * the execution order is determined during init().
+ */
+void func_evaluator::evaluate(ICOS_Float x, ICOS_Float *a) {}
 
 /**
  * @return non-zero if a parameter value has been changed.
  */
 int func_evaluator::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
-  std::vector<func_evaluator*>::iterator child;
+  std::vector<argref>::iterator child;
   int rv = 0;
 
-  for (child = args.begin(); child < args.end(); ++child) {
-    if ( (*child)->adjust_params( alamda, P, T, a ) )
+  for (child = args.begin(); child != args.end(); ++child) {
+    if ( child->arg->adjust_params( alamda, P, T, a ) )
       rv = 1;
   }
   return rv;
@@ -259,20 +276,48 @@ func_parameter::func_parameter(const char *name, ICOS_Float init_value,
         bool indexed, int idx) : func_evaluator(name,indexed,idx) {
   index = ++n_parameters;
   init_val = init_value;
+  refs_float = 0;
 }
 
 void func_parameter::init(ICOS_Float *a) {
+  func_evaluator::init(a);
   params.push_back(parameter(index));
   params.back().dyda = 1.0;
   a[index] = init_val;
+  // ia is initialized as all floating, so we will
+  // do the same on a per-reference basis. This means
+  // references must ask to fix.
+  refs_float = (1<<n_references)-1;
+  func_evaluator::init(a);
 }
 
-void func_parameter::fix_float_param(bool float_it) {
-  ia[params[0].index] = float_it ? 1 : 0;
+/**
+ * @param float_it true to float the parameter
+ * @param refnum The reference number
+ * If any reference wants the parameter to float, it will float.
+ * All references must request a parameter to be fixed before it is
+ * actually fixed.
+ * Note that parameters cannot be fixed or floated until after init()
+ * (or at least until init() has run on all dependents)
+ */
+void func_parameter::fix_float_param(bool float_it, unsigned int refnum) {
+  if (float_it) {
+    refs_float |= 1 << refnum;
+    ia[params[0].index] = 1;
+  } else {
+    refs_float &= ~(1U << refnum);
+    if (refs_float == 0)
+    ia[params[0].index] = 0;
+  }
 }
 
 bool func_parameter::param_fixed() {
   return ia[params[0].index] == 0;
+}
+
+ICOS_Float func_parameter::set_param(ICOS_Float *a, ICOS_Float value) {
+  this->value = a[params[0].index] = value;
+  return value;
 }
 
 void func_parameter::evaluate( ICOS_Float x, ICOS_Float *a ){
@@ -302,12 +347,12 @@ void func_parameter::evaluate( ICOS_Float x, ICOS_Float *a ){
 // void func_sum::evaluate(ICOS_Float x, ICOS_Float *a, int i) {
   // int j;
   // std::vector<parameter>::iterator param;
-  // std::vector<func_evaluator*>::iterator child;
+  // std::vector<argref>::iterator child;
 
   // value = 0.;
   // for (child = args.begin(); child != args.end(); ++child) {
-    // (*child)->evaluate(x,a);
-    // value += (*child)->value;
+    // child->arg->evaluate(x,a);
+    // value += child->arg->value;
   // }
   // for (param = params.begin(); param != params.end(); ++param) {
     // std::vector<paramref>::iteractor ref;
@@ -378,7 +423,7 @@ static ICOS_Float get_molwt( int isotopomer ) {
 
 //---------------------------------------------------------
 // func_line object has at least 3 parameters
-//   l_idx = 0: Fine location in cm-1
+//   dnu_idx = 0: Fine location in cm-1
 //   w_idx = 1: Doppler E-folding halfwidth in cm-1
 //   n_idx = 2: Number Density in molecules/cm3
 // These parameters are all initialized to zero.
@@ -395,7 +440,7 @@ static ICOS_Float get_molwt( int isotopomer ) {
 // delta = air-broadened pressure shift
 // ipos = sample number of line center at start
 //---------------------------------------------------------
-const int func_line::l_idx = 0;
+const int func_line::dnu_idx = 0;
 const int func_line::w_idx = 1;
 const int func_line::n_idx = 2;
 const double func_line::DRTPI = 0.5641895835477563; // 1/SQRT(pi)
@@ -413,7 +458,7 @@ func_line::func_line( const char *name, int mol, int iso,
   append_func(new func_parameter("dnu", 0., true, line_number));
   append_func(new func_parameter("gd", 1., true, line_number));
   append_func(new func_parameter("N", 0., true, line_number));
-  // params[l_idx].init = 0.;
+  // params[dnu_idx].init = 0.;
   // params[w_idx].init = 1.;
   // params[n_idx].init = 0.;
   fixed = 0;
@@ -436,17 +481,24 @@ func_line::func_line( const char *name, int mol, int iso,
   S_thresh = threshold;
   ipos = ipos_in;
   Corr_Tref = 1/(exp(-C2 * E / Tref ) * (1-exp(-C2*nu/Tref)));
+  nu_F0_idx = -1;
 }
 
 func_line::~func_line() {
   delete(QT);
 }
 
+unsigned int func_line::adopted(func_evaluator *new_parent) {
+  append_func(new_parent->args[0].arg);
+  nu_F0_idx = args.size()-1;
+  return func_evaluator::adopted(new_parent);
+}
+
 void func_line::init(ICOS_Float *a) {
+  func_evaluator::init(a);
   if (fix_width) fix_param( w_idx );
   if (QT == 0)
     QT = new QTdata(isotopomer);
-  func_evaluator::init(a);
 }
 
 void func_line::print_config( FILE *fp ) {
@@ -523,7 +575,7 @@ int func_line::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICO
                       line_number, strength );
           line_float();
           return 1;
-        } else nl_error( 0, "NOT re-ICOS_Floating line %d",
+        } else nl_error( 0, "NOT re-floating line %d",
                   line_number );
       }
     }
@@ -550,9 +602,9 @@ ICOS_Float func_line::line_end(ICOS_Float *a) {
 int func_evaluator::line_check(int include, ICOS_Float& start, ICOS_Float& end,
                 ICOS_Float P, ICOS_Float T, ICOS_Float *a) {
 
-  std::vector<func_evaluator*>::iterator arg;
+  std::vector<argref>::iterator arg;
   for (arg = args.begin(); arg != args.end(); ++arg) {
-    if ((*arg)->line_check(include, start, end, P, T, a))
+    if (arg->arg->line_check(include, start, end, P, T, a))
       return 1;
   }
   return 0;
@@ -561,9 +613,9 @@ int func_evaluator::line_check(int include, ICOS_Float& start, ICOS_Float& end,
 int func_evaluator::skew_samples() {
   int rv = 0;
   int frv;
-  std::vector<func_evaluator*>::iterator arg;
+  std::vector<argref>::iterator arg;
   for (arg = args.begin(); arg != args.end(); ++arg) {
-    frv = (*arg)->skew_samples();
+    frv = arg->arg->skew_samples();
     if ( frv > rv ) rv = frv;
   }
   return rv;
@@ -577,9 +629,9 @@ void func_evaluator::dump_params(ICOS_Float *a, int indent) {
   print_indent( stderr, indent );
   fprintf( stderr, "Parameters for '%s':\n", name );
   indent += 2;
-  std::vector<func_evaluator*>::iterator arg;
+  std::vector<argref>::iterator arg;
   for (arg = args.begin(); arg != args.end(); ++arg) {
-    (*arg)->dump_params(a, indent);
+    arg->arg->dump_params(a, indent);
   }
 }
 
@@ -696,17 +748,21 @@ int func_line::line_check(int include, ICOS_Float& start, ICOS_Float& end,
 }
 
 void func_line::line_fix() {
-  func_abs *p = (func_abs *)parent;
-  fix_param(l_idx);
-  p->fix_linepos(line_number);
+  // func_abs *p = (func_abs *)parent;
+  fix_param(dnu_idx);
+  fix_param(nu_F0_idx);
+  //p->fix_linepos(line_number);
   fix_param(w_idx);
   fixed = 1;
 }
 
 void func_line::line_float() {
-  func_abs *p = (func_abs *)parent;
-  // float_param(l_idx);
-  if ( fix_finepos == 0 ) p->float_linepos(line_number);
+  // func_abs *p = (func_abs *)parent;
+  if ( fix_finepos == 0 ) {
+    float_param(dnu_idx);
+    float_param(nu_F0_idx);
+  }
+  // if ( fix_finepos == 0 ) p->float_linepos(line_number);
   if ( fix_width == 0 ) float_param(w_idx);
   fixed = 0;
 }
@@ -729,7 +785,7 @@ void func_line::line_float() {
 void gaussian::evaluate(ICOS_Float x, ICOS_Float *a) {
   static const ICOS_Float four_log_2 = 4 * log(2.);
   static const ICOS_Float fl2_pi = sqrt(four_log_2/M_PI);
-  ICOS_Float dnu = a[params[l_idx].index];
+  ICOS_Float dnu = a[params[dnu_idx].index];
   ICOS_Float w = a[params[w_idx].index];
   ICOS_Float s = a[params[n_idx].index];
   assert( s >= 0. );
@@ -741,7 +797,7 @@ void gaussian::evaluate(ICOS_Float x, ICOS_Float *a) {
   ICOS_Float v2 = exp( - diff2 * four_log_2 / w2 );
   value = v1 * v2;
   params[n_idx].dyda = fl2_pi * v2 / w;
-  params[l_idx].dyda = 2*v1*v2*diff*four_log_2/w2;
+  params[dnu_idx].dyda = 2*v1*v2*diff*four_log_2/w2;
   ICOS_Float v3 = fl2_pi * s * v2 / w2;
   params[w_idx].dyda = -(v3/w) + v3 * 2 * diff2 * four_log_2 / w2;
 }
@@ -751,7 +807,7 @@ void gaussian::evaluate(ICOS_Float x, ICOS_Float *a) {
 //---------------------------------------------------------
 // ### This needs to be fixed for wavenumber scale
 void lorentzian::evaluate(ICOS_Float x, ICOS_Float *a) {
-  ICOS_Float dnu = a[params[l_idx].index];
+  ICOS_Float dnu = a[params[dnu_idx].index];
   ICOS_Float w = a[params[w_idx].index];
   ICOS_Float s = a[params[n_idx].index];
   int xx = int(x);
@@ -760,7 +816,7 @@ void lorentzian::evaluate(ICOS_Float x, ICOS_Float *a) {
   ICOS_Float v12 = v1 * v1;
   value = 2 * w * s / v1;
   params[n_idx].dyda = 2 * w / v1;
-  params[l_idx].dyda = 16*M_PI*w*s*diff / v12;
+  params[dnu_idx].dyda = 16*M_PI*w*s*diff / v12;
   params[w_idx].dyda = (2*s*v1 - 4*M_PI*s*w*w)/v12;
 }
 
@@ -772,20 +828,20 @@ void lorentzian::evaluate(ICOS_Float x, ICOS_Float *a) {
 // func_quad: second-order polynomial fit
 //    Currently unused
 //----------------------------------------------------------
-// const int func_quad::q_idx = 0, func_quad::l_idx = 1, func_quad::c_idx = 2;
+// const int func_quad::q_idx = 0, func_quad::dnu_idx = 1, func_quad::c_idx = 2;
 
 // func_quad::func_quad(ICOS_Float q, ICOS_Float l, ICOS_Float c) : func_evaluator("quad") {
   // params[q_idx].init = q;
-  // params[l_idx].init = l;
+  // params[dnu_idx].init = l;
   // params[c_idx].init = c;
 // }
 
 // void func_quad::evaluate(ICOS_Float x, ICOS_Float *a) {
   // ICOS_Float q = a[params[q_idx].index];
-  // ICOS_Float l = a[params[l_idx].index];
+  // ICOS_Float l = a[params[dnu_idx].index];
   // ICOS_Float c = a[params[c_idx].index];
   // value = q*x*x + l*x + c;
   // params[q_idx].dyda = x*x;
-  // params[l_idx].dyda = x;
+  // params[dnu_idx].dyda = x;
   // params[c_idx].dyda = 1;
 // }

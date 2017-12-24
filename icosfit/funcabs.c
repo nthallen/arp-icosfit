@@ -54,19 +54,19 @@ int func_abs::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS
   // won't be changing.
   // static ICOS_Float max_drift_per_sec = 30; // 8
   int rv = 0;
-  int lines_ICOS_Floating = 0;
+  int lines_floating = 0;
   func_line *child;
   for ( child = lfirst(); child != 0; child = child->lnext() ) {
     if ( child->adjust_params( alamda, P, T, a ) )
       rv = 1;
-    if ( ! child->fixed ) lines_ICOS_Floating++;
+    if ( ! child->fixed ) lines_floating++;
   }
-  if ( lines_ICOS_Floating == 0 && ! param_fixed(0) ) {
+  if ( lines_floating == 0 && ! param_fixed(0) ) {
     nl_error( 0, "Fixing nu_F0" );
     fix_param(0);
     rv = 1;
   }
-  if ( alamda == 0 && lines_ICOS_Floating > 0 && param_fixed(0) ) {
+  if ( alamda == 0 && lines_floating > 0 && param_fixed(0) ) {
     nl_error( 0, "Floating nu_F0" );
     float_param(0);
     rv = 1;
@@ -97,7 +97,7 @@ int func_abs::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS
   { int p1 = 1;
     for ( child = lfirst(); child != 0; child = child->lnext() ) {
       ICOS_Float dnu = get_param( a, p1 );
-      child->set_param( a, child->l_idx, nu_F0 + dnu );
+      child->set_param( a, child->dnu_idx, nu_F0 + dnu );
       if ( ! param_fixed(p1)) {
         if ( fabs(dnu) > GlobalData.TolerableDrift ) {
           nl_error( 0,
@@ -117,64 +117,34 @@ int func_abs::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS
   return rv;
 }
 
-void func_abs::fix_linepos( int linenum ) {
-  fix_param( linenum*5 - 4 );
-}
+// void func_abs::fix_linepos( int linenum ) {
+  // fix_param( linenum*5 - 4 );
+// }
 
-void func_abs::float_linepos( int linenum ) {
-  float_param( linenum*5 - 4 );
-}
+// void func_abs::float_linepos( int linenum ) {
+  // float_param( linenum*5 - 4 );
+// }
 
-void func_abs::append_func( func_line *newfunc ) {
-  func_evaluator::append_func(newfunc);
-  n_params += 1 + newfunc->n_params;
-}
+// void func_abs::append_func( func_line *newfunc ) {
+  // func_evaluator::append_func(newfunc);
+  // n_params += 1 + newfunc->n_params;
+// }
 
-// Too much of this is copied from func_evaluator::init.
-// This goes to the general issue of more clearly characterizing
-// what a parameter is. The problem is for func_abs we are
-// abandoning the assumption of independence.
+/**
+ * @param a The global parameter value vector.
+ * We mark nu_F0 as fixed so that it floats only when
+ * there are lines which are strong enough to float.
+ */
 void func_abs::init(ICOS_Float *a) {
   func_evaluator::init();
   fix_param(0); // nu_F0
-  // ### The lines' init functions now should be responsible
-  // ### for handling initialization line-fixing and setting init_vals
-  // func_evaluator *child;
-  // int p1, p2;
-
-
-  // // printf( "func_abs::init(%s); n_params=%d\n", name, n_params );
-  // // set_param(a, 0, 0.); // nu_F0 (oops, wrong init)
-  // // params[0].init_val = 0.; // nu_F0
-  // fix_param(0);
-  // p1 = 1; // skip nu_F0
-  // for ( child = first; child != 0; child = child->next ) {
-    // params[p1].init = 0.; // I'm pretty sure this is nu_F0+dnu or something
-    // fix_param(p1);
-    // p1++;
-    // if ( p1 + child->n_params > n_params ) {
-      // nl_error( 4, "Too many child params: n_params = %d\n", n_params );
-    // }
-    // if ( child->params == 0 )
-      // child->params = new parameter[child->n_params];
-    // for ( p2 = 0; p2 < child->n_params; p2++ ) {
-      // link_param( p1, child, p2 );
-      // p1++;
-    // }
-  // }
-  // for ( p2 = 0; p2 < n_params; p2++ )
-    // a[params[p2].index] = params[p2].init;
-  // for ( child = first; child != 0; child = child->next ) {
-    // child->init(a);
-    // child->fix_param(0);
-  // }
 }
 
 void func_abs::evaluate(ICOS_Float x, ICOS_Float *a) {
-  func_evaluator *child;
+  std::vector<argref>::iterator child;
   int p1, i;
   
-  func_evaluator::evaluate(x, a);
+  // func_evaluator::evaluate(x, a);
   params[0].dyda = 0.;
   value = 0;
   p1 = 1;
