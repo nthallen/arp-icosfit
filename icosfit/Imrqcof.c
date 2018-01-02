@@ -18,8 +18,10 @@ void fitdata::mrqcof( ICOS_Float *av, ICOS_Float **alpha, ICOS_Float *beta ) {
     beta[j]=0.0;
   }
   chisq=0.0;
+  func_evaluator::pre_eval_all(x[1], av);
   for (i=1;i<=npts;i++) {
-    func_evaluator::evaluate_all( x[i], av );
+    func_evaluator::evaluate_all(
+      func_evaluator::global_evaluation_order, x[i], av );
     if ( isnan( func->value ) ) {
       nl_error( 2, "evaluate x[%d]=%lf returned NaN", i, x[i] );
       longjmp(Fit_buf, 1);

@@ -9,13 +9,49 @@
 #include "global.h"
 #include "ptread.h"
 
-std::vector<func_evaluator*> func_evaluator::evaluation_order;
-void func_evaluator::evaluate(ICOS_Float x, ICOS_Float *a) {
+std::vector<func_evaluator*> func_evaluator::global_evaluation_order;
+std::vector<func_evaluator*> func_evaluator::pre_evaluation_order;
+
+void func_evaluator::evaluate_all(
+        std::vector<func_evaluator*> &order,
+        ICOS_Float x, ICOS_Float *a) {
   std::vector<func_evaluator*>::iterator func;
-  for (func = evaluation_order.begin();
-       func != evaluation_order.end();
+  for (func = order.begin();
+       func != order.end();
        ++func) {
     (*func)->evaluate(x, a);
+    (*func)->evaluate_partials();
+  }
+}
+
+void func_evaluator::pre_eval_all(
+        ICOS_Float x, ICOS_Float *a) {
+  std::vector<func_evaluator*>::iterator func;
+  for (func = pre_evaluation_order.begin();
+       func != pre_evaluation_order.end();
+       ++func) {
+    (*func)->pre_eval(x, a);
+  }
+}
+
+/**
+ * Evaluates the partial derivatives with respect to
+ * all relevant parameters. func_evaluator::evaluate()
+ * is responsible for calculating partials with respect
+ * to the arguments, which may be functions of other
+ * arguments and parameters. This finishes the calculation
+ * with respect to the underlying parameters.
+ */
+void func_evaluator::evaluate_partials() {
+  std::vector<parameter>::iterator p;
+  for (p = params.begin(); p != params.end(); ++p) {
+    p->dyda = 0;
+    std::vector<paramref>::iterator ref;
+    for (ref = p->refs.begin(); ref != p->refs.end(); ++ref) {
+      p->dyda += 
+        args[ref->arg_num].dyda *
+        args[ref->arg_num].arg->params[ref->param_num].dyda;
+    }
   }
 }
 
@@ -147,8 +183,6 @@ void func_evaluator::init(ICOS_Float *a) {
       pidx.insert(cp->index);
     }
   }
-  evaluation_order.push_back(this);
-  added_to_eval = true;
 }
 
 // a and ia are the 1-based vectors from mrqmin. i.e.
@@ -190,6 +224,11 @@ ICOS_Float func_evaluator::set_param(ICOS_Float *a, ICOS_Float value) {
   return 0.;
 }
 
+/**
+ * No-op method for virtual override by func_skew.
+ */
+void func_evaluator::pre_eval(ICOS_Float x, ICOS_Float *a) {}
+
 // evaluate is used as a helper function to the
 // routines in the derived classes that do the
 // real work. This routine just evaluates all the
@@ -198,6 +237,9 @@ ICOS_Float func_evaluator::set_param(ICOS_Float *a, ICOS_Float value) {
 /**
  * With version 3, evaluate() no longer recurses, since
  * the execution order is determined during init().
+ * Sub classes will override this method and are tasked
+ * with calculating value and the partial derivative with
+ * respect to each of their arguments (args).
  */
 void func_evaluator::evaluate(ICOS_Float x, ICOS_Float *a) {}
 
@@ -215,13 +257,34 @@ int func_evaluator::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T
   return rv;
 }
 
+// ### is_line(): Is this used?
+func_line *func_evaluator::is_line() { return 0; }
+
+void func_evaluator::set_evaluation_order(
+        std::vector<func_evaluator*> &order,
+        bool top, bool clear) {
+  if (top) {
+    set_evaluation_order(order, false, true);
+  }
+  std::vector<argref>::iterator arg;
+  for (arg = args.begin(); arg != args.end(); ++arg) {
+    arg->arg->set_evaluation_order(order, false, clear);
+  }
+  if (clear) {
+    added_to_eval = false;
+  } else if (!added_to_eval) {
+    order.push_back(this);
+    added_to_eval = true;
+  }
+}
+
 // /* clamp_param_high() is a method to be called from adjust_params.
    // It requires that the specified parameter has a high value set.
    // It will not take any action if the parameter is fixed.
 // */
 // void func_evaluator::clamp_param_high( ICOS_Float *a, int idx ) {
   // if ( ! param_fixed(idx) ) {
-    // ICOS_Float val = get_param(a,idx);
+    // ICOS_Float val = get_arg(a,idx);
     // ICOS_Float limit = params[idx].high;
     // if ( val > limit ) {
       // val = (params[idx].prev + limit)/2;
@@ -237,7 +300,7 @@ int func_evaluator::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T
 // */
 // void func_evaluator::clamp_param_low( ICOS_Float *a, int idx ) {
   // if ( ! param_fixed(idx) ) {
-    // ICOS_Float val = get_param(a,idx);
+    // ICOS_Float val = get_arg(a,idx);
     // ICOS_Float limit = params[idx].low;
     // if ( val < limit ) {
       // val = (params[idx].prev + limit)/2;
@@ -253,7 +316,7 @@ int func_evaluator::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T
 // */
 // void func_evaluator::clamp_param_highlow( ICOS_Float *a, int idx ) {
   // if ( ! param_fixed(idx) ) {
-    // ICOS_Float val = get_param(a,idx);
+    // ICOS_Float val = get_arg(a,idx);
     // ICOS_Float limit = params[idx].high;
     // if ( val > limit ) {
       // val = (params[idx].prev + limit)/2;
@@ -524,8 +587,8 @@ void func_line::print_intermediates(FILE *fp) {}
  * to zero for the final computation of the covariance matrix.
  * Otherwise it takes values greater than zero. In adjust_params(),
  * we use alamda primarily to identify initialization steps. In
- * particular, alamda == -2 on the very first initialization of
- * the program and then set to -1 at the beginning of each iteration
+ * particular, alamda == -2 on the first initialization of each
+ * fit and then set to -1 at the beginning of each iteration
  * step.
  */
 int func_line::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
@@ -537,7 +600,7 @@ int func_line::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICO
     nu_P = nu1 + delta * P/760.;
     rolledback = 0;
   }
-  ICOS_Float numdens = get_param( a, n_idx );
+  ICOS_Float numdens = get_arg( a, n_idx );
   // Negative number densities, although physically nonsensical,
   // are important for statistical purposes. If we arbitrarily
   // force the fit to return values >= 0, that pushes the mean
@@ -557,11 +620,11 @@ int func_line::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICO
         4.30213e-7 * nu * sqrt(T/molwt));
       prev_ged = gamma_ed;
     } else {
-      gamma_ed = get_param(a, w_idx);
+      gamma_ed = get_arg(a, w_idx);
     }
   } else {
     const ICOS_Float min_ged = 1e-3;
-    gamma_ed = get_param(a, w_idx);
+    gamma_ed = get_arg(a, w_idx);
     if ( gamma_ed <= min_ged )
       gamma_ed = set_param(a, w_idx, (prev_ged-min_ged)/2 + min_ged );
     prev_ged = gamma_ed;
@@ -589,14 +652,29 @@ int func_line::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICO
       return 1;
     }
   }
+  if ( ! param_fixed(dnu_idx)) {
+    ICOS_Float dnu = get_arg(a, dnu_idx);
+    if ( fabs(dnu) > GlobalData.TolerableDrift ) {
+      nl_error( 0,
+        "Increasing threshold for wandering line at %.4" FMT_F
+        ", dnu = %.4" FMT_F, nu, dnu );
+      line_fix();
+      S_thresh =
+        Ks * get_arg( a, n_idx ) /
+          get_arg(a, w_idx );
+      return 1;
+    }
+  }
   return 0;
 }
 
+func_line *func_line::is_line() { return this; }
+
 ICOS_Float func_line::line_start(ICOS_Float *a) {
-  return (nu_P - GlobalData.RightLineMarginMultiplier*get_param(a, w_idx));
+  return (nu_P - GlobalData.RightLineMarginMultiplier*get_arg(a, w_idx));
 }
 ICOS_Float func_line::line_end(ICOS_Float *a) {
-  return (nu_P + GlobalData.LeftLineMarginMultiplier*get_param(a, w_idx));
+  return (nu_P + GlobalData.LeftLineMarginMultiplier*get_arg(a, w_idx));
 }
 
 int func_evaluator::line_check(int include, ICOS_Float& start, ICOS_Float& end,
@@ -644,6 +722,9 @@ void func_evaluator::print_indent( FILE *fp, int indent ) {
   while (indent-- > 0) fputc(' ', fp );
 }
 
+void func_evaluator::print_config(FILE *fp) {}
+void func_evaluator::print_intermediates(FILE *fp) {}
+
 // line_check(include, start, end, P, T, a );
 // operates in three passes. First, include is set to 0 to
 // indicate the 'exclude' step. A line is excluded if it
@@ -683,7 +764,7 @@ int func_line::line_check(int include, ICOS_Float& start, ICOS_Float& end,
     if ( ! fixed && ( ls < start || le > end ) ) {
       ICOS_Float save_thresh = S_thresh;
       line_fix();
-      S_thresh = Ks * get_param(a, n_idx)*2/get_param(a, w_idx);
+      S_thresh = Ks * get_arg(a, n_idx)*2/get_arg(a, w_idx);
       adjust_params( -1, P, T, a );
       ls = line_start(a);
       le = line_end(a);
@@ -785,7 +866,8 @@ void func_line::line_float() {
 void gaussian::evaluate(ICOS_Float x, ICOS_Float *a) {
   static const ICOS_Float four_log_2 = 4 * log(2.);
   static const ICOS_Float fl2_pi = sqrt(four_log_2/M_PI);
-  ICOS_Float dnu = a[params[dnu_idx].index];
+  ICOS_Float dnu = a[params[dnu_idx].index] +
+    a[params[nu_F0_idx].index];
   ICOS_Float w = a[params[w_idx].index];
   ICOS_Float s = a[params[n_idx].index];
   assert( s >= 0. );
@@ -796,10 +878,11 @@ void gaussian::evaluate(ICOS_Float x, ICOS_Float *a) {
   ICOS_Float diff2 = diff * diff;
   ICOS_Float v2 = exp( - diff2 * four_log_2 / w2 );
   value = v1 * v2;
-  params[n_idx].dyda = fl2_pi * v2 / w;
-  params[dnu_idx].dyda = 2*v1*v2*diff*four_log_2/w2;
+  args[n_idx].dyda = fl2_pi * v2 / w;
+  args[dnu_idx].dyda = args[nu_F0_idx].dyda =
+    2*v1*v2*diff*four_log_2/w2;
   ICOS_Float v3 = fl2_pi * s * v2 / w2;
-  params[w_idx].dyda = -(v3/w) + v3 * 2 * diff2 * four_log_2 / w2;
+  args[w_idx].dyda = -(v3/w) + v3 * 2 * diff2 * four_log_2 / w2;
 }
 
 //---------------------------------------------------------
@@ -807,7 +890,8 @@ void gaussian::evaluate(ICOS_Float x, ICOS_Float *a) {
 //---------------------------------------------------------
 // ### This needs to be fixed for wavenumber scale
 void lorentzian::evaluate(ICOS_Float x, ICOS_Float *a) {
-  ICOS_Float dnu = a[params[dnu_idx].index];
+  ICOS_Float dnu = a[params[dnu_idx].index] +
+    a[params[nu_F0_idx].index];
   ICOS_Float w = a[params[w_idx].index];
   ICOS_Float s = a[params[n_idx].index];
   int xx = int(x);
@@ -815,9 +899,10 @@ void lorentzian::evaluate(ICOS_Float x, ICOS_Float *a) {
   ICOS_Float v1 = M_PI * ( 4 * diff *diff + w * w );
   ICOS_Float v12 = v1 * v1;
   value = 2 * w * s / v1;
-  params[n_idx].dyda = 2 * w / v1;
-  params[dnu_idx].dyda = 16*M_PI*w*s*diff / v12;
-  params[w_idx].dyda = (2*s*v1 - 4*M_PI*s*w*w)/v12;
+  args[n_idx].dyda = 2 * w / v1;
+  args[dnu_idx].dyda = args[nu_F0_idx].dyda =
+    16*M_PI*w*s*diff / v12;
+  args[w_idx].dyda = (2*s*v1 - 4*M_PI*s*w*w)/v12;
 }
 
 //----------------------------------------------------------

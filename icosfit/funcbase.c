@@ -62,13 +62,13 @@ void func_base_svdx::evaluate( ICOS_Float x, ICOS_Float *a ) {
   int ix = (int)x;
   if ( ix < 1 || ix > n_pts )
     nl_error( 3,
-      "x out of range in func_base::evaluate: %d", ix );
+      "x out of range in func_base_svdx::evaluate: %d", ix );
   value = 0.;
   for (i = 0; i < args.size(); ++i) {
-    ICOS_Float ai = get_param( a, i );
+    ICOS_Float ai = get_arg( a, i );
     ICOS_Float bix = baseline[i][ix];
     value += ai * bix;
-    params[i].dyda = bix;
+    args[i].dyda = bix;
   }
 }
 
@@ -206,16 +206,16 @@ void func_base_ptbnu::init( ICOS_Float *a ) {
 }
 
 // given x and parameters a, calculate value and
-// params[].dyda
+// args[].dyda
 void func_base_ptbnu::evaluate( ICOS_Float x, ICOS_Float *a ) {
   int ix = int(x);
   ICOS_Float nu = 0.;
 
   value = 0;
   if ( uses_nu_F0 ) {
-    ICOS_Float nu_F0 = get_param(a,0);
+    ICOS_Float nu_F0 = get_arg(a,0);
     nu = ICOSfile::wndata->data[ix] + nu_F0;
-    params[0].dyda = 0;
+    args[0].dyda = 0;
   }
   if ( cfg.n_vectors ) {
     ICOS_Float bins = (nu-cfg.nu0)/cfg.dnu;
@@ -225,12 +225,12 @@ void func_base_ptbnu::evaluate( ICOS_Float x, ICOS_Float *a ) {
     int nui = (int) floor(bins);
     ICOS_Float fbin = bins - nui; // fraction of a bin
     for ( int i = 0; i < cfg.n_vectors; i++ ) {
-      ICOS_Float ai = get_param(a, i+uses_nu_F0);
+      ICOS_Float ai = get_arg(a, i+uses_nu_F0);
       ICOS_Float dvdnui = dvdnu[i][nui];
       ICOS_Float vnui = vectors[i][nui] + fbin * cfg.dnu * dvdnui;
       value += ai * vnui;
-      params[0].dyda += ai * dvdnui;
-      params[i+uses_nu_F0].dyda = vnui;
+      args[0].dyda += ai * dvdnui;
+      args[i+uses_nu_F0].dyda = vnui;
     }
   }
   // Now for the polynomials
@@ -239,21 +239,21 @@ void func_base_ptbnu::evaluate( ICOS_Float x, ICOS_Float *a ) {
     ICOS_Float prevpower = 1;
     for ( int i = 0; i <= cfg.poly_coeffs; i++ ) {
       int pi = i + uses_nu_F0 + cfg.n_vectors;
-      ICOS_Float ai = get_param(a,pi);
+      ICOS_Float ai = get_arg(a,pi);
       value += ai * nupower;
-      params[pi].dyda = nupower;
-      params[0].dyda += i*ai*prevpower;
+      args[pi].dyda = nupower;
+      args[0].dyda += i*ai*prevpower;
       prevpower = nupower;
       nupower *= nu;
     }
   } else {
-    value += get_param(a,cfg.n_vectors+uses_nu_F0); // Constant
-    params[cfg.n_vectors+uses_nu_F0].dyda = 1;
+    value += get_arg(a,cfg.n_vectors+uses_nu_F0); // Constant
+    args[cfg.n_vectors+uses_nu_F0].dyda = 1;
     for ( int i = 0; i < cfg.poly_coeffs-1; i++ ) {
       int pi = uses_nu_F0 + cfg.n_vectors + 1 + i;
       ICOS_Float xpower = polyvecs[i][ix];
-      value += get_param(a,pi) * xpower;
-      params[pi].dyda = xpower;
+      value += get_arg(a,pi) * xpower;
+      args[pi].dyda = xpower;
     }
   }
 }
@@ -270,7 +270,8 @@ void func_base_input::init(ICOS_Float *a) {
   func_evaluator::init(a);
   assert(args.size() == 2);
   // This could be is_parameter()
-  assert(args[0].arg->args.size() == 0 && args[0].arg->params.size() == 1);
+  assert(args[0].arg->args.size() == 0 &&
+         args[0].arg->params.size() == 1);
   for (unsigned int i = 1; i < params.size(); ++i) {
     assert(params[i].refs.size() == 1);
     assert(params[i].refs[0].arg_num == 1);
@@ -291,18 +292,10 @@ void func_base_input::init(ICOS_Float *a) {
 
 void func_base_input::evaluate( ICOS_Float x, ICOS_Float *a ) {
   int ix = int(x);
-  func_evaluator::evaluate(x, a); // evaluate base
-  value = args[0].arg->value * ICOSfile::bdata->data[ix] + args[1].arg->value;
-  // value = a[params[uses_nu_F0].index]*ICOSfile::bdata->data[ix] + first->value;
-  params[0].dyda = ICOSfile::bdata->data[ix];
-  // params[uses_nu_F0].dyda = ICOSfile::bdata->data[ix];
-  std::vector<parameter>::iterator pi;
-  for (pi = ++params.begin(); pi != params.end(); ++pi) {
-    // I can hard code args[1] based on assert() in init()
-    // I also do not need to iterate over refs, as we
-    // asserted that there is only one
-    (*pi).dyda = args[1].arg->params[(*pi).refs[0].param_num].dyda;
-  }
+  value = args[0].arg->value * ICOSfile::bdata->data[ix] +
+    args[1].arg->value;
+  args[0].dyda = ICOSfile::bdata->data[ix];
+  args[1].dyda = 1;
 }
 
 func_base *pick_base_type(const char *filename, func_parameter *nu_F0) {

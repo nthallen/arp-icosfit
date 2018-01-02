@@ -29,7 +29,7 @@ voigt::voigt( int mol, int iso,
     : func_line( "voigt", mol, iso, nu_in, S_in, G_air_in, E_in,
                    n_in, delta_in, ipos_in, threshold, fix_dw,
                    fix_fp ) {
-  //params[gl_idx].init = 0.; ### This needs to happen during init()
+  append_func(new func_parameter("Gl", 0.));
   prev_gl = 0.;
   prev_y = 0.;
   fix_lwidth = fix_lw;
@@ -39,8 +39,8 @@ voigt::voigt( int mol, int iso,
 // Liz's old lecture notes (Webster?) and is attributed to
 // Olivero and Longbothum.
 ICOS_Float voigt::line_width(ICOS_Float *a) {
-  ICOS_Float ged = get_param(a, w_idx);
-  ICOS_Float gl = get_param(a, gl_idx);
+  ICOS_Float ged = get_arg(a, w_idx);
+  ICOS_Float gl = get_arg(a, gl_idx);
   ICOS_Float wid = .5346*gl + sqrt(.2166*gl*gl + .69315*ged*ged);
   return wid;
 }
@@ -76,10 +76,10 @@ ICOS_Float voigt::line_end(ICOS_Float *a) {
 }
 
 void voigt::evaluate( ICOS_Float xx, ICOS_Float *a ) {
-  ICOS_Float numdens = get_param(a,n_idx);
-  ICOS_Float gamma_ed = get_param(a,w_idx);
-  ICOS_Float gamma_l = get_param(a,gl_idx);
-  ICOS_Float dnu = get_param(a,dnu_idx);
+  ICOS_Float numdens = get_arg(a,n_idx);
+  ICOS_Float gamma_ed = get_arg(a,w_idx);
+  ICOS_Float gamma_l = get_arg(a,gl_idx);
+  ICOS_Float dnu = get_arg(a,dnu_idx);
   int ixx = int(xx);
 
   // X, Y and K now private object members
@@ -282,13 +282,13 @@ void voigt::evaluate( ICOS_Float xx, ICOS_Float *a ) {
   }    // Not region A
   
   ICOS_Float sed = Ks/gamma_ed;
-  params[n_idx].dyda = sed * K;
+  args[n_idx].dyda = sed * K;
   sed *= numdens; // Ks*N/Ged
   value = sed * K;
   sed /= gamma_ed; // Ks*N/Ged^2
-  params[dnu_idx].dyda = sed * DKDX;
-  params[w_idx].dyda = -sed * ( K + X * DKDX + Y * DKDY );
-  params[gl_idx].dyda = sed * DKDY;
+  args[dnu_idx].dyda = args[nu_F0_idx].dyda = sed * DKDX;
+  args[w_idx].dyda = -sed * ( K + X * DKDX + Y * DKDY );
+  args[gl_idx].dyda = sed * DKDY;
 }
 
 /** adjust_params
@@ -330,7 +330,7 @@ int voigt::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Fl
       prev_gl = gamma_l;
     }
   } else {
-    gamma_l = get_param(a, gl_idx);
+    gamma_l = get_arg(a, gl_idx);
     if ( gamma_l <= 0. )
       gamma_l = set_param(a, gl_idx, prev_gl/2 );
     prev_gl = gamma_l;

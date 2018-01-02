@@ -25,6 +25,7 @@ class parameter {
 };
 
 class func_evaluator;
+class func_line;
 
 class argref {
   public:
@@ -32,13 +33,18 @@ class argref {
       arg(arg_in), refnum(rn) {}
     func_evaluator *arg;
     unsigned int refnum;
+    ICOS_Float dyda; ///< Partial with respect to this argument
 };
 
 class func_evaluator {
   public:
     func_evaluator(const char *name, bool indexed = false, int index = 0); 
-    static void evaluate_all(ICOS_Float x, ICOS_Float *a);
+    static void evaluate_all(std::vector<func_evaluator*> &order,
+        ICOS_Float x, ICOS_Float *a);
     virtual void evaluate(ICOS_Float x, ICOS_Float *a);
+    static void pre_eval_all(ICOS_Float x, ICOS_Float *a);
+    virtual void pre_eval(ICOS_Float x, ICOS_Float *a);
+    void evaluate_partials();
     void init( ICOS_Float *a, int *ia );
     virtual void init(ICOS_Float *a);
     void append_func(func_evaluator *newfunc);
@@ -51,19 +57,25 @@ class func_evaluator {
       args[i].arg->fix_float_param(false,args[i].refnum); }
     inline void float_param(int i) {
       args[i].arg->fix_float_param(true,args[i].refnum); }
-    inline ICOS_Float get_param( ICOS_Float *a, int idx ) {
+    inline ICOS_Float get_arg( ICOS_Float *a, int idx ) {
       return args[idx].arg->value;
     }
     virtual ICOS_Float set_param(ICOS_Float *a, ICOS_Float value);
     inline ICOS_Float set_param(ICOS_Float *a, int idx, ICOS_Float value) {
       return args[idx].arg->set_param(a, value);
     }
-    virtual int adjust_params(ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a);
+    virtual int adjust_params(ICOS_Float alamda, ICOS_Float P,
+      ICOS_Float T, ICOS_Float *a);
+    virtual func_line *is_line();
     virtual int line_check(int include, ICOS_Float& start, ICOS_Float& end,
                             ICOS_Float P, ICOS_Float T, ICOS_Float *a);
     virtual int skew_samples();
     virtual void dump_params(ICOS_Float *a, int indent);
     void print_indent( FILE *fp, int indent );
+    virtual void print_config(FILE *fp);
+    virtual void print_intermediates(FILE *fp);
+    void set_evaluation_order(std::vector<func_evaluator*> &order,
+        bool top = true, bool clear = false);
 
     // int n_params;
     std::vector<argref> args;
@@ -76,8 +88,9 @@ class func_evaluator {
     // func_evaluator *first;
     // func_evaluator *last;
     // func_evaluator *next;
+    static std::vector<func_evaluator*> global_evaluation_order;
+    static std::vector<func_evaluator*> pre_evaluation_order;
   protected:
-    static std::vector<func_evaluator*> evaluation_order;
     bool added_to_eval;
 };
 
@@ -164,7 +177,9 @@ class func_line : public func_evaluator {
       int fix_fp );
     ~func_line();
     unsigned int adopted(func_evaluator *new_parent);
-    int adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a );
+    int adjust_params( ICOS_Float alamda, ICOS_Float P,
+        ICOS_Float T, ICOS_Float *a );
+    func_line *is_line();
     static const int dnu_idx, w_idx, n_idx;
     int nu_F0_idx;
     static int n_lines;
@@ -182,7 +197,7 @@ class func_line : public func_evaluator {
     int line_check(int include, ICOS_Float& start, ICOS_Float& end,
             ICOS_Float P, ICOS_Float T, ICOS_Float *a);
     void print_config(FILE *fp);
-    virtual void print_intermediates(FILE *fp);
+    void print_intermediates(FILE *fp);
     //--------------------------------------------------
     int isotopomer;
     double nu;
@@ -366,16 +381,51 @@ extern func_base *pick_base_type(const char *filename, func_parameter *nu_F0);
 //-------------
 // func_skew.c
 //-------------
+class func_beta : public func_evaluator {
+  public:
+    func_beta(func_abs *abs);
+    void evaluate(ICOS_Float x, ICOS_Float *a);
+};
+
+class func_gamma : public func_evaluator {
+  public:
+    func_gamma(func_beta *beta);
+    void evaluate(ICOS_Float x, ICOS_Float *a);
+  private:
+    ICOS_Float R2;
+};
+
+class func_epsilon : public func_evaluator {
+  public:
+    func_epsilon(func_gamma *gamma);
+    void evaluate(ICOS_Float x, ICOS_Float *a);
+  private:
+    ICOS_Float N;
+};
+
+class func_delta : public func_evaluator {
+  public:
+    func_delta(func_epsilon *epsilon, func_gamma *gamma);
+    void evaluate(ICOS_Float x, ICOS_Float *a);
+};
+
+class func_g : public func_evaluator {
+  public:
+    func_g(func_base *base, func_beta *beta, func_delta *delta);
+    void evaluate(ICOS_Float x, ICOS_Float *a);
+};
+
 class skew_data {
   public:
     skew_data();
-    void set_n_params(int n_gp, int n_ap);
+    void set_n_params(int n_gp, int n_epsp);
     ICOS_Float g;
     ICOS_Float *dg; // allocate n_params
-    ICOS_Float *da; // allocate n_params
-    ICOS_Float gN;
+    ICOS_Float eps;
+    ICOS_Float *deps; // allocate n_params
     ICOS_Float Power;
     int initialized;
+    int n;
 };
 
 // func_skew applies the cell skew function of ICOS. Its two
@@ -386,11 +436,12 @@ class skew_data {
 // The skew member is used as an M-element circular buffer.
 class func_skew : public func_evaluator {
   public:
-    func_skew(func_base *base, func_abs *abs);
-    void init(ICOS_Float *a);
+    func_skew(func_g *g, func_epsilon *epsilon);
+    // void init(ICOS_Float *a);
+    void pre_eval(ICOS_Float x, ICOS_Float *a);
     void evaluate(ICOS_Float x, ICOS_Float *a);
     int skew_samples();
-    void dump_params(ICOS_Float *a, int indent);
+    // void dump_params(ICOS_Float *a, int indent);
   private:
     ICOS_Float N;
     int M;
@@ -398,9 +449,8 @@ class func_skew : public func_evaluator {
     skew_data *skew; // We will have M of these
     ICOS_Float prev_x;
     int skewidx;
-    int n_base_params, n_abs_params;
-    func_base *basep;
-    func_abs *absp;
+    func_evaluator *basep;
+    std::vector<func_evaluator*> skew_eval_order;
 };
 
 // func_noskew calculates absorption for a simple multi-pass
@@ -411,9 +461,9 @@ class func_skew : public func_evaluator {
 class func_noskew : public func_evaluator {
   public:
     func_noskew(func_base *base, func_abs *abs);
-    void init(ICOS_Float *a);
+    // void init(ICOS_Float *a);
     void evaluate(ICOS_Float x, ICOS_Float *a);
-    void dump_params(ICOS_Float *a, int indent);
+    // void dump_params(ICOS_Float *a, int indent);
   private:
     ICOS_Float N_Passes;
     int n_base_params, n_abs_params;
