@@ -13,6 +13,9 @@ func_beta::func_beta(func_abs *abs)
 void func_beta::evaluate(ICOS_Float x, ICOS_Float *a) {
   value = exp(-args[0].arg->value);
   args[0].dyda = -value;
+  if ( isnan(value) ) {
+    nl_error(2,"Absorb(%.0lf) is NaN", x);
+  }
 }
 
 func_gamma::func_gamma(func_beta *beta)
@@ -63,6 +66,9 @@ void func_g::evaluate(ICOS_Float x, ICOS_Float *a) {
   ICOS_Float P = args[0].arg->value;
   ICOS_Float beta = args[1].arg->value;
   ICOS_Float delta = args[2].arg->value;
+  if ( isnan(P) ) {
+    nl_error(2,"Base(%.0lf) is NaN", x);
+  }
   value = P*beta*delta;
   args[0].dyda = beta*delta;
   args[1].dyda = P*delta;
@@ -105,15 +111,13 @@ func_skew::func_skew( func_g *g, func_epsilon *eps ) :
   R2N = pow(R2,N);
   P_scale = (1-R2N)/(1-R2);
   M = (int) ceil(log(GlobalData.SkewTolerance)/(2*N*log(R)));
-  prev_x = -1.;
   skew = new skew_data[M];
   int i;
   for ( i = 0; i < M; i++ )
     skew[i].set_n_params( args[0].arg->params.size(),
       args[1].arg->params.size());
-  set_evaluation_order(skew_eval_order);
-  skew_eval_order.pop_back(); // Don't need to evaluate this
-  pre_evaluation_order.push_back(this);
+  skew_eval_order.set_children(this);
+  pre_evaluation_order.add(this);
 }
 
 // Assign the first parameters to base's parameters
@@ -161,10 +165,57 @@ void func_skew::pre_eval(ICOS_Float x, ICOS_Float *a) {
     R2N = pow(R2,N);
     P_scale = (1-R2N)/(1-R2);
   }
-  for ( i = 0; i < M; i++ ) skew[i].initialized = 0;
-  xi = x - M + 1.;
+  for ( int i = 0; i < M; i++ )
+    skew[i].initialized = 0;
   skewidx = 0;
-  
+  for (ICOS_Float xi = x - M + 1.; xi < x; ++xi) {
+    skew_eval_order.evaluate(xi, a);
+    sub_eval(xi, a);
+  }
+}
+
+/**
+ * Reinitializes skew[skewidx] with n=0 and iterates
+ * all the other elements that have been initialized
+ */
+void func_skew::sub_eval(ICOS_Float x, ICOS_Float *a) {
+  int i;
+  func_evaluator *arg;
+  for (i = 0; i < M; ++i) {
+    skew_data *curskew = &skew[i];
+    if (i == skewidx) {
+      curskew->n = 0;
+      arg = args[0].arg;
+      curskew->g = arg->value;
+      // base is arg[0] of func_g, which is arg[0] of
+      // func_skew
+      curskew->Power = basep->value;
+      for (unsigned j = 0; j < arg->params.size(); ++j) {
+        curskew->dg[j] = arg->params[j].dyda;
+      }
+      arg = args[1].arg;
+      curskew->eps = arg->value;
+      for (unsigned j = 0; j < arg->params.size(); ++j) {
+        curskew->deps[j] = arg->params[j].dyda * curskew->g;
+      }
+      curskew->initialized = 1;
+    } else if (skew[i].initialized) {
+      arg = args[0].arg;
+      curskew->g *= curskew->eps;
+      curskew->Power *= R2N;
+      for (unsigned j = 0; j < arg->params.size(); ++j) {
+        curskew->dg[j] *= curskew->eps;
+      }
+      if (++curskew->n > 1) {
+        arg = args[1].arg;
+        for (unsigned j = 0; j < arg->params.size(); ++j) {
+          curskew->deps[j] *= curskew->eps;
+        }
+      }
+    }
+  }
+  if (++skewidx == M)
+    skewidx = 0;
 }
 
 // We depend on the fact that the functions are evaluated
@@ -178,91 +229,41 @@ void func_skew::pre_eval(ICOS_Float x, ICOS_Float *a) {
 // comparison with the raw data, we need to estimate the
 // output power in the absence of absorption.
 void func_skew::evaluate(ICOS_Float x, ICOS_Float *a) {
-  ICOS_Float xi;
-  int i, j;
-  if ( prev_x < 0 || x < prev_x ) {
-    if (GlobalData.PTE_MirrorLoss_col) {
-      ICOS_Float R = 1 - GlobalData.input.MirrorLoss;
-      R2 = R*R;
-      R2N = pow(R2,N);
-      P_scale = (1-R2N)/(1-R2);
-    }
-    for ( i = 0; i < M; i++ ) skew[i].initialized = 0;
-    xi = x - M + 1.;
-    skewidx = 0;
-  } else {
-    xi = x;
+  sub_eval(x, a);
+  value = 0;
+  ICOS_Float Pwr = 0;
+  for (int i = 0; i < M; i++) {
+    skew_data *cs = &skew[i];
+    value += cs->g;
+    Pwr += cs->Power;
   }
-  prev_x = x;
-  for ( ; xi <= x; xi += 1. ) {
-    skew_data *curskew;
-    skew[skewidx].initialized = 0;
-    for ( i = 0; i < M; i++ ) {
-      curskew = &skew[i];
-      if ( curskew->initialized ) {
-        ICOS_Float *dg = curskew->dg;
-        
-        curskew->g *= curskew->eps; // eqn. [5']
-        curskew->Power *= R2N;
-	
-	// the following two loops implement the recursion
-	// defined in eqn. [8]
-        for ( j = 0; j < n_params; j++ ) {
-          dg[j] *= curskew->gN;
-        }
-        for ( j = 0; j < n_abs_params; j++ ) {
-          dg[j + n_base_params] -= 2 * N * curskew->g * curskew->da[j];
+  basep->value = Pwr * P_scale; // For diagnostic output
+}
+
+void func_skew::evaluate_partials() {
+  std::vector<parameter>::iterator p;
+  for (p = params.begin(); p != params.end(); ++p) {
+    p->dyda = 0;
+  }
+  for (int i = 0; i < M; i++) {
+    skew_data *cs = &skew[i];
+    for (p = params.begin(); p != params.end(); ++p) {
+      std::vector<paramref>::iterator ref;
+      for (ref = p->refs.begin(); ref != p->refs.end(); ++ref) {
+        if (ref->arg_num == 0) {
+          p->dyda += cs->dg[ref->param_num];
+        } else {
+          p->dyda += cs->n*cs->deps[ref->param_num];
         }
       }
     }
-    curskew = &skew[skewidx];
-    func_evaluator::evaluate(xi, a); // evaluate base and abs
-    ICOS_Float P  = first->value;
-    double al = last->value;
-    if ( isnan(P) ) {
-      nl_error(2,"Base(%.0lf) is NaN", xi);
-    }
-    if ( isnan(al) ) {
-      nl_error(2,"Absorb(%.0lf) is NaN", xi);
-    }
-    double be = exp(-al);
-    double ga = R2*be*be;
-    double gN = pow(ga,N);
-    double de = (gN - 1)/(ga - 1);
-    double ga_m1 = 2/(ga-1);
-    curskew->gN = gN;
-    curskew->g = first->value * be * de;
-    curskew->Power = P;
-    for (i = 0; i < n_abs_params; i++ )
-      curskew->da[i] = last->params[i].dyda;
-    for (i = 0; i < n_base_params; i++ )
-      curskew->dg[i] = be * de * first->params[i+basep->uses_nu_F0].dyda;
-    for (i = 0; i < n_abs_params; i++ )
-      curskew->dg[i+n_base_params] =
-        (curskew->g*(ga_m1*ga - 2*N - 1) -
-          ga_m1*N*be*P) * last->params[i].dyda;
-    if ( basep->uses_nu_F0)
-      curskew->dg[n_base_params] += be * de * first->params[0].dyda;
-    curskew->initialized = 1;
-    if ( ++skewidx == M ) skewidx = 0;
   }
-  value = 0;
-  ICOS_Float P = 0;
-  for ( j = 0; j < n_params; j++ ) params[j].dyda = 0;
-  for ( i = 0; i < M; i++ ) {
-    ICOS_Float *dg = skew[i].dg;
-    value += skew[i].g;
-    P += skew[i].Power;
-    for ( j = 0; j < n_params; j++ )
-      params[j].dyda += dg[j];
-  }
-  first->value = P * P_scale; // For diagnostic output
 }
 
-void func_skew::dump_params(ICOS_Float *a, int indent) {
-  print_indent( stderr, indent );
-  fprintf( stderr, "Parameters for '%s':\n", name );
-  indent += 2;
-  basep->dump_params( a, indent );
-  absp->dump_params( a, indent );
-}
+// void func_skew::dump_params(ICOS_Float *a, int indent) {
+  // print_indent( stderr, indent );
+  // fprintf( stderr, "Parameters for '%s':\n", name );
+  // indent += 2;
+  // basep->dump_params( a, indent );
+  // absp->dump_params( a, indent );
+// }

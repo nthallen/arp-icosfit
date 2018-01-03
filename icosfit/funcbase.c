@@ -72,7 +72,7 @@ void func_base_svdx::evaluate( ICOS_Float x, ICOS_Float *a ) {
   }
 }
 
-func_base_ptbnu::func_base_ptbnu(const char *filename, func_parameter *nu_F0) :
+func_base_ptbnu::func_base_ptbnu(const char *filename, func_evaluator *nu_F0) :
     func_base( "func_base_ptbnu" ) {
   // uses_nu_F0 = 0;
   // The file format is specified in funceval.h
@@ -298,7 +298,7 @@ void func_base_input::evaluate( ICOS_Float x, ICOS_Float *a ) {
   args[1].dyda = 1;
 }
 
-func_base *pick_base_type(const char *filename, func_parameter *nu_F0) {
+func_base *pick_base_type(const char *filename, func_evaluator *nu_F0) {
   func_base *base;
   FILE *fp = fopen( filename, "r" );
   if ( fp == 0 )

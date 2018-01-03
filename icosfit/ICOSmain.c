@@ -115,11 +115,17 @@ fitdata *build_func() {
   } else {
     if ( GlobalData.SampleRate == 0 )
       nl_error(3, "SampleRate required for skew calculation" );
-    func = new func_skew( base, abs );
+    func_beta *beta = new func_beta(abs);
+    func_gamma *gamma = new func_gamma(beta);
+    func_epsilon *eps = new func_epsilon(gamma);
+    func = new func_skew(
+        new func_g(base, beta, new func_delta(eps, gamma)), eps);
     nl_error( 0, "Using func_skew()" );
   }
-  { func_line *line;
-    for ( line = abs->lfirst(); line != 0; line = line->lnext() ) {
+  std::vector<argref>::iterator child;
+  for (child = abs->args.begin(); child != abs->args.end(); ++child) {
+    func_line *line = child->arg->is_line();
+    if (line) {
       fitdata::n_input_params += 2;
     }
   }
@@ -138,7 +144,7 @@ fitdata *build_func() {
     fnamep = output_filename( GlobalData.MFile );
     fp = fopen( fnamep, "w" );
     if ( fp == 0 ) nl_error( 3, "Unable to open MFile '%s'", fnamep );
-    assert( abs != 0 && abs->first != 0 && abs->first->params != 0 );
+    assert( abs != 0 && abs->args.size() != 0 && abs->args[0].arg->params.size() != 0 );
     fprintf( fp,
       "%% ICOS configuration data\n"
       "ICOSfit_format_ver = 2;\n"

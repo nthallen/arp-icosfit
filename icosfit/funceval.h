@@ -36,15 +36,26 @@ class argref {
     ICOS_Float dyda; ///< Partial with respect to this argument
 };
 
+class evaluation_order {
+  public:
+    std::vector<func_evaluator*> order;
+    void set(func_evaluator *func, bool top = true, bool clear = false);
+    void set_children(func_evaluator *func);
+    void add(func_evaluator *func);
+    void evaluate(ICOS_Float x, ICOS_Float *a);
+    void pre_eval(ICOS_Float x, ICOS_Float *a);
+    void init(ICOS_Float *a);
+};
+
 class func_evaluator {
   public:
     func_evaluator(const char *name, bool indexed = false, int index = 0); 
-    static void evaluate_all(std::vector<func_evaluator*> &order,
-        ICOS_Float x, ICOS_Float *a);
+    //static void evaluate_all(std::vector<func_evaluator*> &order,
+    //    ICOS_Float x, ICOS_Float *a);
     virtual void evaluate(ICOS_Float x, ICOS_Float *a);
     static void pre_eval_all(ICOS_Float x, ICOS_Float *a);
     virtual void pre_eval(ICOS_Float x, ICOS_Float *a);
-    void evaluate_partials();
+    virtual void evaluate_partials();
     void init( ICOS_Float *a, int *ia );
     virtual void init(ICOS_Float *a);
     void append_func(func_evaluator *newfunc);
@@ -74,8 +85,8 @@ class func_evaluator {
     void print_indent( FILE *fp, int indent );
     virtual void print_config(FILE *fp);
     virtual void print_intermediates(FILE *fp);
-    void set_evaluation_order(std::vector<func_evaluator*> &order,
-        bool top = true, bool clear = false);
+    // void set_evaluation_order(std::vector<func_evaluator*> &order,
+    //    bool top = true, bool clear = false);
 
     // int n_params;
     std::vector<argref> args;
@@ -88,9 +99,8 @@ class func_evaluator {
     // func_evaluator *first;
     // func_evaluator *last;
     // func_evaluator *next;
-    static std::vector<func_evaluator*> global_evaluation_order;
-    static std::vector<func_evaluator*> pre_evaluation_order;
-  protected:
+    static evaluation_order global_evaluation_order;
+    static evaluation_order pre_evaluation_order;
     bool added_to_eval;
 };
 
@@ -349,7 +359,7 @@ class func_base_svdx : public func_base {
 // Can use global SignalRegion to determine range of x
 class func_base_ptbnu : public func_base {
   public:
-    func_base_ptbnu(const char *filename, func_parameter *nu_F0);
+    func_base_ptbnu(const char *filename, func_evaluator *nu_F0);
     void evaluate(ICOS_Float x, ICOS_Float *a);
     void init(ICOS_Float *a);
   private:
@@ -375,7 +385,7 @@ class func_base_input : public func_base {
   private:
 };
 
-extern func_base *pick_base_type(const char *filename, func_parameter *nu_F0);
+extern func_base *pick_base_type(const char *filename, func_evaluator *nu_F0);
 
 
 //-------------
@@ -440,17 +450,19 @@ class func_skew : public func_evaluator {
     // void init(ICOS_Float *a);
     void pre_eval(ICOS_Float x, ICOS_Float *a);
     void evaluate(ICOS_Float x, ICOS_Float *a);
+    void evaluate_partials();
     int skew_samples();
     // void dump_params(ICOS_Float *a, int indent);
   private:
+    void sub_eval(ICOS_Float x, ICOS_Float *a);
     ICOS_Float N;
     int M;
     ICOS_Float R2, R2N, P_scale;
     skew_data *skew; // We will have M of these
-    ICOS_Float prev_x;
+    // ICOS_Float prev_x;
     int skewidx;
     func_evaluator *basep;
-    std::vector<func_evaluator*> skew_eval_order;
+    evaluation_order skew_eval_order;
 };
 
 // func_noskew calculates absorption for a simple multi-pass

@@ -9,28 +9,54 @@
 #include "global.h"
 #include "ptread.h"
 
-std::vector<func_evaluator*> func_evaluator::global_evaluation_order;
-std::vector<func_evaluator*> func_evaluator::pre_evaluation_order;
+evaluation_order func_evaluator::global_evaluation_order;
+evaluation_order func_evaluator::pre_evaluation_order;
 
-void func_evaluator::evaluate_all(
-        std::vector<func_evaluator*> &order,
-        ICOS_Float x, ICOS_Float *a) {
+void evaluation_order::set(func_evaluator*func, bool top, bool clear) {
+  if (top) {
+    set(func, false, true);
+  }
+  std::vector<argref>::iterator arg;
+  for (arg = func->args.begin(); arg != func->args.end(); ++arg) {
+    set(arg->arg, false, clear);
+  }
+  if (clear) {
+    func->added_to_eval = false;
+  } else if (!func->added_to_eval) {
+    order.push_back(func);
+    func->added_to_eval = true;
+  }
+}
+
+void evaluation_order::set_children(func_evaluator*func) {
+  set(func, false, true);
+  func->added_to_eval = true;
+  set(func, false, false);
+}
+
+void evaluation_order::add(func_evaluator*func) {
+  order.push_back(func);
+}
+
+void evaluation_order::evaluate(ICOS_Float x, ICOS_Float *a) {
   std::vector<func_evaluator*>::iterator func;
-  for (func = order.begin();
-       func != order.end();
-       ++func) {
+  for (func = order.begin(); func != order.end(); ++func) {
     (*func)->evaluate(x, a);
     (*func)->evaluate_partials();
   }
 }
 
-void func_evaluator::pre_eval_all(
-        ICOS_Float x, ICOS_Float *a) {
+void evaluation_order::pre_eval(ICOS_Float x, ICOS_Float *a) {
   std::vector<func_evaluator*>::iterator func;
-  for (func = pre_evaluation_order.begin();
-       func != pre_evaluation_order.end();
-       ++func) {
+  for (func = order.begin(); func != order.end(); ++func) {
     (*func)->pre_eval(x, a);
+  }
+}
+
+void evaluation_order::init(ICOS_Float *a) {
+  std::vector<func_evaluator*>::iterator func;
+  for (func = order.begin(); func != order.end(); ++func) {
+    (*func)->init(a);
   }
 }
 
@@ -149,7 +175,8 @@ void func_evaluator::init(ICOS_Float *a) {
   std::vector<argref>::iterator child;
   std::set<int> pidx;
   
-  if (added_to_eval) return; // Already done this
+  if (added_to_eval) return;
+  added_to_eval = true;
   for (child = args.begin(); child != args.end(); ++child) {
     child->arg->init(a);
     // child now has params defined
@@ -259,24 +286,6 @@ int func_evaluator::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T
 
 // ### is_line(): Is this used?
 func_line *func_evaluator::is_line() { return 0; }
-
-void func_evaluator::set_evaluation_order(
-        std::vector<func_evaluator*> &order,
-        bool top, bool clear) {
-  if (top) {
-    set_evaluation_order(order, false, true);
-  }
-  std::vector<argref>::iterator arg;
-  for (arg = args.begin(); arg != args.end(); ++arg) {
-    arg->arg->set_evaluation_order(order, false, clear);
-  }
-  if (clear) {
-    added_to_eval = false;
-  } else if (!added_to_eval) {
-    order.push_back(this);
-    added_to_eval = true;
-  }
-}
 
 // /* clamp_param_high() is a method to be called from adjust_params.
    // It requires that the specified parameter has a high value set.

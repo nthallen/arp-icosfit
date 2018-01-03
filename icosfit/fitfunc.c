@@ -46,7 +46,7 @@ fitdata::fitdata( PTfile *ptf, ICOSfile *IF,
   Start = End = 0;
   npts = npts_vec = 0;
   x = y = sig = 0;
-  ma = func->n_params;
+  ma = func->params.size();
   a    = vector(1,ma);
   a_save = vector(1,ma);
   atry = vector(1,ma);
@@ -62,6 +62,7 @@ fitdata::fitdata( PTfile *ptf, ICOSfile *IF,
   alpha = matrix( 1, ma, 1, ma );
   mfit = 0;
   mf_size = 0;
+  func_evaluator::global_evaluation_order.set(f);
 }
 
 #define RESTART_BUFSIZE 4096
@@ -145,9 +146,10 @@ void fitdata::handle_restart( const char *ofname ) {
       }
       fclose( ifp );
       IFile->read( ScanNum ); // To initialize wndata
-      { func_line *line;
-        for ( line = absorb->lfirst(); line != 0; line = line->lnext() ) {
-          if ( line->param_fixed( line->dnu_idx ) ) {
+      { std::vector<argref>::iterator arg;
+        for (arg = absorb->args.begin(); arg != absorb->args.end(); ++arg) {
+          func_line *line = arg->arg->is_line();
+          if ( line && line->param_fixed( line->dnu_idx ) ) {
             line->fixed = 1;
             if ( line->param_fixed( line->n_idx ) )
               nl_error( 0, "Line at %.4" FMT_F " is off", line->nu );
@@ -240,7 +242,7 @@ int fitdata::fit( ) {
   // if ( child != 0 ) {
   {
     // Wavenumber decreases with sample number
-    ICOS_Float nu_F0 = absorb->get_param( a, 0 ); // + GlobalData.input.nu_F0;
+    ICOS_Float nu_F0 = absorb->get_arg( a, 0 ); // + GlobalData.input.nu_F0;
     ICOS_Float wnStart = IFile->wndata->data[SignalEnd] + nu_F0;
     ICOS_Float wnEnd = IFile->wndata->data[SignalStart] + nu_F0;
     while ( func->line_check( 0, wnStart, wnEnd, PTf->P, PTf->T, a ) != 0 );
@@ -307,17 +309,21 @@ int fitdata::fit( ) {
       // quadratic baseline file.
       
       // initialize sig to avoid the lines
-      ICOS_Float nu_F0 = absorb->get_param( a, 0 );
+      ICOS_Float nu_F0 = absorb->get_arg( a, 0 );
       for ( i = 1; i <= npts; i++ ) {
         sig[i] = 1;
-        func_line *child;
-        for (child = absorb->lfirst(); child != 0; child = child->lnext() ) {
-          if ( x[i] > IFile->wn_sample(child->line_end(a) - nu_F0) &&
-               x[i] < IFile->wn_sample(child->line_start(a) - nu_F0) )
-            sig[i] = 0;
+        std::vector<argref>::iterator child;
+        
+        for (child = absorb->args.begin(); child != absorb->args.end(); ++child) {
+          func_line *line = child->arg->is_line();
+          if (line) {
+            if ( x[i] > IFile->wn_sample(line->line_end(a) - nu_F0) &&
+                 x[i] < IFile->wn_sample(line->line_start(a) - nu_F0) )
+              sig[i] = 0;
+          }
         }
       } 
-      lfit(x,y,sig,npts,a,ia,base->n_params,covar,&chisq, BaseFitFunction);
+      lfit(x,y,sig,npts,a,ia,base->params.size(),covar,&chisq, BaseFitFunction);
       FitBaseline = 0;
     }
 
@@ -420,8 +426,7 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
         if (verbose & 128)
           absorb->print_intermediates(vofp);
         if (verbose & 16) {
-          int j;
-          for ( j = 0; j < func->n_params; j++ ) {
+          for (unsigned j = 0; j < func->params.size(); j++ ) {
             if ( func->param_fixed(j) )
               fprintf( vofp, " 0" );
             else
@@ -446,10 +451,13 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
     fprintf( ofp, "%6d %6.2lf %6.2lf %12.5le %d %d",
       fileno, PTf->P, PTf->T, chisq/(End-Start-mfit+1),
       Start, End);
-    { func_line *line;
-      for ( line = absorb->lfirst(); line != 0; line = line->lnext() ) {
-        fprintf( ofp, " %d %12.5le", line->fixed, line->S_thresh );
-        n_i_p += 2;
+    { std::vector<argref>::iterator child;
+      for (child = absorb->args.begin(); child != absorb->args.end(); ++child) {
+        func_line *line = child->arg->is_line();
+        if (line) {
+          fprintf( ofp, " %d %12.5le", line->fixed, line->S_thresh );
+          n_i_p += 2;
+        }
       }
     }
     assert(n_i_p == n_input_params);
@@ -460,9 +468,12 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
       fprintf( ofp, " %d", ia[i] );
     }
     if (verbose & 128) {
-      func_line *line;
-      for ( line = absorb->lfirst(); line != 0; line = line->lnext() ) {
-        fprintf(ofp, " %13.7le %13.7le", line->Corr_Tref, line->Ks);
+      std::vector<argref>::iterator child;
+      for (child = absorb->args.begin(); child != absorb->args.end(); ++child) {
+        func_line *line = child->arg->is_line();
+        if (line) {
+          fprintf(ofp, " %13.7le %13.7le", line->Corr_Tref, line->Ks);
+        }
       }
     }
     fprintf( ofp, "\n" );
