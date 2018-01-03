@@ -23,7 +23,7 @@ void evaluation_order::set(func_evaluator*func, bool top, bool clear) {
   if (clear) {
     func->added_to_eval = false;
   } else if (!func->added_to_eval) {
-    order.push_back(func);
+    add(func);
     func->added_to_eval = true;
   }
 }
@@ -175,10 +175,8 @@ void func_evaluator::init(ICOS_Float *a) {
   std::vector<argref>::iterator child;
   std::set<int> pidx;
   
-  if (added_to_eval) return;
-  added_to_eval = true;
   for (child = args.begin(); child != args.end(); ++child) {
-    child->arg->init(a);
+    // child->arg->init(a);
     // child now has params defined
     std::vector<parameter>::iterator cp;
     for (cp = child->arg->params.begin(); cp < child->arg->params.end(); ++cp) {
@@ -223,7 +221,8 @@ void func_evaluator::init(ICOS_Float *a) {
 void func_evaluator::init( ICOS_Float *a, int *ia ) {
   // printf( "func_evaluator::init( %s, a, ia );\n", name );
   func_parameter::set_ia(ia);
-  init(a); // initialize all func_evaluators
+  global_evaluation_order.init(a);
+  // init(a); // initialize all func_evaluators
 }
 
 /**
@@ -352,7 +351,7 @@ func_parameter::func_parameter(const char *name, ICOS_Float init_value,
 }
 
 void func_parameter::init(ICOS_Float *a) {
-  func_evaluator::init(a);
+  func_evaluator::init(a); // This should do nothing
   params.push_back(parameter(index));
   params.back().dyda = 1.0;
   a[index] = init_val;

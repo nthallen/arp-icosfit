@@ -57,12 +57,12 @@ fitdata::fitdata( PTfile *ptf, ICOSfile *IF,
   if ( a == 0 || ia == 0 )
     nl_error( 3, "Out of memory in fitdata::fitdata" );
   for ( i = 1; i <= ma; i++ ) ia[i] = 1;
+  func_evaluator::global_evaluation_order.set(f);
   f->init( a, ia );
   covar = matrix( 1, ma, 1, ma );
   alpha = matrix( 1, ma, 1, ma );
   mfit = 0;
   mf_size = 0;
-  func_evaluator::global_evaluation_order.set(f);
 }
 
 #define RESTART_BUFSIZE 4096

@@ -30,7 +30,7 @@ class func_line;
 class argref {
   public:
     inline argref(func_evaluator *arg_in, unsigned int rn) :
-      arg(arg_in), refnum(rn) {}
+      arg(arg_in), refnum(rn), dyda(0) {}
     func_evaluator *arg;
     unsigned int refnum;
     ICOS_Float dyda; ///< Partial with respect to this argument
