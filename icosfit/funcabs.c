@@ -161,8 +161,8 @@ void func_abs::evaluate(ICOS_Float x, ICOS_Float *a) {
   }
 }
 
-void func_abs::dump_params(ICOS_Float *a, int indent) {
-  func_evaluator::dump_params(a, indent);
+// void func_abs::dump_params(ICOS_Float *a, int indent) {
+  // func_evaluator::dump_params(a, indent);
   // std::vector<argref>::iterator child;
   // int indx, p1;
 
@@ -182,4 +182,4 @@ void func_abs::dump_params(ICOS_Float *a, int indent) {
     // child->dump_params( a, indent );
     // p1 += 1 + child->n_params;
   // }
-}
+// }

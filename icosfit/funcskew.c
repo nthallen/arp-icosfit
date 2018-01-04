@@ -84,7 +84,10 @@ void func_g::evaluate(ICOS_Float x, ICOS_Float *a) {
 
 skew_data::skew_data() {
   dg = deps = 0;
-  g = eps = 9.;
+  g = eps = 0.;
+  Power = 0.;
+  initialized = 0;
+  n = 0;
 }
 
 void skew_data::set_n_params(int n_gp, int n_epsp ) {
@@ -112,10 +115,6 @@ func_skew::func_skew( func_g *g, func_epsilon *eps ) :
   P_scale = (1-R2N)/(1-R2);
   M = (int) ceil(log(GlobalData.SkewTolerance)/(2*N*log(R)));
   skew = new skew_data[M];
-  int i;
-  for ( i = 0; i < M; i++ )
-    skew[i].set_n_params( args[0].arg->params.size(),
-      args[1].arg->params.size());
   skew_eval_order.set_children(this);
   pre_evaluation_order.add(this);
 }
@@ -123,7 +122,12 @@ func_skew::func_skew( func_g *g, func_epsilon *eps ) :
 // Assign the first parameters to base's parameters
 // Then if base->uses_nu_F0, link abs's first parameter
 // to our first (which is base's first, which is nu_F0)
-// void func_skew::init(ICOS_Float *a) {
+void func_skew::init(ICOS_Float *a) {
+  func_evaluator::init(a);
+  for (int i = 0; i < M; i++ )
+    skew[i].set_n_params( args[0].arg->params.size(),
+      args[1].arg->params.size());
+}
   // func_evaluator *child;
   // int p1 = 0;
   // int p2;

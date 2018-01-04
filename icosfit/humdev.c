@@ -50,23 +50,23 @@ void voigt::init(ICOS_Float*a) {
   func_line::init(a);
 }
 
-void voigt::dump_params(ICOS_Float *a, int indent) {
-  print_indent( stderr, indent );
-  fprintf( stderr, "Parameters for '%s' %.4" FMT_F " cm-1:\n", name, nu );
-  indent += 2;
-  print_indent( stderr, indent );
-  fprintf( stderr, "[%2d] dnu: %" FMT_G " cm-1\n", params[dnu_idx].index,
-    a[params[dnu_idx].index] );
-  print_indent( stderr, indent );
-  fprintf( stderr, "[%2d] Ged: %" FMT_G " cm-1\n", params[w_idx].index,
-    a[params[w_idx].index] );
-  print_indent( stderr, indent );
-  fprintf( stderr, "[%2d]   N: %" FMT_G " mol/cm-3\n", params[n_idx].index,
-    a[params[n_idx].index] );
-  print_indent( stderr, indent );
-  fprintf( stderr, "[%2d]  Gl: %" FMT_G " cm-1\n", params[gl_idx].index,
-    a[params[gl_idx].index] );
-}
+// void voigt::dump_params(ICOS_Float *a, int indent) {
+  // print_indent( stderr, indent );
+  // fprintf( stderr, "Parameters for '%s' %.4" FMT_F " cm-1:\n", name, nu );
+  // indent += 2;
+  // print_indent( stderr, indent );
+  // fprintf( stderr, "[%2d] dnu: %" FMT_G " cm-1\n", params[dnu_idx].index,
+    // a[params[dnu_idx].index] );
+  // print_indent( stderr, indent );
+  // fprintf( stderr, "[%2d] Ged: %" FMT_G " cm-1\n", params[w_idx].index,
+    // a[params[w_idx].index] );
+  // print_indent( stderr, indent );
+  // fprintf( stderr, "[%2d]   N: %" FMT_G " mol/cm-3\n", params[n_idx].index,
+    // a[params[n_idx].index] );
+  // print_indent( stderr, indent );
+  // fprintf( stderr, "[%2d]  Gl: %" FMT_G " cm-1\n", params[gl_idx].index,
+    // a[params[gl_idx].index] );
+// }
 
 ICOS_Float voigt::line_start(ICOS_Float*a) {
   return (nu_P - GlobalData.RightLineMarginMultiplier*line_width(a));

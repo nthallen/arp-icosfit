@@ -45,6 +45,9 @@ class evaluation_order {
     void evaluate(ICOS_Float x, ICOS_Float *a);
     void pre_eval(ICOS_Float x, ICOS_Float *a);
     void init(ICOS_Float *a);
+    void dump();
+    int adjust_params(ICOS_Float alamda,
+      ICOS_Float P, ICOS_Float T, ICOS_Float *a);
 };
 
 class func_evaluator {
@@ -81,7 +84,8 @@ class func_evaluator {
     virtual int line_check(int include, ICOS_Float& start, ICOS_Float& end,
                             ICOS_Float P, ICOS_Float T, ICOS_Float *a);
     virtual int skew_samples();
-    virtual void dump_params(ICOS_Float *a, int indent);
+    virtual void dump_params();
+    virtual void dump_partials();
     void print_indent( FILE *fp, int indent );
     virtual void print_config(FILE *fp);
     virtual void print_intermediates(FILE *fp);
@@ -113,7 +117,8 @@ class func_parameter : public func_evaluator {
     bool param_fixed();
     ICOS_Float set_param(ICOS_Float *a, ICOS_Float value);
     void evaluate( ICOS_Float x, ICOS_Float *a );
-    void dump_params(ICOS_Float *a, int indent);
+    void evaluate_partials();
+    void dump_params();
     static inline void set_ia(int *ia) { func_parameter::ia = ia; }
     
     void clamp_param_high( ICOS_Float *a, int idx );
@@ -122,6 +127,7 @@ class func_parameter : public func_evaluator {
     // End of possible functions
     
     int index; ///< Parameter's global index
+    static int n_parameters;
   protected:
     ICOS_Float init_val; ///< Initialization value
     uint32_t refs_float; ///< Bit-mapped
@@ -130,7 +136,6 @@ class func_parameter : public func_evaluator {
     // ICOS_Float prev;
   private:
     static int *ia; ///< The 1-based vector of parameter fix/float settings
-    static int n_parameters;
 };
 
 // func_aggregate and its derived classes assume all the
@@ -245,7 +250,7 @@ class func_abs : public func_evaluator {
     void print_intermediates(FILE *fp);
     // void fix_linepos(int linenum);
     // void float_linepos(int linenum);
-    void dump_params(ICOS_Float *a, int indent);
+    // void dump_params(ICOS_Float *a, int indent);
 };
 typedef func_abs *func_abs_p;
 typedef func_line *func_line_p;
@@ -289,7 +294,7 @@ class voigt : public func_line {
     int adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a );
     void line_fix();
     void line_float();
-    void dump_params(ICOS_Float *a, int indent);
+    //void dump_params(ICOS_Float *a, int indent);
     void print_intermediates(FILE *fp);
 
   private:
@@ -447,7 +452,7 @@ class skew_data {
 class func_skew : public func_evaluator {
   public:
     func_skew(func_g *g, func_epsilon *epsilon);
-    // void init(ICOS_Float *a);
+    void init(ICOS_Float *a);
     void pre_eval(ICOS_Float x, ICOS_Float *a);
     void evaluate(ICOS_Float x, ICOS_Float *a);
     void evaluate_partials();

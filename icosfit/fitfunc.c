@@ -46,7 +46,7 @@ fitdata::fitdata( PTfile *ptf, ICOSfile *IF,
   Start = End = 0;
   npts = npts_vec = 0;
   x = y = sig = 0;
-  ma = func->params.size();
+  ma = func_parameter::n_parameters;
   a    = vector(1,ma);
   a_save = vector(1,ma);
   atry = vector(1,ma);
@@ -180,7 +180,8 @@ static FILE *pathopen( const char *path, const char *format, int fileno ) {
 }
 
 int fitdata::adjust_params( ICOS_Float *av ) {
-  return func->adjust_params( alamda, PTf->P, PTf->T, av );
+  return func_evaluator::global_evaluation_order.adjust_params(alamda,
+    PTf->P, PTf->T, av );
 }
 
 void print_matrix( ICOS_Float **mat, const char *name, int nrow, int ncol ) {
@@ -400,7 +401,8 @@ int fitdata::fit( ) {
     // return 0;
   } else {
     nl_error(1, "Failure after %d iterations", counter);
-    func->dump_params(a, 0);
+    func_evaluator::global_evaluation_order.dump();
+    // func->dump_params(a, 0);
     return 0;
   }
 }

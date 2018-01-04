@@ -16,8 +16,8 @@ void evaluation_order::set(func_evaluator*func, bool top, bool clear) {
   if (top) {
     set(func, false, true);
   }
-  std::vector<argref>::iterator arg;
-  for (arg = func->args.begin(); arg != func->args.end(); ++arg) {
+  std::vector<argref>::reverse_iterator arg;
+  for (arg = func->args.rbegin(); arg != func->args.rend(); ++arg) {
     set(arg->arg, false, clear);
   }
   if (clear) {
@@ -57,6 +57,26 @@ void evaluation_order::init(ICOS_Float *a) {
   std::vector<func_evaluator*>::iterator func;
   for (func = order.begin(); func != order.end(); ++func) {
     (*func)->init(a);
+  }
+}
+
+int evaluation_order::adjust_params(ICOS_Float alamda, ICOS_Float P,
+      ICOS_Float T, ICOS_Float *a) {
+  int rv = 0;
+  std::vector<func_evaluator*>::iterator func;
+  for (func = order.begin(); func != order.end(); ++func) {
+    if ((*func)->adjust_params(alamda, P, T, a))
+      rv = 1;
+  }
+  return rv;
+}
+
+void evaluation_order::dump() {
+  fprintf(stderr, "Evaluation State:\n");
+  std::vector<func_evaluator*>::reverse_iterator func;
+  for (func = order.rbegin(); func != order.rend(); ++func) {
+    (*func)->dump_params();
+    (*func)->dump_partials();
   }
 }
 
@@ -106,7 +126,6 @@ func_evaluator::func_evaluator(const char *sname, bool indexed, int idx) {
 void func_evaluator::append_func( func_evaluator *newfunc) {
   // printf( "func_evaluator::append_func(%s, %s)\n", name, newfunc->name );
   args.push_back(argref(newfunc, newfunc->adopted(this)));
-  newfunc->adopted(this);
 }
 
 /**
@@ -273,14 +292,15 @@ void func_evaluator::evaluate(ICOS_Float x, ICOS_Float *a) {}
  * @return non-zero if a parameter value has been changed.
  */
 int func_evaluator::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
-  std::vector<argref>::iterator child;
-  int rv = 0;
+  // std::vector<argref>::iterator child;
+  // int rv = 0;
 
-  for (child = args.begin(); child != args.end(); ++child) {
-    if ( child->arg->adjust_params( alamda, P, T, a ) )
-      rv = 1;
-  }
-  return rv;
+  // for (child = args.begin(); child != args.end(); ++child) {
+    // if ( child->arg->adjust_params( alamda, P, T, a ) )
+      // rv = 1;
+  // }
+  // return rv;
+  return 0;
 }
 
 // ### is_line(): Is this used?
@@ -393,6 +413,12 @@ ICOS_Float func_parameter::set_param(ICOS_Float *a, ICOS_Float value) {
 
 void func_parameter::evaluate( ICOS_Float x, ICOS_Float *a ){
   value = a[index];
+}
+
+/**
+ * Does nothing. Partial is always 1.0
+ */
+void func_parameter::evaluate_partials() {
 }
 
 //---------------------------------------------------------
@@ -711,19 +737,39 @@ int func_evaluator::skew_samples() {
 // at times of failure. The default version simply lists
 // all the parameters and their values without recursing
 // to children, but overrides can delegate to children.
-void func_evaluator::dump_params(ICOS_Float *a, int indent) {
-  print_indent( stderr, indent );
-  fprintf( stderr, "Parameters for '%s':\n", name );
-  indent += 2;
+void func_evaluator::dump_params() {
+  // print_indent( stderr, indent );
+  const char *comma = "";
+  int len = fprintf( stderr, "  %s(", name );
   std::vector<argref>::iterator arg;
   for (arg = args.begin(); arg != args.end(); ++arg) {
-    arg->arg->dump_params(a, indent);
+    if (len+strlen(arg->arg->name) > 50) {
+      fprintf(stderr, "%s\n      ", comma);
+      len = 6;
+      comma = "";
+    }
+    len += fprintf(stderr, "%s%s", comma, arg->arg->name);
+    comma = ",";
+  }
+  fprintf(stderr, ") = %" FMT_G "\n", value);
+  for (arg = args.begin(); arg != args.end(); ++arg) {
+    fprintf(stderr, "    d(%s)/d(%s) = %" FMT_G "\n",
+      name, arg->arg->name, arg->dyda);
+    comma = ",";
   }
 }
 
-void func_parameter::dump_params(ICOS_Float *a, int indent) {
-  print_indent( stderr, indent );
-  fprintf( stderr, "%s = %" FMT_G "\n", name, a[params[0].index]);
+void func_evaluator::dump_partials() {
+  fprintf(stderr, "Partials with respect to parameters for %s():\n", name);
+  std::vector<parameter>::iterator param;
+  for (param = params.begin(); param != params.end(); ++param) {
+    fprintf(stderr, "  /d[%d] = %" FMT_G "\n", param->index, param->dyda);
+  }
+}
+
+void func_parameter::dump_params() {
+  // print_indent( stderr, indent );
+  fprintf( stderr, "  %s (a[%d]) = %" FMT_G "\n", name, params[0].index, value);
 }
 
 void func_evaluator::print_indent( FILE *fp, int indent ) {
