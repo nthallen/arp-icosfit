@@ -414,15 +414,18 @@ const int fitdata::ScanNum_col = 1;
 void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
   int i;
   if ( vofp != 0 ) {
+    // Write verbose output file
     jmp_buf Fit_buf_save;
     memcpy( Fit_buf_save, Fit_buf, sizeof(Fit_buf) );
     // Fit_buf_save = Fit_buf;
     if ( setjmp(Fit_buf) == 0 ) {
+      func_evaluator::pre_evaluation_order.pre_eval(x[1], a);
       for ( i = 1; i <= npts; i++ ) {
         ICOS_Float yfit;
-        func->evaluate( x[i], a );
+        func_evaluator::global_evaluation_order.evaluate(x[i], a);
         yfit = func->value;
-        fprintf( vofp, "%12.6le %14.8le %12.6le %12.6le %12.6le %12.6le",
+        fprintf( vofp, "%12.6" FMT_E " %14.8" FMT_E " %12.6" FMT_E
+          " %12.6" FMT_E " %12.6" FMT_E " %12.6" FMT_E,
           x[i], ICOSfile::wndata->data[i+Start-1],
           y[i], yfit, base->value, absorb->value );
         if (verbose & 128)
@@ -445,6 +448,7 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
     fclose(vofp);
   }
   if ( ofp != 0 ) {
+    // Write line of output to ICOSsum.dat
     int mfit = 0, n_i_p = 6;
     for ( i = 1; i <= ma; i++ ) {
       if ( ia[i] != 0 ) mfit++;
@@ -457,18 +461,27 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
       for (child = absorb->args.begin(); child != absorb->args.end(); ++child) {
         func_line *line = child->arg->is_line();
         if (line) {
-          fprintf( ofp, " %d %12.5le", line->fixed, line->S_thresh );
+          fprintf( ofp, " %d %12.5" FMT_E, line->fixed, line->S_thresh );
           n_i_p += 2;
         }
       }
     }
     assert(n_i_p == n_input_params);
-    for ( i = 1; i <= ma; i++ ) {
-      fprintf( ofp, " %13.7le", a[i] );
-    }
-    for ( i = 1; i <= ma; i++ ) {
-      fprintf( ofp, " %d", ia[i] );
-    }
+    // Unfortunately, this is too simplistic. We
+    // need to control which parameters go where
+    // in the output file, independent of initialization
+    // order. That also means we may need to suppress shared
+    // parameters in the output (nu_F0). On the other hand,
+    // it's probably reasonable to repeat shared line
+    // concentrations
+    func->output_params(ofp, false);
+    func->output_params(ofp, true);
+    // for ( i = 1; i <= ma; i++ ) {
+      // fprintf( ofp, " %13.7le", a[i] );
+    // }
+    // for ( i = 1; i <= ma; i++ ) {
+      // fprintf( ofp, " %d", ia[i] );
+    // }
     if (verbose & 128) {
       std::vector<argref>::iterator child;
       for (child = absorb->args.begin(); child != absorb->args.end(); ++child) {

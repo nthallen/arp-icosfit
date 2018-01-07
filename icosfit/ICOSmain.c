@@ -147,13 +147,13 @@ fitdata *build_func() {
     assert( abs != 0 && abs->args.size() != 0 && abs->args[0].arg->params.size() != 0 );
     fprintf( fp,
       "%% ICOS configuration data\n"
-      "ICOSfit_format_ver = 2;\n"
+      "ICOSfit_format_ver = 3;\n"
       "n_input_params = %d;\n"
-      "n_base_params = %d;\n"
+      "n_base_params = %ld;\n"
       "binary = %d;\n"
       "nu0 = %.0" FMT_F ";\n",
       fd->n_input_params,
-      abs->params[0].index - 1,
+      base->params.size(),
       GlobalData.binary,
       func_line::nu0 );
     fprintf(fp, "BaselineFile = '%s';\n",

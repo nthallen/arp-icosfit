@@ -10,7 +10,7 @@ void func_abs::print_config(FILE *fp) {
   std::vector<argref>::iterator child;
   
   fprintf( fp, "CavLen = %.1" FMT_F ";\n", GlobalData.CavityLength );
-  fprintf( fp, "n_abs_params = 1;\nn_abs_line_params = 1;\n" );
+  fprintf( fp, "n_abs_params = 1;\nn_abs_line_params = 0;\n" );
   fprintf( fp, "lines = [\n" );
   // Skip the first arg, which is nu_F0
   for (child = args.begin(); child != args.end(); ++child) {

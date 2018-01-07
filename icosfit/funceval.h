@@ -89,6 +89,7 @@ class func_evaluator {
     void print_indent( FILE *fp, int indent );
     virtual void print_config(FILE *fp);
     virtual void print_intermediates(FILE *fp);
+    virtual void output_params(FILE *ofp, bool fixed);
     // void set_evaluation_order(std::vector<func_evaluator*> &order,
     //    bool top = true, bool clear = false);
 
@@ -120,10 +121,11 @@ class func_parameter : public func_evaluator {
     void evaluate_partials();
     void dump_params();
     static inline void set_ia(int *ia) { func_parameter::ia = ia; }
+    void output_params(FILE *ofp, bool fixed);
     
-    void clamp_param_high( ICOS_Float *a, int idx );
-    void clamp_param_low( ICOS_Float *a, int idx );
-    void clamp_param_highlow( ICOS_Float *a, int idx );
+    // void clamp_param_high( ICOS_Float *a, int idx );
+    // void clamp_param_low( ICOS_Float *a, int idx );
+    // void clamp_param_highlow( ICOS_Float *a, int idx );
     // End of possible functions
     
     int index; ///< Parameter's global index
@@ -296,7 +298,6 @@ class voigt : public func_line {
     void line_float();
     //void dump_params(ICOS_Float *a, int indent);
     void print_intermediates(FILE *fp);
-
   private:
     ICOS_Float prev_gl;
     ICOS_Float prev_y;
@@ -458,6 +459,7 @@ class func_skew : public func_evaluator {
     void evaluate_partials();
     int skew_samples();
     // void dump_params(ICOS_Float *a, int indent);
+    void output_params(FILE *ofp, bool fixed);
   private:
     void sub_eval(ICOS_Float x, ICOS_Float *a);
     ICOS_Float N;

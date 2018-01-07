@@ -68,10 +68,10 @@ if exist( [ base '/ICOSconfig.m' ], 'file' )
   S.CavLen = CavLen;
   S.lines = eval('lines'); % to guard against function
   S.n_line_params = S.lines(:,9);
-  if any(S.n_line_params ~= 4)
+  if any(S.n_line_params ~= S.n_line_params(1))
     error('Cannot handle different line types!');
   end
-  S.n_line_params = 4;
+  S.n_line_params = S.n_line_params(1);
   S.n_lines = size(S.lines,1);
   S.n_abs_params = n_abs_params;
   S.n_abs_line_params = n_abs_line_params;
@@ -186,7 +186,11 @@ else
 end
 S.Ged = S.fitdata(:,S.v+1);
 S.Gl = S.fitdata(:,S.v+3);
-S.dnu = S.fitdata(:,S.v);
+if S.ICOSfit_format_ver <= 2
+  S.dnu = S.fitdata(:,S.v);
+else % Format V3 includes nu_F0 with each line even though it is common
+  S.dnu = S.fitdata(:,S.v)+S.fitdata(:,S.v+4);
+end
 % Gedcalc = 3.581e-7 * (col*nu) .* sqrt(T./(col*molwts*log(2)));
 S.Gedcalc = 4.30213e-7 * (S.col*S.nu) .* sqrt(S.T./(S.col*S.molwts));
 S.Glcalc = ((S.T0./S.T).^(S.col*S.STdep)) .* (S.col*S.Gair) .* (S.P/760.);

@@ -79,7 +79,7 @@ void voigt::evaluate( ICOS_Float xx, ICOS_Float *a ) {
   ICOS_Float numdens = get_arg(a,n_idx);
   ICOS_Float gamma_ed = get_arg(a,w_idx);
   ICOS_Float gamma_l = get_arg(a,gl_idx);
-  ICOS_Float dnu = get_arg(a,dnu_idx);
+  ICOS_Float dnu = get_arg(a,dnu_idx)+get_arg(a,nu_F0_idx);
   int ixx = int(xx);
 
   // X, Y and K now private object members

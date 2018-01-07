@@ -271,3 +271,8 @@ void func_skew::evaluate_partials() {
   // basep->dump_params( a, indent );
   // absp->dump_params( a, indent );
 // }
+
+void func_skew::output_params(FILE *ofp, bool fixed) {
+  basep->output_params(ofp, fixed);
+  GlobalData.absorb->output_params(ofp, fixed);
+}

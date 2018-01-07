@@ -289,21 +289,37 @@ void func_evaluator::pre_eval(ICOS_Float x, ICOS_Float *a) {}
 void func_evaluator::evaluate(ICOS_Float x, ICOS_Float *a) {}
 
 /**
+ * With version 3, adjust_params() no longer recurses, since
+ * the execution order is determined during init().
+ * Sub classes will override this method and are tasked
+ * with calculating value and the partial derivative with
+ * respect to each of their arguments (args).
  * @return non-zero if a parameter value has been changed.
  */
 int func_evaluator::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
-  // std::vector<argref>::iterator child;
-  // int rv = 0;
-
-  // for (child = args.begin(); child != args.end(); ++child) {
-    // if ( child->arg->adjust_params( alamda, P, T, a ) )
-      // rv = 1;
-  // }
-  // return rv;
   return 0;
 }
 
-// ### is_line(): Is this used?
+/**
+  @param ofp FILE pointer to ICOSsum.dat
+  @param fixed true to output fixed/floating bool values, false to output parameter values.
+  Default will recurse through arguments, but we
+  will override for efficiency and consistency as
+  necessary.
+  Specific overrides are necessary for:
+    - func_skew: base, abs
+    - func_parameter: Just the value
+ */
+void func_evaluator::output_params(FILE *ofp, bool fixed) {
+  std::vector<argref>::iterator child;
+  for (child = args.begin(); child != args.end(); ++child) {
+    child->arg->output_params(ofp, fixed);
+  }
+}
+
+/**
+ * @return zero for non-line classes
+ */
 func_line *func_evaluator::is_line() { return 0; }
 
 // /* clamp_param_high() is a method to be called from adjust_params.
@@ -419,6 +435,14 @@ void func_parameter::evaluate( ICOS_Float x, ICOS_Float *a ){
  * Does nothing. Partial is always 1.0
  */
 void func_parameter::evaluate_partials() {
+}
+
+void func_parameter::output_params(FILE *ofp, bool fixed) {
+  if (fixed) {
+    fprintf(ofp, " %d", param_fixed() ? 0 : 1);
+  } else {
+    fprintf(ofp, " %13.7" FMT_E, value);
+  }
 }
 
 //---------------------------------------------------------
@@ -760,10 +784,10 @@ void func_evaluator::dump_params() {
 }
 
 void func_evaluator::dump_partials() {
-  fprintf(stderr, "Partials with respect to parameters for %s():\n", name);
+  fprintf(stderr, "    Partials with respect to parameters for %s():\n", name);
   std::vector<parameter>::iterator param;
   for (param = params.begin(); param != params.end(); ++param) {
-    fprintf(stderr, "  /d[%d] = %" FMT_G "\n", param->index, param->dyda);
+    fprintf(stderr, "      /d[%d] = %" FMT_G "\n", param->index, param->dyda);
   }
 }
 
@@ -893,9 +917,9 @@ void func_line::line_fix() {
 
 void func_line::line_float() {
   // func_abs *p = (func_abs *)parent;
+  float_param(nu_F0_idx);
   if ( fix_finepos == 0 ) {
     float_param(dnu_idx);
-    float_param(nu_F0_idx);
   }
   // if ( fix_finepos == 0 ) p->float_linepos(line_number);
   if ( fix_width == 0 ) float_param(w_idx);
