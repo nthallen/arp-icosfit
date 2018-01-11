@@ -326,6 +326,7 @@ int fitdata::fit( ) {
     int converging = 0;
     int vctr = 0;
     ochisq = -1;
+    chisq = 0;
 
     if ( verbose & 8 ) {
       if ( vfp != 0 ) fclose( vfp );
@@ -351,14 +352,14 @@ int fitdata::fit( ) {
         alamda = -1;
         adjust_params( a );
       } else {
-        if ( verbose & 32 ) {
-          fprintf( stderr, "chisq = %" FMT_G ", alamda = %" FMT_G "\n",
-			  chisq, alamda );
+        if ( verbose & 2 ) {
+          fprintf( stderr, "%ld:%d:%d: chisq:%" FMT_G ", alamda:%" FMT_G,
+              PTf->ScanNum, counter, converging, chisq, alamda );
           if ( ochisq != 0 ) {
-            fprintf( stderr, "ochisq = %lg, chisq/ochisq = %lg\n",
-               ochisq, chisq/ochisq );
+            fprintf( stderr, " ochisq:%lg, dchisq:%lg",
+               ochisq, (ochisq-chisq)/ochisq );
           }
-          // print_matrix( covar, "covar", mfit, mfit );
+          fprintf(stderr, "\n");
         }
 
         // These termination conditions are rather arbitrary. Plenty

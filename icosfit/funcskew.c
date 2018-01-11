@@ -119,9 +119,6 @@ void func_skew::evaluate(ICOS_Float x, ICOS_Float *a) {
       curskew = &skew[i];
       if ( curskew->initialized ) {
         ICOS_Float *dg = curskew->dg;
-        
-        curskew->g *= curskew->gN; // eqn. [5]
-        curskew->Power *= R2N;
 	
 	// the following two loops implement the recursion
 	// defined in eqn. [8]
@@ -129,8 +126,11 @@ void func_skew::evaluate(ICOS_Float x, ICOS_Float *a) {
           dg[j] *= curskew->gN;
         }
         for ( j = 0; j < n_abs_params; j++ ) {
-          dg[j + n_base_params] -= 2 * N * curskew->g * curskew->da[j];
+          dg[j + n_base_params] -= 2 * N * curskew->g * curskew->gN * curskew->da[j];
         }
+        
+        curskew->g *= curskew->gN; // eqn. [5]
+        curskew->Power *= R2N;
       }
     }
     curskew = &skew[skewidx];
