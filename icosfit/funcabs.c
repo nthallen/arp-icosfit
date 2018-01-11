@@ -78,7 +78,7 @@ int func_abs::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS
   // This is true only on the very first fit (if then)
   // ### Can this all be moved to func_line::adjust_params()?
   // ### No, I don't think so, since it is assimilating data from
-  // ### all the lines
+  // ### all the lines. Why not init?
   if ( nu_F0 == 0. && GlobalData.input.nu_F0 == 0. ) {
     int n_lines = 0;
     for (child = args.begin(); child != args.end(); ++child) {

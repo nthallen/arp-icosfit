@@ -11,13 +11,14 @@
 
 evaluation_order func_evaluator::global_evaluation_order;
 evaluation_order func_evaluator::pre_evaluation_order;
+evaluation_order func_evaluator::dump_evaluation_order;
 
 void evaluation_order::set(func_evaluator*func, bool top, bool clear) {
   if (top) {
     set(func, false, true);
   }
-  std::vector<argref>::reverse_iterator arg;
-  for (arg = func->args.rbegin(); arg != func->args.rend(); ++arg) {
+  std::vector<argref>::iterator arg;
+  for (arg = func->args.begin(); arg != func->args.end(); ++arg) {
     set(arg->arg, false, clear);
   }
   if (clear) {
@@ -25,6 +26,22 @@ void evaluation_order::set(func_evaluator*func, bool top, bool clear) {
   } else if (!func->added_to_eval) {
     add(func);
     func->added_to_eval = true;
+  }
+}
+
+void evaluation_order::set_pre_order(func_evaluator*func, bool top, bool clear) {
+  if (top) {
+    set(func, false, true);
+  }
+  if (clear) {
+    func->added_to_eval = false;
+  } else if (!func->added_to_eval) {
+    add(func);
+    func->added_to_eval = true;
+  }
+  std::vector<argref>::iterator arg;
+  for (arg = func->args.begin(); arg != func->args.end(); ++arg) {
+    set_pre_order(arg->arg, false, clear);
   }
 }
 
@@ -73,8 +90,8 @@ int evaluation_order::adjust_params(ICOS_Float alamda, ICOS_Float P,
 
 void evaluation_order::dump() {
   fprintf(stderr, "Evaluation State:\n");
-  std::vector<func_evaluator*>::reverse_iterator func;
-  for (func = order.rbegin(); func != order.rend(); ++func) {
+  std::vector<func_evaluator*>::iterator func;
+  for (func = order.begin(); func != order.end(); ++func) {
     (*func)->dump_params();
     (*func)->dump_partials();
   }
@@ -215,6 +232,7 @@ void func_evaluator::init(ICOS_Float *a) {
     for (argpi = 0; argpi < args[argi].arg->params.size(); ++argpi) {
       for (pi = 0; pi < params.size(); ++pi) {
         if (params[pi].index == args[argi].arg->params[argpi].index) {
+          params[pi].name = args[argi].arg->params[argpi].name;
           params[pi].refs.push_back(paramref(argi, argpi));
           break;
         }
@@ -388,7 +406,7 @@ func_parameter::func_parameter(const char *name, ICOS_Float init_value,
 
 void func_parameter::init(ICOS_Float *a) {
   func_evaluator::init(a); // This should do nothing
-  params.push_back(parameter(index));
+  params.push_back(parameter(index, name));
   params.back().dyda = 1.0;
   a[index] = init_val;
   // ia is initialized as all floating, so we will
@@ -787,7 +805,8 @@ void func_evaluator::dump_partials() {
   fprintf(stderr, "    Partials with respect to parameters for %s():\n", name);
   std::vector<parameter>::iterator param;
   for (param = params.begin(); param != params.end(); ++param) {
-    fprintf(stderr, "      /d[%d] = %" FMT_G "\n", param->index, param->dyda);
+    fprintf(stderr, "      /d[%d] (%s) = %" FMT_G "\n", param->index,
+      param->name, param->dyda);
   }
 }
 

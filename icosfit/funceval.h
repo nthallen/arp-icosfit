@@ -18,8 +18,10 @@ class paramref {
 
 class parameter {
   public:
-    inline parameter(int idx) : index(idx) {}
+    inline parameter(int idx, const char *iname = 0)
+      : index(idx), name(iname) {}
     int index;
+    const char *name;
     ICOS_Float dyda;
     std::vector<paramref> refs;
 };
@@ -40,6 +42,7 @@ class evaluation_order {
   public:
     std::vector<func_evaluator*> order;
     void set(func_evaluator *func, bool top = true, bool clear = false);
+    void set_pre_order(func_evaluator *func, bool top = true, bool clear = false);
     void set_children(func_evaluator *func);
     void add(func_evaluator *func);
     void evaluate(ICOS_Float x, ICOS_Float *a);
@@ -106,6 +109,7 @@ class func_evaluator {
     // func_evaluator *next;
     static evaluation_order global_evaluation_order;
     static evaluation_order pre_evaluation_order;
+    static evaluation_order dump_evaluation_order;
     bool added_to_eval;
 };
 
@@ -466,6 +470,7 @@ class func_skew : public func_evaluator {
     int M;
     ICOS_Float R2, R2N, P_scale;
     skew_data *skew; // We will have M of these
+    int *depsi; // map from g parameters to eps parameters
     // ICOS_Float prev_x;
     int skewidx;
     func_evaluator *basep;

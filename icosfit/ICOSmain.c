@@ -10,12 +10,10 @@
 
 int verbose = 8;
 /* verbose & 1 => output fits
-   verbose & 2 => output gaussj [apparently no longer in use but see 32]
-                  output line_check changes
-   verbose & 4 => output baseline fit [apparently no longer in use]
-                  output baseline vectors after reading in (func_base)
+   verbose & 2 => output conversion progress on each iteration
+   verbose & 4 => dump parameters on first fit
    verbose & 8 => output partial fits
-   verbose & 16 => output derivatives in output files
+   verbose & 16 => output derivatives in verbose output files
    verbose & 32 => output ochisq, alamda and covariance matrix on each iteration
    verbose & 64 => output fringe positions in fit_fringes()
    verbose & 128 => output X and K values for each voigt line in verbose(1) fits

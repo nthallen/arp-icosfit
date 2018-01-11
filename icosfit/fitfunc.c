@@ -58,6 +58,7 @@ fitdata::fitdata( PTfile *ptf, ICOSfile *IF,
     nl_error( 3, "Out of memory in fitdata::fitdata" );
   for ( i = 1; i <= ma; i++ ) ia[i] = 1;
   func_evaluator::global_evaluation_order.set(f);
+  func_evaluator::dump_evaluation_order.set_pre_order(f);
   f->init( a, ia );
   covar = matrix( 1, ma, 1, ma );
   alpha = matrix( 1, ma, 1, ma );
@@ -334,6 +335,7 @@ int fitdata::fit( ) {
     int converging = 0;
     int vctr = 0;
     ochisq = -1;
+    chisq = 0;
 
     if ( verbose & 8 ) {
       if ( vfp != 0 ) fclose( vfp );
@@ -349,6 +351,9 @@ int fitdata::fit( ) {
         FILE *vvfp = pathopen( vmlf->fpath, "%04d.dat", vctr );
         this->lwrite( vfp, vvfp, vctr++ );
       }
+      if (verbose & 4) {
+        func_evaluator::dump_evaluation_order.dump();
+      }
       int mrqrv = mrqmin();
       if ( mrqrv ) {
         for ( i = 1; i <= ma; i++ ) a[i] = a_save[i];
@@ -359,14 +364,14 @@ int fitdata::fit( ) {
         alamda = -1;
         adjust_params( a );
       } else {
-        if ( verbose & 32 ) {
-          fprintf( stderr, "chisq = %" FMT_G ", alamda = %" FMT_G "\n",
-			  chisq, alamda );
+        if ( verbose & 2 ) {
+          fprintf( stderr, "%ld:%d:%d: chisq:%" FMT_G ", alamda:%" FMT_G,
+              PTf->ScanNum, counter, converging, chisq, alamda );
           if ( ochisq != 0 ) {
-            fprintf( stderr, "ochisq = %lg, chisq/ochisq = %lg\n",
-               ochisq, chisq/ochisq );
+            fprintf( stderr, " ochisq:%lg, dchisq:%lg",
+               ochisq, (ochisq-chisq)/ochisq );
           }
-          // print_matrix( covar, "covar", mfit, mfit );
+          fprintf(stderr, "\n");
         }
 
         // These termination conditions are rather arbitrary. Plenty
@@ -401,7 +406,7 @@ int fitdata::fit( ) {
     // return 0;
   } else {
     nl_error(1, "Failure after %d iterations", counter);
-    func_evaluator::global_evaluation_order.dump();
+    func_evaluator::dump_evaluation_order.dump();
     // func->dump_params(a, 0);
     return 0;
   }
@@ -432,10 +437,11 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
           absorb->print_intermediates(vofp);
         if (verbose & 16) {
           for (unsigned j = 0; j < func->params.size(); j++ ) {
-            if ( func->param_fixed(j) )
-              fprintf( vofp, " 0" );
-            else
+            if (ia[func->params[j].index]) {
               fprintf( vofp, " %12.6" FMT_E, func->params[j].dyda );
+            } else {
+              fprintf( vofp, " 0" );
+            }
           }
         }
         fprintf( vofp, "\n" );

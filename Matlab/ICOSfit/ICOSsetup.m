@@ -25,6 +25,7 @@ if exist( [ base '/ICOSsum.dat' ], 'file' )
 elseif exist( [ base '/ICOSsum.out' ], 'file' )
   fitdata = load( [ base '/ICOSsum.out' ] );
   ICOS_debug = 1;
+  ICOS_debug_scan = mlf_index(base);
   base = [ base '/../../..' ];
 else
   error(['Cannot locate ICOSsum.dat or ICOSsum.out in ' base ]);
