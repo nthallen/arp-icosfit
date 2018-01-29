@@ -14,18 +14,15 @@ class GlobalData_t {
 	ICOS_Float MirrorLoss;
 	ICOS_Float EtalonFSR;
   ICOS_Float EtalonFeedback;
-	// ICOS_Float MinimumFringeSpacing;
 	ICOS_Float TolerableDrift;
   ICOS_Float LeftLineMargin;
   ICOS_Float LeftLineMarginMultiplier;
   ICOS_Float RightLineMargin;
   ICOS_Float RightLineMarginMultiplier;
   ICOS_Float LineMarginHysteresis;
-	// ICOS_Float DSFRLimits[2];
 	ICOS_Float CavityLength;
   ICOS_Float CavityFixedLength;
 	ICOS_Float Sigma;
-	// ICOS_Float TuningRate;
 	ICOS_Float SampleRate;
 	ICOS_Float SkewTolerance;
 	ICOS_Float DefaultTemp;

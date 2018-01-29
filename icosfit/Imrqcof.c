@@ -7,8 +7,6 @@
 
 extern jmp_buf Fit_buf;
 
-// Here I'm trying to override the object members alpha and beta
-// with method arguments.
 void fitdata::mrqcof( ICOS_Float *av, ICOS_Float **alpha, ICOS_Float *beta ) {
   int i,j,k,l,m;
   ICOS_Float wt,sig2i,dy;

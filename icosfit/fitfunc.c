@@ -68,6 +68,10 @@ fitdata::fitdata( PTfile *ptf, ICOSfile *IF,
 
 #define RESTART_BUFSIZE 4096
 
+/**
+  Resets internal parameters to match a specific start condition
+  based on a previous run.
+ */
 void fitdata::handle_restart( const char *ofname ) {
   // unsigned int prev_ScanNum = 0;
   if ( RestartAt != NoKey)
@@ -217,6 +221,9 @@ void print_vector( ICOS_Float *vec, const char *name, int ncol ) {
   fprintf( stderr, "\n" );
 }
 
+/**
+  Handles the complete fit for one raw scan file.
+ */
 int fitdata::fit( ) {
   ICOS_Float *yin = IFile->sdata->data;
   int i;
@@ -227,12 +234,6 @@ int fitdata::fit( ) {
   // be objectified.
   crntfit = this;
 
-  // The following is done here simply because it is convenient
-  // as the first place that the IFile and the fitdata objects
-  // come together. It should be part of the input process.
-  // IFile->fit_fringes( SignalStart, SignalEnd );
-  // absorb->set_fringes( IFile->fdata->data, IFile->fdata->n_data );
-  
   alamda=-2;
   while ( adjust_params( a ) != 0 ) alamda = -1;
 
@@ -240,11 +241,9 @@ int fitdata::fit( ) {
   // fit. This should not be limited to the absorb func.
   // It should be a virtual function of func_evaluator
   Start = End = 0;
-  // child = absorb->lfirst();
-  // if ( child != 0 ) {
   {
-    // Wavenumber decreases with sample number
-    ICOS_Float nu_F0 = absorb->get_arg( a, 0 ); // + GlobalData.input.nu_F0;
+    // Note: Wavenumber decreases with sample number
+    ICOS_Float nu_F0 = absorb->get_arg( a, 0 );
     ICOS_Float wnStart = IFile->wndata->data[SignalEnd] + nu_F0;
     ICOS_Float wnEnd = IFile->wndata->data[SignalStart] + nu_F0;
     while ( func->line_check( 0, wnStart, wnEnd, PTf->P, PTf->T, a ) != 0 );
@@ -268,12 +267,10 @@ int fitdata::fit( ) {
   if ( npts > npts_vec ) {
     if ( npts_vec > 0 ) {
       free_vector(x,1,npts_vec);
-      // free_vector(y,1,npts_vec);
       free_vector(sig,1,npts_vec);
     }
     npts_vec = npts;
     x = vector(1,npts_vec);
-    // y = vector(1,npts_vec);
     sig =  vector(1,npts_vec);
     if ( x == 0 || sig == 0 )
       nl_error(3,"Out of memory resizing in fitdata::fit" );
@@ -402,27 +399,31 @@ int fitdata::fit( ) {
     alamda = 0.0;
     mrqmin();
     return 1;
-    // func->dump_params(a, 0);
-    // return 0;
   } else {
     nl_error(1, "Failure after %d iterations", counter);
     func_evaluator::dump_evaluation_order.dump();
-    // func->dump_params(a, 0);
     return 0;
   }
 }
 
 int fitdata::n_input_params = 6;
 const int fitdata::ScanNum_col = 1;
-// const int fitdata::dFN_col = 9;
 
+/**
+  @param ofp Output FILE pointer for ICOSsum.dat
+  @param vofp Output FILE pointer for verbose scan data if requested
+  @param fileno The scan number
+  Write the fit results. This function is used for the final fit
+  as well as intermediate results (verbose & 8). It writes a single
+  line to the ICOSsum.dat file and, if verbose & 1,
+  also generates a separate verbose scan fit file.
+ */
 void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
   int i;
   if ( vofp != 0 ) {
     // Write verbose output file
     jmp_buf Fit_buf_save;
     memcpy( Fit_buf_save, Fit_buf, sizeof(Fit_buf) );
-    // Fit_buf_save = Fit_buf;
     if ( setjmp(Fit_buf) == 0 ) {
       func_evaluator::pre_evaluation_order.pre_eval(x[1], a);
       for ( i = 1; i <= npts; i++ ) {
@@ -450,7 +451,6 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
       nl_error( 3, "unexpected longjmp during re-evaluation" );
     }
     memcpy( Fit_buf, Fit_buf_save, sizeof(Fit_buf_save) );
-    // Fit_buf = Fit_buf_save;
     fclose(vofp);
   }
   if ( ofp != 0 ) {
@@ -473,21 +473,12 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
       }
     }
     assert(n_i_p == n_input_params);
-    // Unfortunately, this is too simplistic. We
-    // need to control which parameters go where
-    // in the output file, independent of initialization
-    // order. That also means we may need to suppress shared
-    // parameters in the output (nu_F0). On the other hand,
-    // it's probably reasonable to repeat shared line
-    // concentrations
+    // This is not a simple recursive dump of parameters, as
+    // that could be unnecessarily dependent on function build
+    // order and structure. Instead, specific subclasses will
+    // impose order as necessary.
     func->output_params(ofp, false);
     func->output_params(ofp, true);
-    // for ( i = 1; i <= ma; i++ ) {
-      // fprintf( ofp, " %13.7le", a[i] );
-    // }
-    // for ( i = 1; i <= ma; i++ ) {
-      // fprintf( ofp, " %d", ia[i] );
-    // }
     if (verbose & 128) {
       std::vector<argref>::iterator child;
       for (child = absorb->args.begin(); child != absorb->args.end(); ++child) {

@@ -118,9 +118,6 @@ void func_evaluator::evaluate_partials() {
   }
 }
 
-/**
- * ### I think I can avoid preallocating parameters
- */
 func_evaluator::func_evaluator(const char *sname, bool indexed, int idx) {
   if (indexed) {
     char buf[80];
@@ -133,7 +130,6 @@ func_evaluator::func_evaluator(const char *sname, bool indexed, int idx) {
   value = 0.;
   n_references = 0;
   added_to_eval = false;
-  // printf("func_evaluator( %s );\n", name );
 }
 
 /**
@@ -141,7 +137,6 @@ func_evaluator::func_evaluator(const char *sname, bool indexed, int idx) {
  * @param owner if true, newfunc's parent is set
  */
 void func_evaluator::append_func( func_evaluator *newfunc) {
-  // printf( "func_evaluator::append_func(%s, %s)\n", name, newfunc->name );
   args.push_back(argref(newfunc, newfunc->adopted(this)));
 }
 
@@ -157,50 +152,6 @@ unsigned int func_evaluator::adopted(func_evaluator *new_parent) {
   }
   return n_references++;
 }
-
-// func_evaluator::init() initializes the a and ia pointers in
-// the children's params list. The object's own pointers were
-// either initialized by their parent or by the init(a,ia)
-// call. This base version assumes all the children have
-// independent parameters and distributes its own parameters
-// sequentially to the children, starting at the specified
-// index.
-// When init() is called, we are guaranteed that params have
-// been allocated for this object, but we may still need to
-// allocate params for children of this object.
-/**
- * There are three init() functions, all triggered from the
- * single init(a, ia) call once at the beginning of fitting.
- * init(a) is virtual and can be overridden. The default
- * calls init(a,0), which recursively calls init(a) for
- * children.
- *
- * init(a,ia) is called after the functional structure has been
- * built. ### I need to revisit exactly what that means for
- * parameters in this new approach.
- */
-// void func_evaluator::init(ICOS_Float *a, int p1) {
-  // func_evaluator *child;
-  // int p2;
-
-
-  // //printf( "func_evaluator::init(%s, %d); n_params=%d\n", name, p1, n_params );
-  // for ( p2 = 0; p2 < n_params; p2++ )
-    // a[params[p2].index] = params[p2].init;
-  // for ( child = first; child != 0; child = child->next ) {
-    // if ( p1 + child->n_params > n_params ) {
-      // fprintf( stderr, "Too many child params: n_params = %d\n", n_params );
-      // exit(1);
-    // }
-    // if ( child->params == 0 )
-      // child->params = new parameter[child->n_params];
-    // for ( p2 = 0; p2 < child->n_params; p2++ ) {
-      // link_param( p1, child, p2 );
-      // p1++;
-    // }
-    // child->init(a);
-  // }
-// }
 
 /**
  * @param a The initial parameter value vector
@@ -247,19 +198,23 @@ void func_evaluator::init(ICOS_Float *a) {
   }
 }
 
-// a and ia are the 1-based vectors from mrqmin. i.e.
-// their 0th element is unused.
-// init is called once when the fitdata object is
-// created, and it recursively calls init(a) on all
-// its children. The entire function structure has
-// been assembled at this point, so the init(a)
-// methods are a good place to do initializations
-// that need to assume that.
+/**
+  @param a vector of paramter values
+  @param ia vector of parameter enable flags
+  
+  a and ia are the 1-based vectors from mrqmin. i.e.
+  their 0th element is unused.
+  init is called once when the fitdata object is
+  created, and it init(a) on the global_evaluation_order.
+  The entire function structure has
+  been assembled at this point, so the init(a)
+  methods are a good place to do initializations
+  that need to assume that.
+ */
 void func_evaluator::init( ICOS_Float *a, int *ia ) {
   // printf( "func_evaluator::init( %s, a, ia );\n", name );
   func_parameter::set_ia(ia);
   global_evaluation_order.init(a);
-  // init(a); // initialize all func_evaluators
 }
 
 /**
@@ -292,11 +247,6 @@ ICOS_Float func_evaluator::set_param(ICOS_Float *a, ICOS_Float value) {
  */
 void func_evaluator::pre_eval(ICOS_Float x, ICOS_Float *a) {}
 
-// evaluate is used as a helper function to the
-// routines in the derived classes that do the
-// real work. This routine just evaluates all the
-// children so their results are available to
-// their parents.
 /**
  * With version 3, evaluate() no longer recurses, since
  * the execution order is determined during init().
@@ -339,60 +289,6 @@ void func_evaluator::output_params(FILE *ofp, bool fixed) {
  * @return zero for non-line classes
  */
 func_line *func_evaluator::is_line() { return 0; }
-
-// /* clamp_param_high() is a method to be called from adjust_params.
-   // It requires that the specified parameter has a high value set.
-   // It will not take any action if the parameter is fixed.
-// */
-// void func_evaluator::clamp_param_high( ICOS_Float *a, int idx ) {
-  // if ( ! param_fixed(idx) ) {
-    // ICOS_Float val = get_arg(a,idx);
-    // ICOS_Float limit = params[idx].high;
-    // if ( val > limit ) {
-      // val = (params[idx].prev + limit)/2;
-      // set_param( a, idx, val );
-    // }
-    // params[idx].prev = val;
-  // }
-// }
-
-// /* clamp_param_low() is a method to be called from adjust_params.
-   // It requires that the specified parameter has a low value set.
-   // It will not take any action if the parameter is fixed.
-// */
-// void func_evaluator::clamp_param_low( ICOS_Float *a, int idx ) {
-  // if ( ! param_fixed(idx) ) {
-    // ICOS_Float val = get_arg(a,idx);
-    // ICOS_Float limit = params[idx].low;
-    // if ( val < limit ) {
-      // val = (params[idx].prev + limit)/2;
-      // set_param( a, idx, val );
-    // }
-    // params[idx].prev = val;
-  // }
-// }
-
-// /* clamp_param_highlow() is a method to be called from adjust_params.
-   // It requires that the specified parameter has a high value set.
-   // It will not take any action if the parameter is fixed.
-// */
-// void func_evaluator::clamp_param_highlow( ICOS_Float *a, int idx ) {
-  // if ( ! param_fixed(idx) ) {
-    // ICOS_Float val = get_arg(a,idx);
-    // ICOS_Float limit = params[idx].high;
-    // if ( val > limit ) {
-      // val = (params[idx].prev + limit)/2;
-      // set_param( a, idx, val );
-    // } else {
-      // limit = params[idx].low;
-      // if ( val < limit ) {
-        // val = (params[idx].prev + limit)/2;
-        // set_param( a, idx, val );
-      // }
-    // }
-    // params[idx].prev = val;
-  // }
-// }
 
 int func_parameter::n_parameters = 0;
 int *func_parameter::ia = 0;
@@ -463,68 +359,6 @@ void func_parameter::output_params(FILE *ofp, bool fixed) {
   }
 }
 
-//---------------------------------------------------------
-// aggregate
-//  ### Only used by subclasses that are not used
-//---------------------------------------------------------
-// void func_aggregate::append_func( func_evaluator *newfunc ) {
-  // // printf( "func_aggregate::append_func(%s, %s)\n", name, newfunc->name );
-  // func_evaluator::append_func(newfunc);
-  // // ### n_params += newfunc->n_params;
-// }
-
-//---------------------------------------------------------
-// sum
-//  Allow inheritance with a number of fixed parameters.
-// ### Entire class is not used, but I've updated the code
-// ### as an exercise
-//---------------------------------------------------------
-// void func_sum::evaluate(ICOS_Float x, ICOS_Float *a) {
-  // evaluate( x, a, 0 );
-// }
-
-// void func_sum::evaluate(ICOS_Float x, ICOS_Float *a, int i) {
-  // int j;
-  // std::vector<parameter>::iterator param;
-  // std::vector<argref>::iterator child;
-
-  // value = 0.;
-  // for (child = args.begin(); child != args.end(); ++child) {
-    // child->arg->evaluate(x,a);
-    // value += child->arg->value;
-  // }
-  // for (param = params.begin(); param != params.end(); ++param) {
-    // std::vector<paramref>::iteractor ref;
-    // for (ref = param.refs.begin(); ref != param.refs.end(); ++ref) {
-      // param->dyda += args[ref->arg_num]->params[ref->param_num].dyda;
-    // }
-  // }
-// }
-
-//---------------------------------------------------------
-// product
-//  ### Entire class is unused
-//---------------------------------------------------------
-// void func_product::evaluate(ICOS_Float x, ICOS_Float *a) {
-  // int i = 0, j;
-  // func_evaluator *child, *child2;
-
-  // func_evaluator::evaluate(x, a);
-  // value = 1.;
-  // for ( child = first; child != 0; child = child->next )
-    // value *= child->value;
-  // for ( child = first; child != 0; child = child->next ) {
-    // ICOS_Float prod;
-    // if ( child->value == 0. ) {
-      // prod = 1.;
-      // for ( child2 = first; child2 != 0; child2 = child2->next )
-        // if ( child2 != child ) prod *= child2->value;
-    // } else prod = value / child->value;
-    // for ( j = 0; j < child->n_params; j++ )
-      // params[i++].dyda = prod * child->params[j].dyda;
-  // }
-// }
-
 static ICOS_Float get_molwt( int isotopomer ) {
   switch (isotopomer) {
     case 11: return 18.011000; // H_2O
@@ -560,25 +394,25 @@ static ICOS_Float get_molwt( int isotopomer ) {
 }
 
 
-//---------------------------------------------------------
-// func_line object has at least 3 parameters
-//   dnu_idx = 0: Fine location in cm-1
-//   w_idx = 1: Doppler E-folding halfwidth in cm-1
-//   n_idx = 2: Number Density in molecules/cm3
-// These parameters are all initialized to zero.
-//
-// There are also a raft of fixed parameters based on HITRAN
-// data for individual lines:
-// molecule
-// isotope
-// nu = wavenumber
-// S = spectral line intensity
-// G_air = Gamma_air
-// E = Lower state energy of the transition
-// n = coefficient of temerature dependence or air-broadened hw
-// delta = air-broadened pressure shift
-// ipos = sample number of line center at start
-//---------------------------------------------------------
+/**
+  func_line object has at least 3 parameters
+    dnu_idx = 0: Fine location in cm-1
+    w_idx = 1: Doppler E-folding halfwidth in cm-1
+    n_idx = 2: Number Density in molecules/cm3
+  These parameters are all initialized to zero.
+ 
+  There are also a raft of fixed parameters based on HITRAN
+  data for individual lines:
+  molecule
+  isotope
+  nu = wavenumber
+  S = spectral line intensity
+  G_air = Gamma_air
+  E = Lower state energy of the transition
+  n = coefficient of temerature dependence or air-broadened hw
+  delta = air-broadened pressure shift
+  ipos = sample number of line center at start
+ */
 const int func_line::dnu_idx = 0;
 const int func_line::w_idx = 1;
 const int func_line::n_idx = 2;
@@ -597,9 +431,6 @@ func_line::func_line( const char *name, int mol, int iso,
   append_func(new func_parameter("dnu", 0., true, line_number));
   append_func(new func_parameter("gd", 1., true, line_number));
   append_func(new func_parameter("N", 0., true, line_number));
-  // params[dnu_idx].init = 0.;
-  // params[w_idx].init = 1.;
-  // params[n_idx].init = 0.;
   fixed = 0;
   fix_finepos = fix_fp;
   fix_width = fix_w;
@@ -667,7 +498,8 @@ void func_line::print_intermediates(FILE *fp) {}
  * fit and then set to -1 at the beginning of each iteration
  * step.
  */
-int func_line::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
+int func_line::adjust_params(ICOS_Float alamda,
+          ICOS_Float P, ICOS_Float T, ICOS_Float *a) {
   // Eliminated a check for drifting. Taken care of in func_abs.
   if ( alamda < -1.5 ) { // very first initialization
     double Spt = S * QT->evaluate(T) * exp(-C2*E/T) * (1-exp(-C2*nu/T))
@@ -775,10 +607,12 @@ int func_evaluator::skew_samples() {
   return rv;
 }
 
-// dump_params() is a diagnostic tool that is invoked
-// at times of failure. The default version simply lists
-// all the parameters and their values without recursing
-// to children, but overrides can delegate to children.
+/**
+  dump_params() is a diagnostic tool that is invoked
+  at times of failure. The default version simply lists
+  all the parameters and their values without recursing
+  to children, but overrides can delegate to children.
+ */
 void func_evaluator::dump_params() {
   // print_indent( stderr, indent );
   const char *comma = "";
@@ -822,35 +656,29 @@ void func_evaluator::print_indent( FILE *fp, int indent ) {
 void func_evaluator::print_config(FILE *fp) {}
 void func_evaluator::print_intermediates(FILE *fp) {}
 
-// line_check(include, start, end, P, T, a );
-// operates in three passes. First, include is set to 0 to
-// indicate the 'exclude' step. A line is excluded if it
-// hits the start or end boundary, and if so, the boundaries
-// are moved in to also exclude any significant portion
-// of this line. If the boundaries need to be moved, we
-// return 1, and another exclude pass is indicated. This
-// is necessary to deal with overlapping lines.
-//
-// Refinement to the exclusion: If a line hits the boundary,
-// we first try to re-evaluate it's width by fixing the line
-// and calling adjust_params. If that helps, then its threshold
-// needs to be raised. If it doesn't help, then turn it off.
-//
-// Next, include is set to 1. Any lines that were previously
-// excluded that now fall within the sample range are re-enabled.
-//
-// Once a final set of lines has been determined, include
-// is set to 2 to indicate the 'include' step. Here the
-// boundaries are expanded to include all the lines which
-// are still 'on'.
-//
-// ### A line is determined to be 'on' if the n_idx arg is
-// ### floating. For grouped lines, that is not how it will
-// ### work. Ngrp cannot be zeroed unless all of the lines
-// ### in the group are out of bounds. One way this could be
-// ### done would be to actually fix N for every line and then
-// ### float it if any member line is in range and not fixed.
-// ### Needless to say, the details need to be worked out.
+/**
+ * line_check(include, start, end, P, T, a );
+ * operates in three passes. First, include is set to 0 to
+ * indicate the 'exclude' step. A line is excluded if it
+ * hits the start or end boundary, and if so, the boundaries
+ * are moved in to also exclude any significant portion
+ * of this line. If the boundaries need to be moved, we
+ * return 1, and another exclude pass is indicated. This
+ * is necessary to deal with overlapping lines.
+ *
+ * Refinement to the exclusion: If a line hits the boundary,
+ * we first try to re-evaluate it's width by fixing the line
+ * and calling adjust_params. If that helps, then its threshold
+ * needs to be raised. If it doesn't help, then turn it off.
+ *
+ * Next, include is set to 1. Any lines that were previously
+ * excluded that now fall within the sample range are re-enabled.
+ *
+ * Once a final set of lines has been determined, include
+ * is set to 2 to indicate the 'include' step. Here the
+ * boundaries are expanded to include all the lines which
+ * are still 'on'.
+ */
 int func_line::line_check(int include, ICOS_Float& start, ICOS_Float& end,
                     ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
   ICOS_Float ls = line_start(a);
@@ -897,8 +725,6 @@ int func_line::line_check(int include, ICOS_Float& start, ICOS_Float& end,
       }
       if ( rv != 0 ) return rv;
     }
-    // if ( next != 0 && next->line_check( include, start, end, P, T, a ) )
-      // return 1;
   }
   if (include == 1) {
     if ( ls >= start && le <= end && param_fixed(n_idx) ) {
@@ -910,11 +736,6 @@ int func_line::line_check(int include, ICOS_Float& start, ICOS_Float& end,
     }
   }
   if (include == 2) {
-    // ### This code suggests that line_check(2,...) could return non-zero,
-    // ### but inspection shows this can't happen, so it appears safe to
-    // ### simply leave calling the other lines to the higher level
-    // if ( next != 0 && next->line_check( include, start, end, P, T, a ) )
-      // return 1;
     if ( ! param_fixed(n_idx) ) {
       if ( start == 0. || ls-GlobalData.RightLineMargin < start )
         start = ls-GlobalData.RightLineMargin;
@@ -926,21 +747,17 @@ int func_line::line_check(int include, ICOS_Float& start, ICOS_Float& end,
 }
 
 void func_line::line_fix() {
-  // func_abs *p = (func_abs *)parent;
   fix_param(dnu_idx);
   fix_param(nu_F0_idx);
-  //p->fix_linepos(line_number);
   fix_param(w_idx);
   fixed = 1;
 }
 
 void func_line::line_float() {
-  // func_abs *p = (func_abs *)parent;
   float_param(nu_F0_idx);
   if ( fix_finepos == 0 ) {
     float_param(dnu_idx);
   }
-  // if ( fix_finepos == 0 ) p->float_linepos(line_number);
   if ( fix_width == 0 ) float_param(w_idx);
   fixed = 0;
 }
@@ -1005,25 +822,3 @@ void lorentzian::evaluate(ICOS_Float x, ICOS_Float *a) {
 //----------------------------------------------------------
 // voigt: in humdev.cc
 //----------------------------------------------------------
-
-//----------------------------------------------------------
-// func_quad: second-order polynomial fit
-//    Currently unused
-//----------------------------------------------------------
-// const int func_quad::q_idx = 0, func_quad::dnu_idx = 1, func_quad::c_idx = 2;
-
-// func_quad::func_quad(ICOS_Float q, ICOS_Float l, ICOS_Float c) : func_evaluator("quad") {
-  // params[q_idx].init = q;
-  // params[dnu_idx].init = l;
-  // params[c_idx].init = c;
-// }
-
-// void func_quad::evaluate(ICOS_Float x, ICOS_Float *a) {
-  // ICOS_Float q = a[params[q_idx].index];
-  // ICOS_Float l = a[params[dnu_idx].index];
-  // ICOS_Float c = a[params[c_idx].index];
-  // value = q*x*x + l*x + c;
-  // params[q_idx].dyda = x*x;
-  // params[dnu_idx].dyda = x;
-  // params[c_idx].dyda = 1;
-// }

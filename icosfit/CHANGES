@@ -1,3 +1,9 @@
+3.00: 01/17/2018
+  Rewrite to improve the ability to share parameters and incorporate
+  new functional forms. Created func_paramater class so functions
+  no longer need to know whether their arguments are functions or
+  parameters.
+
 2.25: 07/25/2017
  Added support for additional isotopologues:
  NO, NO2, OH, HCHO

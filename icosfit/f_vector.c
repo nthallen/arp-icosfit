@@ -2,19 +2,11 @@
 #include "f_vector.h"
 #include "nortlib.h"
 
-// f_vector is a class of resizable vectors of ICOS_Floats.
-// f_vector *fv = new f_vector( int min, int off );
-//   min is the minimum number of ICOS_Floats for the first allocation.
-//   as the vector grows, it will be in multiples of this size.
-//   off is the index of the first element. It defaults to 0.
-//   1 is the only common value.
-// fv->append( 3.5 ); // Add 3.5 to the end of the vector
-// fv->clear; // Set the number of points to 0
-// fv->check( 7 ); // Make sure vector has room for 7 elements
-// fv->data is the data vector
-// fv->datasize is the size of the vector
-// fv->n_data is the number of elements currently in use
-
+/**
+  @param min the minimum number of ICOS_Floats for the first allocation
+  @param off the index of the first element. Defaults to 0, but 1 is the only common value.
+  f_vector is a class of resizable vectors of ICOS_Floats.
+ */
 f_vector::f_vector( int min, int off ) {
   data = 0;
   n_data = 0;
@@ -25,8 +17,16 @@ f_vector::f_vector( int min, int off ) {
   min_size = min+off;
 }
 
+/**
+  Sets the number of points in the vector to 0.
+ */
 void f_vector::clear() { n_data = 0; }
 
+/**
+  @param size The requested minimum size
+  Checks that the vector has room for size elements, reallocating
+  if necessary. Aborts if unable to allocate sufficient memory.
+ */
 void f_vector::check( int size ) {
   ICOS_Float *newdata;
   if ( size+offset > datasize ) {
@@ -38,16 +38,20 @@ void f_vector::check( int size ) {
     newdata = new ICOS_Float[datasize];
     if ( newdata == 0 ) nl_error( 4, "Out of memory in f_vector::check" );
     if ( data != 0 ) {
-	  if ( n_data > 0 )
-	    memcpy( newdata+offset, data+offset, n_data * sizeof(ICOS_Float) );
-	  delete data;
+      if ( n_data > 0 )
+        memcpy( newdata+offset, data+offset, n_data * sizeof(ICOS_Float) );
+      delete data;
     }
-	data = newdata;
+    data = newdata;
   }
 }
 
+/**
+  @param f Value to append to vector
+  Increases the length of the vector by 1, setting the new last element
+  to f.
+ */
 void f_vector::append( ICOS_Float f ) {
   check(n_data+1);
   data[offset+n_data++] = f;
 }
-

@@ -126,45 +126,15 @@ class func_parameter : public func_evaluator {
     void dump_params();
     static inline void set_ia(int *ia) { func_parameter::ia = ia; }
     void output_params(FILE *ofp, bool fixed);
-    
-    // void clamp_param_high( ICOS_Float *a, int idx );
-    // void clamp_param_low( ICOS_Float *a, int idx );
-    // void clamp_param_highlow( ICOS_Float *a, int idx );
-    // End of possible functions
-    
+   
     int index; ///< Parameter's global index
     static int n_parameters;
   protected:
     ICOS_Float init_val; ///< Initialization value
     uint32_t refs_float; ///< Bit-mapped
-    // ICOS_Float low;
-    // ICOS_Float high;
-    // ICOS_Float prev;
   private:
     static int *ia; ///< The 1-based vector of parameter fix/float settings
 };
-
-// func_aggregate and its derived classes assume all the
-// sub-functions have independent parameters. Hence total
-// number of parameters is just the sum of the number of
-// parameters of the children.
-// class func_aggregate : public func_evaluator {
-  // public:
-    // inline func_aggregate(const char*sname = "aggregate") : func_evaluator(sname) {}
-    // void append_func( func_evaluator * );
-// };
-// class func_product : public func_aggregate {
-  // public:
-    // inline func_product() : func_aggregate("product") {}
-    // void evaluate(ICOS_Float x, ICOS_Float *a);
-// };
-// class func_sum : public func_aggregate {
-  // public:
-    // inline func_sum() : func_aggregate("sum") {}
-    // inline func_sum(char *name) : func_aggregate(name) {}
-    // void evaluate(ICOS_Float x, ICOS_Float *a);
-    // void evaluate(ICOS_Float x, ICOS_Float *a, int i);
-// };
 
 class QTdata {
   public:
@@ -179,17 +149,17 @@ class QTdata {
     std::vector<double> QT;
 };
 
-//--------------------------------------------------------
-// func_line objects share location and width parameters.
-// Derived classes include gaussian, lorentzian and voigt,
-// which each add additional parameters.
-//
-// nu - an approximation of the line wavenumber
-// nu0 - static offset to extend precision of wavenumbers
-//       Set when the first line is defined.
-// nu1 - nu-nu0 (or a more precise version thereof)
-// nu_P - nu1+delta*P/760. : pressure-shifted wavenumber less nu0
-//--------------------------------------------------------
+/**
+ * func_line objects share location and width parameters.
+ * Derived classes include gaussian, lorentzian and voigt,
+ * which each add additional parameters.
+ *
+ * nu - an approximation of the line wavenumber
+ * nu0 - static offset to extend precision of wavenumbers
+ *       Set when the first line is defined.
+ * nu1 - nu-nu0 (or a more precise version thereof)
+ * nu_P - nu1+delta*P/760. : pressure-shifted wavenumber less nu0
+ */
 class func_line : public func_evaluator {
   public:
     func_line( const char *name, int mol, int iso,
@@ -237,26 +207,22 @@ class func_line : public func_evaluator {
     static const double C2; // 1.4388 cm K second radiation constant hc/k
 };
 
-// func_abs has 1 common parameter, which is nu_F0
-// In Release 2.2, we inherit nu_F0 from func_skew.
-// Each line then has it's own dnu that func_abs owns
-// and its own 4 parameters.
-// ### Just review this comment:
-// ### In Release 3.0, each line has both nu_F0 and dnu.
-// ### Lines own dnu, nu_F0 is owned by func_abs, or maybe func_skew
+/**
+ * func_abs has 1 common parameter, which is nu_F0
+ * In Release 2.2, we inherit nu_F0 from func_skew.
+ * Each line then has it's own dnu that func_abs owns
+ * and its own 4 parameters.
+ * In Release 3.0, each line has both nu_F0 and dnu.
+ * Lines own dnu, nu_F0 is owned by func_abs.
+ */
 class func_abs : public func_evaluator {
   public:
     func_abs();
-    // void append_func( func_line *newfunc );
     void init(ICOS_Float *a);
     void evaluate(ICOS_Float x, ICOS_Float *a);
-    // inline func_line *lfirst() { return (func_line *)first; }
     int adjust_params(ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a);
     void print_config(FILE *fp);
     void print_intermediates(FILE *fp);
-    // void fix_linepos(int linenum);
-    // void float_linepos(int linenum);
-    // void dump_params(ICOS_Float *a, int indent);
 };
 typedef func_abs *func_abs_p;
 typedef func_line *func_line_p;
@@ -321,16 +287,8 @@ inline func_line_p new_voigt( int mol, int iso,
                     fix_dw, fix_lw, fix_fp );
 }
 
-// class func_quad : public func_evaluator {
-  // public:
-    // func_quad( ICOS_Float q, ICOS_Float l, ICOS_Float c );
-    // void evaluate(ICOS_Float x, ICOS_Float *a);
-    // static const int q_idx, dnu_idx, c_idx; // 0, 1, 2
-// };
-
-
-// baseline functions. func_base is a virtual base class
-// (perhaps not technically?)
+/** baseline functions. func_base is a virtual base class
+ */
 class func_base : public func_evaluator {
   public:
     inline func_base(const char *name = "base") :
@@ -338,9 +296,11 @@ class func_base : public func_evaluator {
     int uses_nu_F0; ///< 0 or 1
 };
 
-// This is the old func_base for SVDs as a function of x
-// The file format is ICOS standard binary with the first
-// element of each column being initial parameter settings
+/**
+ * This is the old func_base for SVDs as a function of x
+ * The file format is ICOS standard binary with the first
+ * element of each column being initial parameter settings
+ */
 class func_base_svdx : public func_base {
   public:
     func_base_svdx( const char *filename );
@@ -350,23 +310,25 @@ class func_base_svdx : public func_base {
     int n_pts;
 };
 
-// This is a function supporting vectors as a function of
-// nu as well as polynomials as a function of x or nu
-// The file format is:
-// i*4  0  To distinguish from func_base_svdx format
-// i*4  1  To identify func_base_ptbnu format
-// f*8 polynomial scale factor
-// f*8 nu0 smallest value of nu
-// f*8 dnu increment between samples
-// i*2 n_vectors
-// i*2 npts per vector
-// i*2 number of polynomial coefficients (degree+1)
-// i*2 polynomial of x == 0, nu == 1
-// f*4 X n_vectors initial parameter values
-// f*4 X n polynomial coefficients initial parameter values
-// f*4 X npts X n_vectors: vector data in column order
+/**
+ * This is a function supporting vectors as a function of
+ * nu as well as polynomials as a function of x or nu
+ * The file format is:
+ * i*4  0  To distinguish from func_base_svdx format
+ * i*4  1  To identify func_base_ptbnu format
+ * f*8 polynomial scale factor
+ * f*8 nu0 smallest value of nu
+ * f*8 dnu increment between samples
+ * i*2 n_vectors
+ * i*2 npts per vector
+ * i*2 number of polynomial coefficients (degree+1)
+ * i*2 polynomial of x == 0, nu == 1
+ * f*4 X n_vectors initial parameter values
+ * f*4 X n polynomial coefficients initial parameter values
+ * f*4 X npts X n_vectors: vector data in column order
 
-// Can use global SignalRegion to determine range of x
+ * Can use global SignalRegion to determine range of x
+ */
 class func_base_ptbnu : public func_base {
   public:
     func_base_ptbnu(const char *filename, func_evaluator *nu_F0);
@@ -448,12 +410,14 @@ class skew_data {
     int n;
 };
 
-// func_skew applies the cell skew function of ICOS. Its two
-// children define the input power curve (base) and the
-// intra-cavity absorption (abs).
-// base and abs have mostly independent parameters, but if
-// the base function uses nu_F0, that parameter is shared.
-// The skew member is used as an M-element circular buffer.
+/**
+ * func_skew applies the cell skew function of ICOS. Its two
+ * children define the input power curve (base) and the
+ * intra-cavity absorption (abs).
+ * base and abs have mostly independent parameters, but if
+ * the base function uses nu_F0, that parameter is shared.
+ * The skew member is used as an M-element circular buffer.
+ */
 class func_skew : public func_evaluator {
   public:
     func_skew(func_g *g, func_epsilon *epsilon);
@@ -462,7 +426,6 @@ class func_skew : public func_evaluator {
     void evaluate(ICOS_Float x, ICOS_Float *a);
     void evaluate_partials();
     int skew_samples();
-    // void dump_params(ICOS_Float *a, int indent);
     void output_params(FILE *ofp, bool fixed);
   private:
     void sub_eval(ICOS_Float x, ICOS_Float *a);
@@ -471,23 +434,22 @@ class func_skew : public func_evaluator {
     ICOS_Float R2, R2N, P_scale;
     skew_data *skew; // We will have M of these
     int *depsi; // map from g parameters to eps parameters
-    // ICOS_Float prev_x;
     int skewidx;
     func_evaluator *basep;
     evaluation_order skew_eval_order;
 };
 
-// func_noskew calculates absorption for a simple multi-pass
-// cell. Its two children define the input power curve (base)
-// and the intra-cavity absorption (abs).
-// base and abs have mostly independent parameters, but if
-// the base function uses nu_F0, that parameter is shared.
+/**
+ * func_noskew calculates absorption for a simple multi-pass
+ * cell. Its two children define the input power curve (base)
+ * and the intra-cavity absorption (abs).
+ * base and abs have mostly independent parameters, but if
+ * the base function uses nu_F0, that parameter is shared.
+ */
 class func_noskew : public func_evaluator {
   public:
     func_noskew(func_base *base, func_abs *abs);
-    // void init(ICOS_Float *a);
     void evaluate(ICOS_Float x, ICOS_Float *a);
-    // void dump_params(ICOS_Float *a, int indent);
   private:
     ICOS_Float N_Passes;
     int n_base_params, n_abs_params;

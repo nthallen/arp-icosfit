@@ -22,7 +22,6 @@ int fitdata::mrqmin() {
     for (j=1;j<=ma;j++) atry[j]=a[j];
     ochisq = chisq;
   }
-  // ochisq = chisq;
   for (j=1;j<=mfit;j++) {
     for (k=1;k<=mfit;k++) {covar[j][k]=alpha[j][k]; }
     covar[j][j]=alpha[j][j]*(1.0+(alamda));
@@ -51,10 +50,8 @@ int fitdata::mrqmin() {
     }
   if ( adjust_params( atry) ) return 1;
   mrqcof( atry, covar, da );
-  // if (chisq == ochisq ) ochisq = chisq/.9995;
   if (chisq <= ochisq) {
     alamda *= 0.1;
-    // ochisq=chisq;
     for (j=1;j<=mfit;j++) {
       for (k=1;k<=mfit;k++) alpha[j][k]=covar[j][k];
       beta[j]=da[j];
@@ -62,7 +59,6 @@ int fitdata::mrqmin() {
     for (l=1;l<=ma;l++) a[l]=atry[l];
   } else {
     alamda *= 10.0;
-    // chisq=ochisq;
   }
   return 0;
 }

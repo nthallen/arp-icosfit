@@ -5,14 +5,15 @@
 #include "ICOSfit.h"
 #include "global.h"
 
-// func_base is a func_evaluator that uses a canonical
-// baseline shape derived from zero air for the baseline.
-// The baseline data is written in my ICOS-standard binary
-// file format, which uses two 32-bit unsigned ints at
-// the start to specify rows and columns, and then records
-// the remaining data as floats. For the baseline, the first
-// element of each column is the parameter initialization.
-
+/**
+  func_base_svdx is a func_evaluator that uses a canonical
+  baseline shape derived from zero air for the baseline.
+  The baseline data is written in my ICOS-standard binary
+  file format, which uses two 32-bit unsigned ints at
+  the start to specify rows and columns, and then records
+  the remaining data as floats. For the baseline, the first
+  element of each column is the parameter initialization.
+ */
 func_base_svdx::func_base_svdx( const char *filename ) :
     func_base( "func_base_svdx" ) {
   uses_nu_F0 = 0;
@@ -103,8 +104,6 @@ func_base_ptbnu::func_base_ptbnu(const char *filename, func_evaluator *nu_F0) :
   if (uses_nu_F0) {
     append_func(nu_F0);
   }
-  // n_params = uses_nu_F0 + cfg.n_vectors + cfg.poly_coeffs;
-  // params = new parameter[n_params];
   // Read in initial parameter values
   int i;
   for ( i = 0; i < cfg.n_vectors; i++) {
@@ -113,7 +112,6 @@ func_base_ptbnu::func_base_ptbnu(const char *filename, func_evaluator *nu_F0) :
       nl_error( 3, "%s: Error reading vector param init: %s", filename,
         strerror(errno));
     append_func(new func_parameter("basevec", (ICOS_Float)pval, true, i));
-    // params[i+uses_nu_F0].init = (ICOS_Float)pval;
   }
   for ( i = 0; i < cfg.poly_coeffs; i++ ) {
     float pval;
@@ -122,7 +120,6 @@ func_base_ptbnu::func_base_ptbnu(const char *filename, func_evaluator *nu_F0) :
       nl_error( 3, "%s: Error reading polynomial param init: %s", filename,
         strerror(errno));
     append_func(new func_parameter("basepoly", (ICOS_Float)pval, true, i));
-    // params[uses_nu_F0+cfg.n_vectors+i].init = (ICOS_Float)pval;
   }
   if ( cfg.n_vectors ) {
     vectors = new ICOS_Float *[cfg.n_vectors];
@@ -205,8 +202,6 @@ void func_base_ptbnu::init( ICOS_Float *a ) {
     fix_param(0);
 }
 
-// given x and parameters a, calculate value and
-// args[].dyda
 void func_base_ptbnu::evaluate( ICOS_Float x, ICOS_Float *a ) {
   int ix = int(x);
   ICOS_Float nu = 0.;
@@ -277,18 +272,6 @@ void func_base_input::init(ICOS_Float *a) {
     assert(params[i].refs[0].arg_num == 1);
   }
 }
-  // int p1, p2;
-  // a[params[uses_nu_F0].index] = 1;
-  // if ( first->params == 0 )
-  //   first->params = new parameter[first->n_params];
-  // if ( uses_nu_F0 )
-  //   link_param( 0, first, 0 );
-  // for ( p1 = 1+uses_nu_F0, p2 = uses_nu_F0; p2 < first->n_params; p2++ ) {
-  //   link_param( p1, first, p2 );
-  //   p1++;
-  // }
-  // first->init(a);
-// }
 
 void func_base_input::evaluate( ICOS_Float x, ICOS_Float *a ) {
   int ix = int(x);

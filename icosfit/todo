@@ -1,7 +1,3 @@
-Cleanup {
-  Eliminate obsolete files
-  Eliminate quadratic baseline cruft
-}
 Front end issues {
   Allow specifying ringdown time instead of mirror loss
 }
@@ -10,73 +6,6 @@ Float Mirror Loss {
   into the calculation.
 
   May need mirror loss to be a function of position.
-}
-nu_F0 {
-  nu_F0 is not being handled as a parameter. It is one of
-  the so-called input params. This needs to change.
-  func_abs needs to be a sum with an additional parameter.
-  Derivative for the additional parameter needs to be calculated.
-  Rules for fix/float need to be determined.
-  Output needs to be modified, and probably most explicit
-  references to nu_F0 need to be changed or eliminated.
-  ICOSsetup.m needs to be changed.
-  
-  Eliminate nu_F0 as a special parameter {
-    ICOSmain.c - done
-    fitfunc.c - done
-    funcabs.c - done {
-      first pass: fix all dnu(i) and float nu_F0 {
-        in evaluate, set the dnu(i) equal to nu_F0, then
-        sum the d/ddnu(i) for d/dnu_F0.
-      }
-      second pass: allow some dnu(i) to float {
-        append_func needs to allocate an additional parameter
-        for each line, distributing the rest to the line.
-        The line's copy is fixed, the extra one may or may not
-        be fixed. In evaluate, the line's copy is set to the
-        sum of nu_F0 and the extra copy. The partial for the
-        extra copy is set to the partial for the line's copy.
-        [in super-special version, the line's copy param would
-        be marked as derived, and would not be output.]
-        
-        func_abs::append_func allocate one additional parameter
-        per line, marked as fixed
-        
-        func_abs::init distribute the parameters in a "special"
-        way
-        
-        func_abs::evaluate set dnu' for each line as the sum of
-        the 
-
-
-      }
-    }
-    funceval.c - done
-    functau.c - done
-    humdev.c - done
-    ptread.c - done
-    ICOSsetup.m et.al.
-  }
-}
-Things Learned {
-  The parameter structure is duplicated too readily.
-  There should be a single copy of a parameter structure for
-  each potentially free parameter which identifies whether
-  that parameter is fixed or floating, what index it has in the
-  'a' vector, and information relating to constraints. Within
-  the func_evaluator hierarchy, we should provide a pointer
-  to the appropriate parameter if in fact an argument is a
-  parameter. Space should be provided for a value or pointer to a
-  value if it is a derived quantity. Space for the partial
-  derivative should be provided as well:
-    ptype: parameter/derived/constant
-    value: if ptype!=parameter
-    pptr:  pointer to parameter struct if ptype==parameter
-    index: into a, valid if ptype==parameter, redundant but useful
-    dy/da: 
-}
-Skew {
-  funcskew.c
 }
 Basic Features of this program {
   Non-linear least-squares fit using Marquardt-Levenberg method.

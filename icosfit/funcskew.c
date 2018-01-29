@@ -105,12 +105,6 @@ func_skew::func_skew( func_g *g, func_epsilon *eps ) :
   basep = g->args[0].arg;
   depsi = 0;
   
-  // if ( basep->uses_nu_F0 != 0 && basep->uses_nu_F0 != 1)
-    // nl_error(4,"uses_nu_F0 must be 0 or 1");
-  // n_base_params = base->n_params - basep->uses_nu_F0;
-  // n_abs_params = abs->n_params;
-  // n_params = n_base_params + n_abs_params;
-  // initialize the structures here?
   const ICOS_Float c = 2.99792458e10; // cm/s
   N = c/(2*GlobalData.CavityLength*GlobalData.SampleRate);
   ICOS_Float R = 1 - GlobalData.MirrorLoss;
@@ -144,33 +138,6 @@ void func_skew::init(ICOS_Float *a) {
     }
   }
 }
-  // func_evaluator *child;
-  // int p1 = 0;
-  // int p2;
-
-  // // printf( "func_skew::init(%s, %d); n_params=%d\n", name, p1, n_params );
-  // for ( p2 = 0; p2 < n_params; p2++ )
-    // a[params[p2].index] = params[p2].init;
-  // for ( child = first; child != 0; child = child->next ) {
-    // if ( child->params == 0 )
-      // child->params = new parameter[child->n_params];
-    // if ( child == first && basep->uses_nu_F0 ) {
-      // link_param( n_base_params, child, 0 );
-      // p2 = 1;
-    // } else {
-      // p2 = 0;
-    // }
-    // if ( p1 + child->n_params - p2 > n_params ) {
-      // fprintf( stderr, "Too many child params: n_params = %d\n", n_params );
-      // exit(1);
-    // }
-    // for ( ; p2 < child->n_params; p2++ ) {
-      // link_param( p1, child, p2 );
-      // p1++;
-    // }
-    // child->init(a);
-  // }
-// }
 
 int func_skew::skew_samples() {
   int rv = func_evaluator::skew_samples();
@@ -236,16 +203,23 @@ void func_skew::sub_eval(ICOS_Float x, ICOS_Float *a) {
     skewidx = 0;
 }
 
-// We depend on the fact that the functions are evaluated
-// for monotonically increasing values of x. We know we are
-// starting over if x decreases. We also know that x is
-// essentially integral.
-// Note: The calculation of 'Power' is not part of the fit
-// per se. It is performed only to generate the effective
-// skewed baseline for diagnostic output. The baseline
-// function determines the input power, but for useful
-// comparison with the raw data, we need to estimate the
-// output power in the absence of absorption.
+/**
+ * Prior to version 3.0, we depended
+ * on the fact that the functions are evaluated
+ * for monotonically increasing values of x. We know we are
+ * starting over if x decreases. We also know that x is
+ * essentially integral.
+ *
+ * With 3.0, we use the pre_evaluation_order, which is called
+ * at the beginning of each evaluation sequence.
+ *
+ * Note: The calculation of 'Power' is not part of the fit
+ * per se. It is performed only to generate the effective
+ * skewed baseline for diagnostic output. The baseline
+ * function determines the input power, but for useful
+ * comparison with the raw data, we need to estimate the
+ * output power in the absence of absorption.
+ */
 void func_skew::evaluate(ICOS_Float x, ICOS_Float *a) {
   sub_eval(x, a);
   value = 0;

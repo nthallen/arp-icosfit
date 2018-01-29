@@ -35,9 +35,11 @@ voigt::voigt( int mol, int iso,
   fix_lwidth = fix_lw;
 }
 
-// This formulation for the empirical fit to linewidth is from
-// Liz's old lecture notes (Webster?) and is attributed to
-// Olivero and Longbothum.
+/**
+ * This formulation for the empirical fit to line width is from
+ * Liz's old lecture notes (Webster?) and is attributed to
+ * Olivero and Longbothum.
+ */
 ICOS_Float voigt::line_width(ICOS_Float *a) {
   ICOS_Float ged = get_arg(a, w_idx);
   ICOS_Float gl = get_arg(a, gl_idx);
@@ -49,24 +51,6 @@ void voigt::init(ICOS_Float*a) {
   if ( fix_lwidth) fix_param(gl_idx);
   func_line::init(a);
 }
-
-// void voigt::dump_params(ICOS_Float *a, int indent) {
-  // print_indent( stderr, indent );
-  // fprintf( stderr, "Parameters for '%s' %.4" FMT_F " cm-1:\n", name, nu );
-  // indent += 2;
-  // print_indent( stderr, indent );
-  // fprintf( stderr, "[%2d] dnu: %" FMT_G " cm-1\n", params[dnu_idx].index,
-    // a[params[dnu_idx].index] );
-  // print_indent( stderr, indent );
-  // fprintf( stderr, "[%2d] Ged: %" FMT_G " cm-1\n", params[w_idx].index,
-    // a[params[w_idx].index] );
-  // print_indent( stderr, indent );
-  // fprintf( stderr, "[%2d]   N: %" FMT_G " mol/cm-3\n", params[n_idx].index,
-    // a[params[n_idx].index] );
-  // print_indent( stderr, indent );
-  // fprintf( stderr, "[%2d]  Gl: %" FMT_G " cm-1\n", params[gl_idx].index,
-    // a[params[gl_idx].index] );
-// }
 
 ICOS_Float voigt::line_start(ICOS_Float*a) {
   return (nu_P - GlobalData.RightLineMarginMultiplier*line_width(a));
@@ -91,7 +75,6 @@ void voigt::evaluate( ICOS_Float xx, ICOS_Float *a ) {
   ICOS_Float DKDY; // dVoigt/dY
 
 // Constants
-  // static const double DRTPI = 0.5641895835477563; // 1/SQRT(pi)
   static const ICOS_Float  RRTPI = 0.56418958;
   static const ICOS_Float Y0 = 1.5; // for CPF12 algorithm
   static const ICOS_Float Y0PY0 = Y0+Y0;
@@ -108,16 +91,10 @@ void voigt::evaluate( ICOS_Float xx, ICOS_Float *a ) {
 
 // Local variables
   int J;                                      // Loop variables
-  // int RGB, RGC, RGD;                             // y polynomial flags
-  // YQ;                             // y^2
   ICOS_Float ABX, XQ;                      // |x|, x^2
-  // ICOS_Float XLIMA, XLIMB, XLIMC, XLIM4;              // x on region boundaries
   ICOS_Float MT[6], MQ[6], PT[6], PQ[6];              // Temporary variables
   ICOS_Float XP[6], XM[6], YP[6], YM[6], MF[6], PF[6];
   ICOS_Float YP2Y0, YPY0, YPY0Q, YF1, YF2, MFQ, PFQ, D,  U, DUDY, DVDY;
-  // ICOS_Float A0, B1, C0, C2, D0, D1, D2, E0, E2, E4, F1, F3, F5;
-  // ICOS_Float G0, G2, G4, G6, H0, H2, H4, H6, P0, P2, P4, P6, P8;
-  // ICOS_Float Q1, Q3, Q5, Q7, R0, R2, W0, W2, W4, Z0, Z2, Z4, Z6, Z8;
   double DB;
 
 //**** Start of executable code ****************************************
@@ -318,7 +295,6 @@ void voigt::evaluate( ICOS_Float xx, ICOS_Float *a ) {
  */
 int voigt::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
   ICOS_Float gamma_l;
-  // const ICOS_Float ln2 = log(2.);
 
   if ( func_line::adjust_params( alamda, P, T, a ) )
     return 1;

@@ -9,7 +9,8 @@
 #include "global.h"
 
 int verbose = 8;
-/* verbose & 1 => output fits
+/**
+   verbose & 1 => output fits
    verbose & 2 => output conversion progress on each iteration
    verbose & 4 => dump parameters on first fit
    verbose & 8 => output partial fits
@@ -18,6 +19,7 @@ int verbose = 8;
    verbose & 64 => output fringe positions in fit_fringes()
    verbose & 128 => output X and K values for each voigt line in verbose(1) fits
 */
+
 void ICOS_init() {
   if (ShowVersion) {
     printf("icosfit version %s, %s\n", ICOSFIT_VERSION, ICOSFIT_VERSION_DATE);
