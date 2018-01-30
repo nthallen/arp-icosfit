@@ -61,11 +61,12 @@ Lines : / Lines Line .
 Line : Integer Integer FloatVal FloatVal FloatVal FloatVal
                       FloatVal FloatVal Integer LineOpts ';' .
 LineOpts : / LineOpts ',' LineOpt .
-LineOpt : Threshold / Position / FixLineParam .
+LineOpt : Threshold / Position / FixLineParam / GroupSpec .
 FixLineParam : FixFloat LineParam .
 FixFloat : 'Fix' / 'Float' .
 LineParam : 'Lorentz' / 'Doppler' / 'FinePosition' .
 FloatVal : Float / Integer / '-' FloatVal .
+GroupSpec : 'Group' Ident .
 PTE_opts : / PTE_opts PTE_opt .
 PTE_opt : '+' 'nu_F0' / '+' 'MirrorLoss' / '+' 'PowerParams' /
   '+' 'Feedback' / '+' 'Placeholder' .

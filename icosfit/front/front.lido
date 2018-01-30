@@ -301,3 +301,22 @@ RULE: Frequency ::= 'Hz'  COMPUTE Frequency.FVal = 1; END;
 RULE: Frequency ::= 'kHz' COMPUTE Frequency.FVal = 1000.; END;
 RULE: Frequency ::= 'MHz' COMPUTE Frequency.FVal = 100000.; END;
 RULE: opt_BaselineInput ::= '+' 'Input' COMPUTE SetGlobal( BaselineInput, 1 ); END;
+
+SYMBOL Lines INHERITS RootScope END;
+SYMBOL GroupName INHERITS IdDefUse END;
+
+RULE: GroupName ::= Ident COMPUTE
+  GroupName.Sym = Ident;
+END;
+RULE: GroupSpec ::= 'Group' GroupName END;
+
+ATTR LineKey : DefTableKey;
+SYMBOL Line COMPUTE
+  SYNT.LineKey = NewKey();
+END;
+SYMBOL GroupName INHERITS GroupRefUnique COMPUTE
+  INH.LineKey = INCLUDING Line.LineKey;
+  IF (NOT (THIS.GroupRefUnique),
+    message (ERROR, "Group name is multiply defined",
+             0, COORDREF));
+END;

@@ -6,6 +6,8 @@ front.pdl
 front.HEAD.phi
 front.INIT.phi
 front.FINL.phi
+$/Name/CScope.gnrc :inst
+$/Prop/Unique.gnrc+instance=GroupRef+referto=Line :inst
 ../global.c
 ../global.h
 ../ICOSmain.c
