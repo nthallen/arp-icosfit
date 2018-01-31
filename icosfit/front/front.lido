@@ -290,7 +290,9 @@ SYMBOL Line COMPUTE
   THIS.Absorb = abs_append( THIS.Absorb,
     new_voigt(THIS.mol, THIS.iso, THIS.nu, THIS.S, THIS.Gair, THIS.E,
 				THIS.n, THIS.delta, THIS.ipos, THIS.threshold,
-				THIS.fixdoppler, THIS.fixlorentz, THIS.fixfinepos ));
+				THIS.fixdoppler, THIS.fixlorentz, THIS.fixfinepos,
+        GetNparameter(THIS.Key,0)))
+        <- THIS.NpSet;
 END;
 
 RULE: opt_ppm ::=       COMPUTE opt_ppm.FVal = 1.; END;
@@ -303,7 +305,6 @@ RULE: Frequency ::= 'MHz' COMPUTE Frequency.FVal = 100000.; END;
 RULE: opt_BaselineInput ::= '+' 'Input' COMPUTE SetGlobal( BaselineInput, 1 ); END;
 
 SYMBOL Lines INHERITS RootScope END;
-SYMBOL GroupName INHERITS IdDefUse END;
 
 RULE: GroupName ::= Ident COMPUTE
   GroupName.Sym = Ident;
@@ -311,12 +312,19 @@ END;
 RULE: GroupSpec ::= 'Group' GroupName END;
 
 ATTR LineKey : DefTableKey;
-SYMBOL Line COMPUTE
-  SYNT.LineKey = NewKey();
-END;
-SYMBOL GroupName INHERITS GroupRefUnique COMPUTE
-  INH.LineKey = INCLUDING Line.LineKey;
+ATTR NpSet : VOID;
+SYMBOL GroupName INHERITS IdDefUse, GroupRefUnique COMPUTE
+  INH.LineKey = INCLUDING Line.Key;
   IF (NOT (THIS.GroupRefUnique),
     message (ERROR, "Group name is multiply defined",
              0, COORDREF));
+  SYNT.NpSet = ORDER(
+    IF (THIS.DefCond,
+        SetNparameter(THIS.Key, Nparameter(StringTable(THIS.Sym)),0)),
+    SetNparameter(THIS.LineKey,GetNparameter(THIS.Key,0),0)
+  );
+END;
+
+SYMBOL Line COMPUTE
+  SYNT.NpSet = CONSTITUENTS GroupName.NpSet;
 END;

@@ -359,6 +359,12 @@ void func_parameter::output_params(FILE *ofp, bool fixed) {
   }
 }
 
+func_parameter_p Nparameter(const char *group) {
+  char pname[40];
+  snprintf(pname, 40, "N[%s]", group);
+  return new func_parameter(nl_strdup(pname), 0);
+}
+
 static ICOS_Float get_molwt( int isotopomer ) {
   switch (isotopomer) {
     case 11: return 18.011000; // H_2O
@@ -425,12 +431,12 @@ int func_line::n_lines = 0;
 func_line::func_line( const char *name, int mol, int iso,
           double nu_in, double S_in, double G_air_in, double E_in,
           double n_in, double delta_in, unsigned int ipos_in, double threshold,
-          int fix_w, int fix_fp ) :
+          int fix_w, int fix_fp, func_parameter *N ) :
     func_evaluator(name, true, ++n_lines) {
   line_number = n_lines;
   append_func(new func_parameter("dnu", 0., true, line_number));
   append_func(new func_parameter("gd", 1., true, line_number));
-  append_func(new func_parameter("N", 0., true, line_number));
+  append_func(N ? N : new func_parameter("N", 0., true, line_number));
   fixed = 0;
   fix_finepos = fix_fp;
   fix_width = fix_w;

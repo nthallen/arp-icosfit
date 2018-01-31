@@ -165,7 +165,7 @@ class func_line : public func_evaluator {
     func_line( const char *name, int mol, int iso,
       double nu, double S, double Gair, double E, double n,
       double delta, unsigned int ipos, double threshold, int fix_w,
-      int fix_fp );
+      int fix_fp, func_parameter *N = 0 );
     ~func_line();
     unsigned int adopted(func_evaluator *new_parent);
     int adjust_params( ICOS_Float alamda, ICOS_Float P,
@@ -226,11 +226,13 @@ class func_abs : public func_evaluator {
 };
 typedef func_abs *func_abs_p;
 typedef func_line *func_line_p;
+typedef func_parameter *func_parameter_p;
 inline func_abs_p new_func_abs() { return new func_abs(); }
 inline func_abs_p abs_append( func_abs_p abs, func_line_p line ) {
   abs->append_func( line );
   return abs;
 }
+func_parameter_p Nparameter(const char *group);
 
 class gaussian : public func_line {
   public:
@@ -256,7 +258,7 @@ class voigt : public func_line {
     voigt( int mol, int iso,
           double nu_in, double S_in, double G_air_in, double E_in,
           double n_in, double delta_in, int ipos_in, double threshold,
-          int fix_dw, int fix_lw, int fix_fp );
+          int fix_dw, int fix_lw, int fix_fp, func_parameter *N = 0 );
     void init(ICOS_Float *a);
     void evaluate(ICOS_Float x, ICOS_Float *a);
     ICOS_Float line_width(ICOS_Float*a);
@@ -282,9 +284,9 @@ class voigt : public func_line {
 inline func_line_p new_voigt( int mol, int iso,
     double nu, double S, double Gair, double E, double n,
     double delta, int ipos, double threshold,
-    int fix_dw, int fix_lw, int fix_fp ) {
+    int fix_dw, int fix_lw, int fix_fp, func_parameter *NP ) {
   return new voigt( mol, iso, nu, S, Gair, E, n, delta, ipos, threshold,
-                    fix_dw, fix_lw, fix_fp );
+                    fix_dw, fix_lw, fix_fp, NP);
 }
 
 /** baseline functions. func_base is a virtual base class

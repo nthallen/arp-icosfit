@@ -25,10 +25,10 @@ const int voigt::gl_idx = 3;
 voigt::voigt( int mol, int iso,
           double nu_in, double S_in, double G_air_in, double E_in,
           double n_in, double delta_in, int ipos_in, double threshold,
-          int fix_dw, int fix_lw, int fix_fp )
+          int fix_dw, int fix_lw, int fix_fp, func_parameter *N )
     : func_line( "voigt", mol, iso, nu_in, S_in, G_air_in, E_in,
                    n_in, delta_in, ipos_in, threshold, fix_dw,
-                   fix_fp ) {
+                   fix_fp, N) {
   append_func(new func_parameter("Gl", 0., true, line_number));
   prev_gl = 0.;
   prev_y = 0.;
