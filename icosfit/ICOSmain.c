@@ -9,17 +9,17 @@
 #include "global.h"
 
 int verbose = 8;
-/* verbose & 1 => output fits
-   verbose & 2 => output gaussj [apparently no longer in use but see 32]
-                  output line_check changes
-   verbose & 4 => output baseline fit [apparently no longer in use]
-                  output baseline vectors after reading in (func_base)
+/**
+   verbose & 1 => output fits
+   verbose & 2 => output conversion progress on each iteration
+   verbose & 4 => dump parameters on first fit
    verbose & 8 => output partial fits
-   verbose & 16 => output derivatives in output files
+   verbose & 16 => output derivatives in verbose output files
    verbose & 32 => output ochisq, alamda and covariance matrix on each iteration
    verbose & 64 => output fringe positions in fit_fringes()
    verbose & 128 => output X and K values for each voigt line in verbose(1) fits
 */
+
 void ICOS_init() {
   if (ShowVersion) {
     printf("icosfit version %s, %s\n", ICOSFIT_VERSION, ICOSFIT_VERSION_DATE);
@@ -107,19 +107,25 @@ fitdata *build_func() {
   func_base *base;
   if ( GlobalData.BaselineFile == 0 )
     nl_error(3, "BaselineFile is now required" );
-  base = pick_base_type( GlobalData.BaselineFile );
   func_abs *abs = GlobalData.absorb;
+  base = pick_base_type(GlobalData.BaselineFile, abs->args[0].arg);
   if ( GlobalData.N_Passes > 0 ) {
     func = new func_noskew( base, abs );
     nl_error( 0, "Using func_noskew()" );
   } else {
     if ( GlobalData.SampleRate == 0 )
       nl_error(3, "SampleRate required for skew calculation" );
-    func = new func_skew( base, abs );
+    func_beta *beta = new func_beta(abs);
+    func_gamma *gamma = new func_gamma(beta);
+    func_epsilon *eps = new func_epsilon(gamma);
+    func = new func_skew(
+        new func_g(base, beta, new func_delta(eps, gamma)), eps);
     nl_error( 0, "Using func_skew()" );
   }
-  { func_line *line;
-    for ( line = abs->lfirst(); line != 0; line = line->lnext() ) {
+  std::vector<argref>::iterator child;
+  for (child = abs->args.begin(); child != abs->args.end(); ++child) {
+    func_line *line = child->arg->is_line();
+    if (line) {
       fitdata::n_input_params += 2;
     }
   }
@@ -138,16 +144,16 @@ fitdata *build_func() {
     fnamep = output_filename( GlobalData.MFile );
     fp = fopen( fnamep, "w" );
     if ( fp == 0 ) nl_error( 3, "Unable to open MFile '%s'", fnamep );
-    assert( abs != 0 && abs->first != 0 && abs->first->params != 0 );
+    assert( abs != 0 && abs->args.size() != 0 && abs->args[0].arg->params.size() != 0 );
     fprintf( fp,
       "%% ICOS configuration data\n"
-      "ICOSfit_format_ver = 2;\n"
+      "ICOSfit_format_ver = 3;\n"
       "n_input_params = %d;\n"
-      "n_base_params = %d;\n"
+      "n_base_params = %ld;\n"
       "binary = %d;\n"
       "nu0 = %.0" FMT_F ";\n",
       fd->n_input_params,
-      abs->params[0].index - 1,
+      base->params.size(),
       GlobalData.binary,
       func_line::nu0 );
     fprintf(fp, "BaselineFile = '%s';\n",

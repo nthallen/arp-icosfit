@@ -25,6 +25,7 @@ if exist( [ base '/ICOSsum.dat' ], 'file' )
 elseif exist( [ base '/ICOSsum.out' ], 'file' )
   fitdata = load( [ base '/ICOSsum.out' ] );
   ICOS_debug = 1;
+  ICOS_debug_scan = mlf_index(base);
   base = [ base '/../../..' ];
 else
   error(['Cannot locate ICOSsum.dat or ICOSsum.out in ' base ]);
@@ -41,10 +42,10 @@ if exist( [ base '/ICOSconfig.m' ], 'file' )
   if ~exist('ICOSfit_format_ver','var')
     ICOSfit_format_ver = 1;
   end
-  if any(n_line_params ~= 4)
+  if any(n_line_params ~= n_line_params(1))
     error('Cannot handle different line types!');
   end
-  n_line_params = 4;
+  n_line_params = n_line_params(1);
   n_lines = size(lines,1);
   if ~exist('CavLen','var')
     CavLen = 76.8;
@@ -172,6 +173,11 @@ end
 Ged = fitdata(:,v+1);
 Gl = fitdata(:,v+3);
 dnu = fitdata(:,v);
+if ICOSfit_format_ver <= 2
+  dnu = fitdata(:,v);
+else % Format V3 includes nu_F0 with each line even though it is common
+  dnu = fitdata(:,v)+fitdata(:,v+4);
+end
 % Gedcalc = 3.581e-7 * (col*nu) .* sqrt(T./(col*molwts*log(2)));
 Gedcalc = 4.30213e-7 * (col*nu) .* sqrt(T./(col*molwts));
 Glcalc = ((T0./T).^(col*STdep)) .* (col*Gair) .* (P/760.);

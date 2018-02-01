@@ -25,22 +25,24 @@ const int voigt::gl_idx = 3;
 voigt::voigt( int mol, int iso,
           double nu_in, double S_in, double G_air_in, double E_in,
           double n_in, double delta_in, int ipos_in, double threshold,
-          int fix_dw, int fix_lw, int fix_fp )
-    : func_line( "voigt", 4, mol, iso, nu_in, S_in, G_air_in, E_in,
+          int fix_dw, int fix_lw, int fix_fp, func_parameter *N )
+    : func_line( "voigt", mol, iso, nu_in, S_in, G_air_in, E_in,
                    n_in, delta_in, ipos_in, threshold, fix_dw,
-                   fix_fp ) {
-  params[gl_idx].init = 0.;
+                   fix_fp, N) {
+  append_func(new func_parameter("Gl", 0., true, line_number));
   prev_gl = 0.;
   prev_y = 0.;
   fix_lwidth = fix_lw;
 }
 
-// This formulation for the empirical fit to linewidth is from
-// Liz's old lecture notes (Webster?) and is attributed to
-// Olivero and Longbothum.
+/**
+ * This formulation for the empirical fit to line width is from
+ * Liz's old lecture notes (Webster?) and is attributed to
+ * Olivero and Longbothum.
+ */
 ICOS_Float voigt::line_width(ICOS_Float *a) {
-  ICOS_Float ged = get_param(a, w_idx);
-  ICOS_Float gl = get_param(a, gl_idx);
+  ICOS_Float ged = get_arg(a, w_idx);
+  ICOS_Float gl = get_arg(a, gl_idx);
   ICOS_Float wid = .5346*gl + sqrt(.2166*gl*gl + .69315*ged*ged);
   return wid;
 }
@@ -48,24 +50,6 @@ ICOS_Float voigt::line_width(ICOS_Float *a) {
 void voigt::init(ICOS_Float*a) {
   if ( fix_lwidth) fix_param(gl_idx);
   func_line::init(a);
-}
-
-void voigt::dump_params(ICOS_Float *a, int indent) {
-  print_indent( stderr, indent );
-  fprintf( stderr, "Parameters for '%s' %.4" FMT_F " cm-1:\n", name, nu );
-  indent += 2;
-  print_indent( stderr, indent );
-  fprintf( stderr, "[%2d] dnu: %" FMT_G " cm-1\n", params[l_idx].index,
-    a[params[l_idx].index] );
-  print_indent( stderr, indent );
-  fprintf( stderr, "[%2d] Ged: %" FMT_G " cm-1\n", params[w_idx].index,
-    a[params[w_idx].index] );
-  print_indent( stderr, indent );
-  fprintf( stderr, "[%2d]   N: %" FMT_G " mol/cm-3\n", params[n_idx].index,
-    a[params[n_idx].index] );
-  print_indent( stderr, indent );
-  fprintf( stderr, "[%2d]  Gl: %" FMT_G " cm-1\n", params[gl_idx].index,
-    a[params[gl_idx].index] );
 }
 
 ICOS_Float voigt::line_start(ICOS_Float*a) {
@@ -76,10 +60,10 @@ ICOS_Float voigt::line_end(ICOS_Float *a) {
 }
 
 void voigt::evaluate( ICOS_Float xx, ICOS_Float *a ) {
-  ICOS_Float numdens = get_param(a,n_idx);
-  ICOS_Float gamma_ed = get_param(a,w_idx);
-  ICOS_Float gamma_l = get_param(a,gl_idx);
-  ICOS_Float dnu = get_param(a,l_idx);
+  ICOS_Float numdens = get_arg(a,n_idx);
+  ICOS_Float gamma_ed = get_arg(a,w_idx);
+  ICOS_Float gamma_l = get_arg(a,gl_idx);
+  ICOS_Float dnu = get_arg(a,dnu_idx)+get_arg(a,nu_F0_idx);
   int ixx = int(xx);
 
   // X, Y and K now private object members
@@ -91,7 +75,6 @@ void voigt::evaluate( ICOS_Float xx, ICOS_Float *a ) {
   ICOS_Float DKDY; // dVoigt/dY
 
 // Constants
-  // static const double DRTPI = 0.5641895835477563; // 1/SQRT(pi)
   static const ICOS_Float  RRTPI = 0.56418958;
   static const ICOS_Float Y0 = 1.5; // for CPF12 algorithm
   static const ICOS_Float Y0PY0 = Y0+Y0;
@@ -108,16 +91,10 @@ void voigt::evaluate( ICOS_Float xx, ICOS_Float *a ) {
 
 // Local variables
   int J;                                      // Loop variables
-  // int RGB, RGC, RGD;                             // y polynomial flags
-  // YQ;                             // y^2
   ICOS_Float ABX, XQ;                      // |x|, x^2
-  // ICOS_Float XLIMA, XLIMB, XLIMC, XLIM4;              // x on region boundaries
   ICOS_Float MT[6], MQ[6], PT[6], PQ[6];              // Temporary variables
   ICOS_Float XP[6], XM[6], YP[6], YM[6], MF[6], PF[6];
   ICOS_Float YP2Y0, YPY0, YPY0Q, YF1, YF2, MFQ, PFQ, D,  U, DUDY, DVDY;
-  // ICOS_Float A0, B1, C0, C2, D0, D1, D2, E0, E2, E4, F1, F3, F5;
-  // ICOS_Float G0, G2, G4, G6, H0, H2, H4, H6, P0, P2, P4, P6, P8;
-  // ICOS_Float Q1, Q3, Q5, Q7, R0, R2, W0, W2, W4, Z0, Z2, Z4, Z6, Z8;
   double DB;
 
 //**** Start of executable code ****************************************
@@ -282,37 +259,42 @@ void voigt::evaluate( ICOS_Float xx, ICOS_Float *a ) {
   }    // Not region A
   
   ICOS_Float sed = Ks/gamma_ed;
-  params[n_idx].dyda = sed * K;
+  args[n_idx].dyda = sed * K;
   sed *= numdens; // Ks*N/Ged
   value = sed * K;
   sed /= gamma_ed; // Ks*N/Ged^2
-  params[l_idx].dyda = sed * DKDX;
-  params[w_idx].dyda = -sed * ( K + X * DKDX + Y * DKDY );
-  params[gl_idx].dyda = sed * DKDY;
+  args[dnu_idx].dyda = args[nu_F0_idx].dyda = sed * DKDX;
+  args[w_idx].dyda = -sed * ( K + X * DKDX + Y * DKDY );
+  args[gl_idx].dyda = sed * DKDY;
 }
 
-// adjust_params returns non-zero if a change in which
-// parameters are free is mandated.
-// alamda is used to indicate:
-//  alamda < 0 Initialization: set fixed parameters
-//  alamda < -1.5 called once per data set
-//  alamda > 0 Iteration: check ICOS_Floating parameters
-//  alamda == 0 Finalization: check if redo is required
-// Might be possible to get into oscillation if line gets
-//  re-disabled, but that should be unlikely. If it does
-//  happen, it could be detected by keeping track. It is
-//  probably best to leave it disabled if it happens twice.
-//  The logic is: first time it is disabled because it is
-//  getting small. When the width is corrected, it then
-//  turns out to be large. It is then released (without
-//  rollback) but during the continuing fit, it gets
-//  small again. That is probably an error, so fix it
-//  once more (with rollback) which will presumably take
-//  us back to the larger value, but this time, don't
-//  complain at alamda==0 time.
+/** adjust_params
+ * @param alamda The Levenberg-Marquardt lambda parameter
+ * @param P Current pressure in Torr
+ * @param T Current temperature in Kelvin
+ * @param a Pointer to paramater values vector
+ * @return non-zero if a change in which parameters are free is mandated.
+ *
+ * alamda is used to indicate:
+ *  alamda < 0 Initialization: set fixed parameters
+ *  alamda < -1.5 called once per data set
+ *  alamda > 0 Iteration: check floating parameters
+ *  alamda == 0 Finalization: check if redo is required
+ * Might be possible to get into oscillation if line gets
+ *  re-disabled, but that should be unlikely. If it does
+ *  happen, it could be detected by keeping track. It is
+ *  probably best to leave it disabled if it happens twice.
+ *  The logic is: first time it is disabled because it is
+ *  getting small. When the width is corrected, it then
+ *  turns out to be large. It is then released (without
+ *  rollback) but during the continuing fit, it gets
+ *  small again. That is probably an error, so fix it
+ *  once more (with rollback) which will presumably take
+ *  us back to the larger value, but this time, don't
+ *  complain at alamda==0 time.
+ */
 int voigt::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Float *a ) {
   ICOS_Float gamma_l;
-  // const ICOS_Float ln2 = log(2.);
 
   if ( func_line::adjust_params( alamda, P, T, a ) )
     return 1;
@@ -324,7 +306,7 @@ int voigt::adjust_params( ICOS_Float alamda, ICOS_Float P, ICOS_Float T, ICOS_Fl
       prev_gl = gamma_l;
     }
   } else {
-    gamma_l  = get_param(a, gl_idx);
+    gamma_l = get_arg(a, gl_idx);
     if ( gamma_l <= 0. )
       gamma_l = set_param(a, gl_idx, prev_gl/2 );
     prev_gl = gamma_l;
@@ -337,9 +319,9 @@ void voigt::line_fix() {
   func_line::line_fix();
 }
 
-void voigt::line_ICOS_Float() {
-  if ( fix_lwidth == 0 ) ICOS_Float_param(gl_idx);
-  func_line::line_ICOS_Float();
+void voigt::line_float() {
+  if ( fix_lwidth == 0 ) float_param(gl_idx);
+  func_line::line_float();
 }
 
 void voigt::print_intermediates(FILE *fp) {

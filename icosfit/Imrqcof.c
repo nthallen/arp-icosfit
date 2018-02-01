@@ -7,8 +7,6 @@
 
 extern jmp_buf Fit_buf;
 
-// Here I'm trying to override the object members alpha and beta
-// with method arguments.
 void fitdata::mrqcof( ICOS_Float *av, ICOS_Float **alpha, ICOS_Float *beta ) {
   int i,j,k,l,m;
   ICOS_Float wt,sig2i,dy;
@@ -18,8 +16,9 @@ void fitdata::mrqcof( ICOS_Float *av, ICOS_Float **alpha, ICOS_Float *beta ) {
     beta[j]=0.0;
   }
   chisq=0.0;
+  func_evaluator::pre_evaluation_order.pre_eval(x[1], av);
   for (i=1;i<=npts;i++) {
-    func->evaluate( x[i], av );
+    func_evaluator::global_evaluation_order.evaluate(x[i], av);
     if ( isnan( func->value ) ) {
       nl_error( 2, "evaluate x[%d]=%lf returned NaN", i, x[i] );
       longjmp(Fit_buf, 1);

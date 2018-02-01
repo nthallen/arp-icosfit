@@ -216,20 +216,22 @@ f_vector *wndebug;
   }
 #endif
 
-// returns 1 on success, 0 if there was an error
-// For ASCII Processing:
-//  fgets() reads in the line including the newline
-//  strtod() updates the endptr (ep) to point to the char
-//  immediately following the converted value. This should
-//  satisfy isspace(*ep) for every successful conversion,
-//  and since strtod swallows whitespace at the beginning,
-//  it should be false for every unsuccessful conversion.
-//
-//  An ASCII file is deemed to have an etalon if there are
-//  two numbers on a line. Clearly it would make sense
-//  to make this determination once per file and avoid
-//  testing each line.
-
+/**
+ * @param fileno Input file index for multi-level-file routines
+ * @return 1 on success, 0 if there was an error
+ * For ASCII Processing:
+ *  fgets() reads in the line including the newline
+ *  strtod() updates the endptr (ep) to point to the char
+ *  immediately following the converted value. This should
+ *  satisfy isspace(*ep) for every successful conversion,
+ *  and since strtod swallows whitespace at the beginning,
+ *  it should be false for every unsuccessful conversion.
+ *
+ *  An ASCII file is deemed to have an etalon if there are
+ *  two numbers on a line. Clearly it would make sense
+ *  to make this determination once per file and avoid
+ *  testing each line.
+ */
 int ICOSfile::read( unsigned long int fileno ) {
   FILE *fp;
   mlf_set_index( mlf, fileno );
@@ -357,10 +359,12 @@ int ICOSfile::read( unsigned long int fileno ) {
   return 1;
 }
 
-// Translate wavenumber back to sample number
-// We will now assume that nu_F0 (the free parameter) has been
-// subtracted from wn before the call, and hence wn is suitable
-// for direct lookup in wndata.
+/**
+ * Translate wavenumber back to sample number
+ * We will now assume that nu_F0 (the free parameter) has been
+ * subtracted from wn before the call, and hence wn is suitable
+ * for direct lookup in wndata.
+ */
 int ICOSfile::wn_sample( ICOS_Float wn ) {
   // assert( nu_F0 > 0 );
   assert( wndata->n_data >= (int)GlobalData.SignalRegion[1] );

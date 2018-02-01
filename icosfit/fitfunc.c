@@ -46,7 +46,7 @@ fitdata::fitdata( PTfile *ptf, ICOSfile *IF,
   Start = End = 0;
   npts = npts_vec = 0;
   x = y = sig = 0;
-  ma = func->n_params;
+  ma = func_parameter::n_parameters;
   a    = vector(1,ma);
   a_save = vector(1,ma);
   atry = vector(1,ma);
@@ -57,6 +57,8 @@ fitdata::fitdata( PTfile *ptf, ICOSfile *IF,
   if ( a == 0 || ia == 0 )
     nl_error( 3, "Out of memory in fitdata::fitdata" );
   for ( i = 1; i <= ma; i++ ) ia[i] = 1;
+  func_evaluator::global_evaluation_order.set(f);
+  func_evaluator::dump_evaluation_order.set_pre_order(f);
   f->init( a, ia );
   covar = matrix( 1, ma, 1, ma );
   alpha = matrix( 1, ma, 1, ma );
@@ -66,6 +68,10 @@ fitdata::fitdata( PTfile *ptf, ICOSfile *IF,
 
 #define RESTART_BUFSIZE 4096
 
+/**
+  Resets internal parameters to match a specific start condition
+  based on a previous run.
+ */
 void fitdata::handle_restart( const char *ofname ) {
   // unsigned int prev_ScanNum = 0;
   if ( RestartAt != NoKey)
@@ -145,9 +151,10 @@ void fitdata::handle_restart( const char *ofname ) {
       }
       fclose( ifp );
       IFile->read( ScanNum ); // To initialize wndata
-      { func_line *line;
-        for ( line = absorb->lfirst(); line != 0; line = line->lnext() ) {
-          if ( line->param_fixed( line->l_idx ) ) {
+      { std::vector<argref>::iterator arg;
+        for (arg = absorb->args.begin(); arg != absorb->args.end(); ++arg) {
+          func_line *line = arg->arg->is_line();
+          if ( line && line->param_fixed( line->dnu_idx ) ) {
             line->fixed = 1;
             if ( line->param_fixed( line->n_idx ) )
               nl_error( 0, "Line at %.4" FMT_F " is off", line->nu );
@@ -178,7 +185,8 @@ static FILE *pathopen( const char *path, const char *format, int fileno ) {
 }
 
 int fitdata::adjust_params( ICOS_Float *av ) {
-  return func->adjust_params( alamda, PTf->P, PTf->T, av );
+  return func_evaluator::global_evaluation_order.adjust_params(alamda,
+    PTf->P, PTf->T, av );
 }
 
 void print_matrix( ICOS_Float **mat, const char *name, int nrow, int ncol ) {
@@ -213,6 +221,9 @@ void print_vector( ICOS_Float *vec, const char *name, int ncol ) {
   fprintf( stderr, "\n" );
 }
 
+/**
+  Handles the complete fit for one raw scan file.
+ */
 int fitdata::fit( ) {
   ICOS_Float *yin = IFile->sdata->data;
   int i;
@@ -223,12 +234,6 @@ int fitdata::fit( ) {
   // be objectified.
   crntfit = this;
 
-  // The following is done here simply because it is convenient
-  // as the first place that the IFile and the fitdata objects
-  // come together. It should be part of the input process.
-  // IFile->fit_fringes( SignalStart, SignalEnd );
-  // absorb->set_fringes( IFile->fdata->data, IFile->fdata->n_data );
-  
   alamda=-2;
   while ( adjust_params( a ) != 0 ) alamda = -1;
 
@@ -236,16 +241,15 @@ int fitdata::fit( ) {
   // fit. This should not be limited to the absorb func.
   // It should be a virtual function of func_evaluator
   Start = End = 0;
-  // child = absorb->lfirst();
-  // if ( child != 0 ) {
   {
-    // Wavenumber decreases with sample number
-    ICOS_Float nu_F0 = absorb->get_param( a, 0 ); // + GlobalData.input.nu_F0;
+    // Note: Wavenumber decreases with sample number
+    ICOS_Float nu_F0 = absorb->get_arg( a, 0 );
     ICOS_Float wnStart = IFile->wndata->data[SignalEnd] + nu_F0;
     ICOS_Float wnEnd = IFile->wndata->data[SignalStart] + nu_F0;
     while ( func->line_check( 0, wnStart, wnEnd, PTf->P, PTf->T, a ) != 0 );
+    func->line_check( 1, wnStart, wnEnd, PTf->P, PTf->T, a );
     ICOS_Float EwnStart = 0., EwnEnd = 0.;
-    func->line_check( 1, EwnStart, EwnEnd, PTf->P, PTf->T, a );
+    func->line_check( 2, EwnStart, EwnEnd, PTf->P, PTf->T, a );
     if ( EwnStart != 0. && EwnEnd != 0. ) {
       if ( EwnStart > wnStart ) wnStart = EwnStart;
       if ( EwnEnd < wnEnd ) wnEnd = EwnEnd;
@@ -263,12 +267,10 @@ int fitdata::fit( ) {
   if ( npts > npts_vec ) {
     if ( npts_vec > 0 ) {
       free_vector(x,1,npts_vec);
-      // free_vector(y,1,npts_vec);
       free_vector(sig,1,npts_vec);
     }
     npts_vec = npts;
     x = vector(1,npts_vec);
-    // y = vector(1,npts_vec);
     sig =  vector(1,npts_vec);
     if ( x == 0 || sig == 0 )
       nl_error(3,"Out of memory resizing in fitdata::fit" );
@@ -306,17 +308,21 @@ int fitdata::fit( ) {
       // quadratic baseline file.
       
       // initialize sig to avoid the lines
-      ICOS_Float nu_F0 = absorb->get_param( a, 0 );
+      ICOS_Float nu_F0 = absorb->get_arg( a, 0 );
       for ( i = 1; i <= npts; i++ ) {
         sig[i] = 1;
-        func_line *child;
-        for (child = absorb->lfirst(); child != 0; child = child->lnext() ) {
-          if ( x[i] > IFile->wn_sample(child->line_end(a) - nu_F0) &&
-               x[i] < IFile->wn_sample(child->line_start(a) - nu_F0) )
-            sig[i] = 0;
+        std::vector<argref>::iterator child;
+        
+        for (child = absorb->args.begin(); child != absorb->args.end(); ++child) {
+          func_line *line = child->arg->is_line();
+          if (line) {
+            if ( x[i] > IFile->wn_sample(line->line_end(a) - nu_F0) &&
+                 x[i] < IFile->wn_sample(line->line_start(a) - nu_F0) )
+              sig[i] = 0;
+          }
         }
       } 
-      lfit(x,y,sig,npts,a,ia,base->n_params,covar,&chisq, BaseFitFunction);
+      lfit(x,y,sig,npts,a,ia,base->params.size(),covar,&chisq, BaseFitFunction);
       FitBaseline = 0;
     }
 
@@ -341,6 +347,9 @@ int fitdata::fit( ) {
       if ( verbose & 8 ) {
         FILE *vvfp = pathopen( vmlf->fpath, "%04d.dat", vctr );
         this->lwrite( vfp, vvfp, vctr++ );
+      }
+      if (verbose & 4) {
+        func_evaluator::dump_evaluation_order.dump();
       }
       int mrqrv = mrqmin();
       if ( mrqrv ) {
@@ -390,42 +399,50 @@ int fitdata::fit( ) {
     alamda = 0.0;
     mrqmin();
     return 1;
-    // func->dump_params(a, 0);
-    // return 0;
   } else {
     nl_error(1, "Failure after %d iterations", counter);
-    func->dump_params(a, 0);
+    func_evaluator::dump_evaluation_order.dump();
     return 0;
   }
 }
 
 int fitdata::n_input_params = 6;
 const int fitdata::ScanNum_col = 1;
-// const int fitdata::dFN_col = 9;
 
+/**
+  @param ofp Output FILE pointer for ICOSsum.dat
+  @param vofp Output FILE pointer for verbose scan data if requested
+  @param fileno The scan number
+  Write the fit results. This function is used for the final fit
+  as well as intermediate results (verbose & 8). It writes a single
+  line to the ICOSsum.dat file and, if verbose & 1,
+  also generates a separate verbose scan fit file.
+ */
 void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
   int i;
   if ( vofp != 0 ) {
+    // Write verbose output file
     jmp_buf Fit_buf_save;
     memcpy( Fit_buf_save, Fit_buf, sizeof(Fit_buf) );
-    // Fit_buf_save = Fit_buf;
     if ( setjmp(Fit_buf) == 0 ) {
+      func_evaluator::pre_evaluation_order.pre_eval(x[1], a);
       for ( i = 1; i <= npts; i++ ) {
         ICOS_Float yfit;
-        func->evaluate( x[i], a );
+        func_evaluator::global_evaluation_order.evaluate(x[i], a);
         yfit = func->value;
-        fprintf( vofp, "%12.6le %14.8le %12.6le %12.6le %12.6le %12.6le",
+        fprintf( vofp, "%12.6" FMT_E " %14.8" FMT_E " %12.6" FMT_E
+          " %12.6" FMT_E " %12.6" FMT_E " %12.6" FMT_E,
           x[i], ICOSfile::wndata->data[i+Start-1],
           y[i], yfit, base->value, absorb->value );
         if (verbose & 128)
           absorb->print_intermediates(vofp);
         if (verbose & 16) {
-          int j;
-          for ( j = 0; j < func->n_params; j++ ) {
-            if ( func->param_fixed(j) )
-              fprintf( vofp, " 0" );
-            else
+          for (unsigned j = 0; j < func->params.size(); j++ ) {
+            if (ia[func->params[j].index]) {
               fprintf( vofp, " %12.6" FMT_E, func->params[j].dyda );
+            } else {
+              fprintf( vofp, " 0" );
+            }
           }
         }
         fprintf( vofp, "\n" );
@@ -434,10 +451,10 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
       nl_error( 3, "unexpected longjmp during re-evaluation" );
     }
     memcpy( Fit_buf, Fit_buf_save, sizeof(Fit_buf_save) );
-    // Fit_buf = Fit_buf_save;
     fclose(vofp);
   }
   if ( ofp != 0 ) {
+    // Write line of output to ICOSsum.dat
     int mfit = 0, n_i_p = 6;
     for ( i = 1; i <= ma; i++ ) {
       if ( ia[i] != 0 ) mfit++;
@@ -446,23 +463,29 @@ void fitdata::lwrite( FILE *ofp, FILE *vofp, int fileno ) {
     fprintf( ofp, "%6d %6.2lf %6.2lf %12.5le %d %d",
       fileno, PTf->P, PTf->T, chisq/(End-Start-mfit+1),
       Start, End);
-    { func_line *line;
-      for ( line = absorb->lfirst(); line != 0; line = line->lnext() ) {
-        fprintf( ofp, " %d %12.5le", line->fixed, line->S_thresh );
-        n_i_p += 2;
+    { std::vector<argref>::iterator child;
+      for (child = absorb->args.begin(); child != absorb->args.end(); ++child) {
+        func_line *line = child->arg->is_line();
+        if (line) {
+          fprintf( ofp, " %d %12.5" FMT_E, line->fixed, line->S_thresh );
+          n_i_p += 2;
+        }
       }
     }
     assert(n_i_p == n_input_params);
-    for ( i = 1; i <= ma; i++ ) {
-      fprintf( ofp, " %13.7le", a[i] );
-    }
-    for ( i = 1; i <= ma; i++ ) {
-      fprintf( ofp, " %d", ia[i] );
-    }
+    // This is not a simple recursive dump of parameters, as
+    // that could be unnecessarily dependent on function build
+    // order and structure. Instead, specific subclasses will
+    // impose order as necessary.
+    func->output_params(ofp, false);
+    func->output_params(ofp, true);
     if (verbose & 128) {
-      func_line *line;
-      for ( line = absorb->lfirst(); line != 0; line = line->lnext() ) {
-        fprintf(ofp, " %13.7le %13.7le", line->Corr_Tref, line->Ks);
+      std::vector<argref>::iterator child;
+      for (child = absorb->args.begin(); child != absorb->args.end(); ++child) {
+        func_line *line = child->arg->is_line();
+        if (line) {
+          fprintf(ofp, " %13.7le %13.7le", line->Corr_Tref, line->Ks);
+        }
       }
     }
     fprintf( ofp, "\n" );

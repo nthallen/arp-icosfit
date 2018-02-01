@@ -1,17 +1,19 @@
 #include <errno.h>
 #include <math.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "ICOSfit.h"
 #include "global.h"
 
-// func_base is a func_evaluator that uses a canonical
-// baseline shape derived from zero air for the baseline.
-// The baseline data is written in my ICOS-standard binary
-// file format, which uses two 32-bit unsigned ints at
-// the start to specify rows and columns, and then records
-// the remaining data as ICOS_Floats. For the baseline, the first
-// element of each column is the parameter initialization.
-
+/**
+  func_base_svdx is a func_evaluator that uses a canonical
+  baseline shape derived from zero air for the baseline.
+  The baseline data is written in my ICOS-standard binary
+  file format, which uses two 32-bit unsigned ints at
+  the start to specify rows and columns, and then records
+  the remaining data as floats. For the baseline, the first
+  element of each column is the parameter initialization.
+ */
 func_base_svdx::func_base_svdx( const char *filename ) :
     func_base( "func_base_svdx" ) {
   uses_nu_F0 = 0;
@@ -25,8 +27,8 @@ func_base_svdx::func_base_svdx( const char *filename ) :
   if ( header[0] <= 1 || header[1] <= 0 )
     nl_error( 3, "%s: Invalid header: %ld, %ld", filename,
               header[0], header[1] );
-  n_params = header[1];
-  params = new parameter[n_params];
+  // n_params = header[1];
+  // params = new parameter[n_params];
   n_pts = header[0]-1;
   baseline = new ICOS_Float *[header[1]+1];
   if (baseline == 0) nl_error(3, "Out of memory in func_base" );
@@ -36,33 +38,44 @@ func_base_svdx::func_base_svdx( const char *filename ) :
     baseline[i] = new ICOS_Float[header[0]];
     if ( baseline[i] == 0 )
       nl_error(3, "Out of memory in func_base");
-    if ( fread_swap32( baseline[i], sizeof(ICOS_Float), header[0], fp )
-          != header[0] )
+    if ( fread_swap32( baseline[i], sizeof(float), header[0], fp )
+          != header[0] ) {
       nl_error( 3, "%s: Error reading baseline: %s", filename,
         strerror(errno) );
-    params[i].init = baseline[i][0];
+    } else {
+#if RESIZE_INPUT
+      float *raw = (float*)baseline[i];
+      ICOS_Float *tgt = baseline[i];
+      for (int ix = header[0]-1; ix >= 0; --ix) {
+        tgt[ix] = (ICOS_Float)raw[ix];
+      }
+#endif
+      append_func(new func_parameter("basesvdx",
+        (ICOS_Float)baseline[i][0], true, i));
+      // params[i].init = baseline[i][0];
+    }
   }
   fclose(fp);
 }
 
 void func_base_svdx::evaluate( ICOS_Float x, ICOS_Float *a ) {
-  int i;
+  unsigned int i;
   int ix = (int)x;
   if ( ix < 1 || ix > n_pts )
     nl_error( 3,
-      "x out of range in func_base::evaluate: %d", ix );
+      "x out of range in func_base_svdx::evaluate: %d", ix );
   value = 0.;
-  for ( i = 0; i < n_params; i++ ) {
-    ICOS_Float ai = get_param( a, i );
+  for (i = 0; i < args.size(); ++i) {
+    ICOS_Float ai = get_arg( a, i );
     ICOS_Float bix = baseline[i][ix];
     value += ai * bix;
-    params[i].dyda = bix;
+    args[i].dyda = bix;
   }
 }
 
-func_base_ptbnu::func_base_ptbnu( const char *filename ) :
+func_base_ptbnu::func_base_ptbnu(const char *filename, func_evaluator *nu_F0) :
     func_base( "func_base_ptbnu" ) {
-  uses_nu_F0 = 0;
+  // uses_nu_F0 = 0;
   // The file format is specified in funceval.h
   FILE *fp = fopen( filename, "r" );
   icos_hdr_t header[2];
@@ -87,9 +100,10 @@ func_base_ptbnu::func_base_ptbnu( const char *filename ) :
   #endif
   if ( cfg.n_vectors > 0 && cfg.n_pts < 2 )
     nl_error(3, "%s: n_pts too small: %d", filename, cfg.n_pts );
-  uses_nu_F0 = (cfg.n_vectors | cfg.poly_of_nu) ? 1 : 0;
-  n_params = uses_nu_F0 + cfg.n_vectors + cfg.poly_coeffs;
-  params = new parameter[n_params];
+  uses_nu_F0 = (cfg.n_vectors || cfg.poly_of_nu) ? 1 : 0;
+  if (uses_nu_F0) {
+    append_func(nu_F0);
+  }
   // Read in initial parameter values
   int i;
   for ( i = 0; i < cfg.n_vectors; i++) {
@@ -97,7 +111,7 @@ func_base_ptbnu::func_base_ptbnu( const char *filename ) :
     if ( fread_swap32( &pval, sizeof(float), 1, fp ) != 1 )
       nl_error( 3, "%s: Error reading vector param init: %s", filename,
         strerror(errno));
-    params[i+uses_nu_F0].init = (ICOS_Float)pval;
+    append_func(new func_parameter("basevec", (ICOS_Float)pval, true, i));
   }
   for ( i = 0; i < cfg.poly_coeffs; i++ ) {
     float pval;
@@ -105,7 +119,7 @@ func_base_ptbnu::func_base_ptbnu( const char *filename ) :
             != 1 )
       nl_error( 3, "%s: Error reading polynomial param init: %s", filename,
         strerror(errno));
-    params[uses_nu_F0+cfg.n_vectors+i].init = (ICOS_Float)pval;
+    append_func(new func_parameter("basepoly", (ICOS_Float)pval, true, i));
   }
   if ( cfg.n_vectors ) {
     vectors = new ICOS_Float *[cfg.n_vectors];
@@ -117,11 +131,11 @@ func_base_ptbnu::func_base_ptbnu( const char *filename ) :
           strerror(errno));
 #if RESIZE_INPUT
       } else {
-	float *raw = (float*)vectors[i];
-	ICOS_Float *tgt = vectors[i];
-	for (int ix = cfg.n_pts-1; ix >= 0; --ix) {
-	  tgt[ix] = (ICOS_Float)raw[ix];
-	}
+        float *raw = (float*)vectors[i];
+        ICOS_Float *tgt = vectors[i];
+        for (int ix = cfg.n_pts-1; ix >= 0; --ix) {
+          tgt[ix] = (ICOS_Float)raw[ix];
+        }
 #endif
       }
     }
@@ -158,22 +172,18 @@ func_base_ptbnu::func_base_ptbnu( const char *filename ) :
       fprintf( stderr, "];\n" );
     }
   }
-}
-
-void func_base_ptbnu::init( ICOS_Float *a ) {
-  int p2;
-  for ( p2 = 0; p2 < n_params; p2++ )
-    a[params[p2].index] = params[p2].init;
-
-  cfg.nu0 -= func_line::nu0;
   // Now setup polynomial stuff
+  // ### Why is this in init().
+  // ### Could it not be in the constructor?
+  cfg.nu0 -= func_line::nu0;
   if ( cfg.poly_coeffs > 0 && ! cfg.poly_of_nu ) {
     int nx = GlobalData.SignalRegion[1]+1;
     polyvecs = new ICOS_Float *[cfg.poly_coeffs-1]; // don't bother with constant
     if ( polyvecs == 0 ) nl_error(3, "Out of memory in func_base_ptbnu::init" );
     for ( int i = 0; i < cfg.poly_coeffs-1; i++ ) {
       polyvecs[i] = new ICOS_Float[nx];
-      if ( polyvecs[i] == 0 ) nl_error( 3, "Out of memory in func_base_ptbnu::init" );
+      if ( polyvecs[i] == 0 )
+        nl_error( 3, "Out of memory in func_base_ptbnu::init" );
     }
     for ( int j = 0; j < nx; j++ ) {
       ICOS_Float x = j/cfg.poly_scale;
@@ -186,17 +196,21 @@ void func_base_ptbnu::init( ICOS_Float *a ) {
   }
 }
 
-// given x and parameters a, calculate value and
-// params[].dyda
+void func_base_ptbnu::init( ICOS_Float *a ) {
+  func_evaluator::init(a);
+  if (uses_nu_F0)
+    fix_param(0);
+}
+
 void func_base_ptbnu::evaluate( ICOS_Float x, ICOS_Float *a ) {
   int ix = int(x);
   ICOS_Float nu = 0.;
 
   value = 0;
   if ( uses_nu_F0 ) {
-    ICOS_Float nu_F0 = get_param(a,0);
+    ICOS_Float nu_F0 = get_arg(a,0);
     nu = ICOSfile::wndata->data[ix] + nu_F0;
-    params[0].dyda = 0;
+    args[0].dyda = 0;
   }
   if ( cfg.n_vectors ) {
     ICOS_Float bins = (nu-cfg.nu0)/cfg.dnu;
@@ -206,12 +220,12 @@ void func_base_ptbnu::evaluate( ICOS_Float x, ICOS_Float *a ) {
     int nui = (int) floor(bins);
     ICOS_Float fbin = bins - nui; // fraction of a bin
     for ( int i = 0; i < cfg.n_vectors; i++ ) {
-      ICOS_Float ai = get_param(a, i+uses_nu_F0);
+      ICOS_Float ai = get_arg(a, i+uses_nu_F0);
       ICOS_Float dvdnui = dvdnu[i][nui];
       ICOS_Float vnui = vectors[i][nui] + fbin * cfg.dnu * dvdnui;
       value += ai * vnui;
-      params[0].dyda += ai * dvdnui;
-      params[i+uses_nu_F0].dyda = vnui;
+      args[0].dyda += ai * dvdnui;
+      args[i+uses_nu_F0].dyda = vnui;
     }
   }
   // Now for the polynomials
@@ -220,59 +234,54 @@ void func_base_ptbnu::evaluate( ICOS_Float x, ICOS_Float *a ) {
     ICOS_Float prevpower = 1;
     for ( int i = 0; i <= cfg.poly_coeffs; i++ ) {
       int pi = i + uses_nu_F0 + cfg.n_vectors;
-      ICOS_Float ai = get_param(a,pi);
+      ICOS_Float ai = get_arg(a,pi);
       value += ai * nupower;
-      params[pi].dyda = nupower;
-      params[0].dyda += i*ai*prevpower;
+      args[pi].dyda = nupower;
+      args[0].dyda += i*ai*prevpower;
       prevpower = nupower;
       nupower *= nu;
     }
   } else {
-    value += get_param(a,cfg.n_vectors+uses_nu_F0); // Constant
-    params[cfg.n_vectors+uses_nu_F0].dyda = 1;
+    value += get_arg(a,cfg.n_vectors+uses_nu_F0); // Constant
+    args[cfg.n_vectors+uses_nu_F0].dyda = 1;
     for ( int i = 0; i < cfg.poly_coeffs-1; i++ ) {
       int pi = uses_nu_F0 + cfg.n_vectors + 1 + i;
       ICOS_Float xpower = polyvecs[i][ix];
-      value += get_param(a,pi) * xpower;
-      params[pi].dyda = xpower;
+      value += get_arg(a,pi) * xpower;
+      args[pi].dyda = xpower;
     }
   }
 }
 
 func_base_input::func_base_input( func_base *base ) :
             func_base("func_base_input") {
+  append_func(new func_parameter("k_input",1.0));
   append_func(base);
-  n_params = base->n_params + 1;
-  uses_nu_F0 = base->uses_nu_F0;
+  // n_params = base->n_params + 1;
+  // uses_nu_F0 = base->uses_nu_F0;
 }
 
 void func_base_input::init(ICOS_Float *a) {
-  int p1, p2;
-  a[params[uses_nu_F0].index] = 1;
-  if ( first->params == 0 )
-    first->params = new parameter[first->n_params];
-  if ( uses_nu_F0 )
-    link_param( 0, first, 0 );
-  for ( p1 = 1+uses_nu_F0, p2 = uses_nu_F0; p2 < first->n_params; p2++ ) {
-    link_param( p1, first, p2 );
-    p1++;
+  func_evaluator::init(a);
+  assert(args.size() == 2);
+  // This could be is_parameter()
+  assert(args[0].arg->args.size() == 0 &&
+         args[0].arg->params.size() == 1);
+  for (unsigned int i = 1; i < params.size(); ++i) {
+    assert(params[i].refs.size() == 1);
+    assert(params[i].refs[0].arg_num == 1);
   }
-  first->init(a);
 }
 
 void func_base_input::evaluate( ICOS_Float x, ICOS_Float *a ) {
   int ix = int(x);
-  func_evaluator::evaluate( x, a ); // evaluate base
-  value = a[params[uses_nu_F0].index]*ICOSfile::bdata->data[ix] + first->value;
-  params[uses_nu_F0].dyda = ICOSfile::bdata->data[ix];
-  if ( uses_nu_F0 )
-    params[0].dyda = first->params[0].dyda;
-  int i;
-  for ( i = 1+uses_nu_F0; i < n_params; i++ )
-    params[i].dyda = first->params[i-1].dyda;
+  value = args[0].arg->value * ICOSfile::bdata->data[ix] +
+    args[1].arg->value;
+  args[0].dyda = ICOSfile::bdata->data[ix];
+  args[1].dyda = 1;
 }
 
-func_base *pick_base_type( const char *filename ) {
+func_base *pick_base_type(const char *filename, func_evaluator *nu_F0) {
   func_base *base;
   FILE *fp = fopen( filename, "r" );
   if ( fp == 0 )
@@ -285,9 +294,12 @@ func_base *pick_base_type( const char *filename ) {
   if (header[0]) {
     base = new func_base_svdx(filename);
   } else if (header[1] == 1) {
-    base = new func_base_ptbnu(filename);
-  } else nl_error( 3, "Unrecognized baseline file format: %s", filename );
+    base = new func_base_ptbnu(filename, nu_F0);
+  } else {
+    nl_error( 3, "Unrecognized baseline file format: %s", filename );
+    return 0; // Can't happen
+  }
   if ( GlobalData.BaselineInput )
-    base = new func_base_input( base );
+    base = new func_base_input(base);
   return base;
 }

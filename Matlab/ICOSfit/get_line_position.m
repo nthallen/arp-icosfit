@@ -30,7 +30,12 @@ end
 if nargin < 3 || isempty(PTEfile)
     PTEfile = S.PTEfile;
 end
-scans = S.scannum;
+
+if S.ICOS_debug
+  scans = ones(size(S.scannum))*S.ICOS_debug_scan;
+else
+  scans = S.scannum;
+end
 FSR = S.EtalonFSR;
 PTE = load(PTEfile);
 [SS,I] = unique(PTE(:,1));

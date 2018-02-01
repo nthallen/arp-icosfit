@@ -4,9 +4,9 @@
 
 class f_vector {
   public:
-	ICOS_Float *data;
-	int n_data;
-	int datasize;
+	ICOS_Float *data; //< The data vector
+	int n_data; //< The number of elements in the data vector
+	int datasize; //< The allocated size of the data vector
 	int min_size;
 	int offset;
 	f_vector( int minsize, int offset=0 );
