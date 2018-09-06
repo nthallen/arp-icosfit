@@ -16,6 +16,10 @@ function [ fringex, fry ] = fitfringe( y, n, verbose, x_offset )
 %
 % The silent elimination of early fringes could result in very
 % poor fitting in some regimes--That's something worth checking.
+%
+% The idea here is at each sample i to fit the points y(i+(-n:n)) to
+% b2 * x^2 + b1 * x + b0
+% a2 is a measure of where the peak is
 extendit=0;
 N = size(y,1);
 Nc = 2*n+1;
@@ -82,7 +86,7 @@ dsfr = (fringex(ddx+2)-fringex(ddx+1))./(fringex(ddx+1)-fringex(ddx));
 vdsfr = dsfr>1.26|dsfr<.9;
 if any(vdsfr)
   dv = diff(vdsfr);
-  if length(find(dv<0)) <= 1 && length(find(dv>0)) <= 1
+  if length(find(dv<0)) + length(find(dv>0)) <= 1
     dsfrok = find(~vdsfr);
     fringex = fringex(dsfrok);
     fringey = fringey(dsfrok);
@@ -131,53 +135,51 @@ frno = 1:length(fringex)-1;
 
 if verbose > 0
   figure;
-  nsubplot(2,1,1,1);
-  plot(fringex(frno)+x_offset-1,diff(fringex),'+-');
-  ylabel('Samples/Fr');
-  set(gca,'XTickLabel',[]);
-  grid;
+  ax = [ nsubplot(2,1,1,1), nsubplot(2,1,2,1)];
+  plot(ax(1),fringex(frno)+x_offset-1,diff(fringex),'+-');
+  ylabel(ax(1),'Samples/Fr');
+  set(ax(1),'XTickLabel',[]);
+  grid(ax(1));
   % ch = gca;
-  nsubplot(2,1,2,1);
-  plot(fringex(ddx)+x_offset-1,dsfr,'+');
-  ylabel('DSFR');
-  set(gca,'YAxisLocation','Right');
+  plot(ax(2),fringex(ddx)+x_offset-1,dsfr,'+');
+  ylabel(ax(2),'DSFR');
+  set(ax(2),'YAxisLocation','Right');
   addzoom;
+  linkaxes(ax,'x');
   %return;
   
   figure;
-  nsubplot(4,1,1,1);
+  ax = [nsubplot(4,1,1,1),nsubplot(4,1,2,1),nsubplot(4,1,3,1),nsubplot(4,1,4,1)];
   h = [];
-  plot(xx+x_offset-1,b2,xx(v)+x_offset-1,b2(v),'r+');
-  ylabel('b2');
-  set(gca,'XTickLabel',[]);
+  plot(ax(1),xx+x_offset-1,b2,xx(v)+x_offset-1,b2(v),'r+');
+  ylabel(ax(1),'b2');
+  set(ax(1),'XTickLabel',[]);
   zoom on;
-  grid;
+  grid(ax(1),'on');
   % ch = [ch gca];
   
-  nsubplot(4,1,2,1);
-  h = [ h; plot(xx+x_offset-1, Y(:,n)) ];
-  ylabel('Raw');
-  set(gca,'XTickLabel',[],'YAxisLocation','Right');
+  h = [ h; plot(ax(2),xx+x_offset-1, Y(:,n)) ];
+  ylabel(ax(2),'Raw');
+  set(ax(2),'XTickLabel',[],'YAxisLocation','Right');
   % zoom yon;
-  grid;
+  grid(ax(2),'on');
   % ch = [ch gca];
   
-  nsubplot(4,1,3,1);
-  h = [ h; plot(xx+x_offset-1,a2)];
-  ylabel('a1');
-  set(gca,'XTickLabel',[]);
+  h = [ h; plot(ax(3),xx+x_offset-1,a2)];
+  ylabel(ax(3),'a1');
+  set(ax(3),'XTickLabel',[]);
   % zoom yon;
-  grid;
+  grid(ax(3),'on');
   % ch = [ch gca];
   
-  nsubplot(4,1,4,1);
-  h = [ h; plot(xx+x_offset-1,chi2); ];
-  ylabel('Chi^2');
-  set(gca,'YAxisLocation','Right');
-  grid;
+  h = [ h; plot(ax(4),xx+x_offset-1,chi2); ];
+  ylabel(ax(4),'Chi^2');
+  set(ax(4),'YAxisLocation','Right');
+  grid(ax(4),'on');
   % ch = [ch gca];
   
   set(h,'Marker','+');
+  linkaxes(ax,'x');
   shg;
 end
 
