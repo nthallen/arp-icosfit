@@ -367,10 +367,12 @@ func_parameter_p Nparameter(const char *group) {
 
 static ICOS_Float get_molwt( int isotopomer ) {
   switch (isotopomer) {
-    case 11: return 18.011000; // H_2O
+    case 11: return 18.010565; // H_2O
     case 12: return 20.014811; // H_2{}^{18}O
-    case 13: return 19.015000; // H_2{}^{17}O
-    case 14: return 19.017000; // HDO
+    case 13: return 19.01478;  // H_2{}^{17}O
+    case 14: return 19.01674;  // HDO
+    case 15: return 21.020985; // HD^{18}O
+    case 16: return 20.020956; // HD^{17}O
     case 21: return 43.989830; // CO2
     case 22: return 44.993183; // CO_2{}^{13}C
     case 23: return 45.994076; // CO_2{}^{18}O
